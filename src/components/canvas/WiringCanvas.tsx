@@ -1,0 +1,427 @@
+import React, { useRef, useState } from 'react';
+import { ElectricalDevice, ElectricalWire, DeviceTerminal, CodeStandard, WiringMode, DeviceType } from '../../types/electrical';
+import { DeviceRenderer } from '../devices/DeviceRenderer';
+import { WireRenderer } from './WireRenderer';
+import { calculateOrthogonalPath, generateSvgPath, Point, getDeviceTerminalPosition } from '../../core/wireRouter';
+import { SolvedCircuit } from '../../core/circuitSolver';
+
+interface WiringCanvasProps {
+  devices: ElectricalDevice[];
+  wires: ElectricalWire[];
+  solved: SolvedCircuit;
+  standard: CodeStandard;
+  wiringMode: WiringMode;
+  activeWireColor: string;
+  activeWireGauge: string;
+  selectedDeviceId: string | null;
+  selectedWireId: string | null;
+  onSelectDevice: (id: string | null) => void;
+  onSelectWire: (wire: ElectricalWire | null) => void;
+  onUpdateDevicePosition: (id: string, x: number, y: number) => void;
+  onConnectWire: (fromDevId: string, fromTermId: string, toDevId: string, toTermId: string, mode?: WiringMode) => void;
+  onToggleDeviceState: (device: ElectricalDevice) => void;
+  onUpdateWireWaypoints?: (wireId: string, waypoints: Point[]) => void;
+  onDropDevice?: (type: DeviceType, x: number, y: number) => void;
+  onRotateDevice?: (device: ElectricalDevice) => void;
+  onDuplicateDevice?: (device: ElectricalDevice) => void;
+  onDeleteDevice?: (device: ElectricalDevice) => void;
+}
+
+export const WiringCanvas: React.FC<WiringCanvasProps> = ({
+  devices,
+  wires,
+  solved,
+  standard,
+  wiringMode,
+  activeWireColor,
+  activeWireGauge,
+  selectedDeviceId,
+  selectedWireId,
+  onSelectDevice,
+  onSelectWire,
+  onUpdateDevicePosition,
+  onConnectWire,
+  onToggleDeviceState,
+  onUpdateWireWaypoints,
+  onDropDevice,
+  onRotateDevice,
+  onDuplicateDevice,
+  onDeleteDevice,
+}) => {
+  const containerRef = useRef<SVGSVGElement | null>(null);
+
+  // HTML5 Drag and Drop from Component Drawer
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('application/voltlab-device') as DeviceType;
+    if (type && onDropDevice && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const rawX = e.clientX - rect.left;
+      const rawY = e.clientY - rect.top;
+      const svgX = (rawX - pan.x) / zoom;
+      const svgY = (rawY - pan.y) / zoom;
+      onDropDevice(type, Math.round(svgX / 10) * 10, Math.round(svgY / 10) * 10);
+    }
+  };
+
+  // Dragging device state
+  const [draggingDevId, setDraggingDevId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 });
+
+  // Dragging wire segment state
+  const [draggingSegment, setDraggingSegment] = useState<{
+    wireId: string;
+    segmentIndex: number;
+    isHorizontal: boolean;
+    startMouse: Point;
+    initialWaypoints: Point[];
+  } | null>(null);
+
+  // Terminal wiring connection state
+  const [wiringStart, setWiringStart] = useState<{ dev: ElectricalDevice; term: DeviceTerminal } | null>(null);
+  const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
+  const [hoveredTerminalId, setHoveredTerminalId] = useState<string | null>(null);
+
+  // Pan and Zoom
+  const [zoom, setZoom] = useState(1.0);
+  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // Keyboard shortcut listener (ESC to cancel wiring / deselect, Space for panning)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (wiringStart) {
+          setWiringStart(null);
+        }
+        onSelectDevice(null);
+        onSelectWire(null);
+      } else if (e.code === 'Space' && !['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+        setIsSpacePressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpacePressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [wiringStart, onSelectDevice, onSelectWire]);
+
+  // Convert client mouse event to SVG workspace coordinates
+  const getSvgCoordinates = (e: React.MouseEvent): Point => {
+    if (!containerRef.current) return { x: 0, y: 0 };
+    const rect = containerRef.current.getBoundingClientRect();
+    const rawX = e.clientX - rect.left;
+    const rawY = e.clientY - rect.top;
+
+    return {
+      x: (rawX - pan.x) / zoom,
+      y: (rawY - pan.y) / zoom,
+    };
+  };
+
+  const handleDeviceMouseDown = (device: ElectricalDevice, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelectDevice(device.id);
+    onSelectWire(null);
+
+    const coords = getSvgCoordinates(e);
+    setDraggingDevId(device.id);
+    setDragOffset({
+      x: coords.x - device.x,
+      y: coords.y - device.y,
+    });
+  };
+
+  const handleTerminalMouseDown = (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!wiringStart) {
+      // Start wire
+      setWiringStart({ dev: device, term: terminal });
+    } else {
+      // Complete connection if clicking a different terminal
+      if (wiringStart.dev.id !== device.id || wiringStart.term.id !== terminal.id) {
+        onConnectWire(wiringStart.dev.id, wiringStart.term.id, device.id, terminal.id, wiringMode);
+      }
+      setWiringStart(null);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const coords = getSvgCoordinates(e);
+    setMousePos(coords);
+
+    if (draggingSegment) {
+      const deltaX = coords.x - draggingSegment.startMouse.x;
+      const deltaY = coords.y - draggingSegment.startMouse.y;
+      const newWaypoints = draggingSegment.initialWaypoints.map((pt, i) => {
+        // Wire endpoints MUST remain firmly anchored to device terminals
+        if (i === 0 || i === draggingSegment.initialWaypoints.length - 1) {
+          return pt;
+        }
+        if (i === draggingSegment.segmentIndex || i === draggingSegment.segmentIndex + 1) {
+          if (draggingSegment.isHorizontal) {
+            return { ...pt, y: Math.round((draggingSegment.initialWaypoints[i].y + deltaY) / 5) * 5 };
+          } else {
+            return { ...pt, x: Math.round((draggingSegment.initialWaypoints[i].x + deltaX) / 5) * 5 };
+          }
+        }
+        return pt;
+      });
+      if (onUpdateWireWaypoints) {
+        onUpdateWireWaypoints(draggingSegment.wireId, newWaypoints);
+      }
+      return;
+    }
+
+    if (draggingDevId) {
+      const newX = Math.round((coords.x - dragOffset.x) / 10) * 10;
+      const newY = Math.round((coords.y - dragOffset.y) / 10) * 10;
+      onUpdateDevicePosition(draggingDevId, Math.max(10, newX), Math.max(10, newY));
+    } else if (isPanning) {
+      setPan({
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setDraggingDevId(null);
+    setIsPanning(false);
+    setDraggingSegment(null);
+  };
+
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    // Middle-click (1), Right-click (2), Alt-click, or Spacebar-drag for smooth canvas panning
+    if (e.button === 1 || e.button === 2 || e.altKey || isSpacePressed) {
+      setIsPanning(true);
+      setPanStart({
+        x: e.clientX - pan.x,
+        y: e.clientY - pan.y,
+      });
+    } else {
+      // Left click on empty space deselects
+      onSelectDevice(null);
+      onSelectWire(null);
+      if (wiringStart) {
+        setWiringStart(null);
+      }
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+    const newZoom = Math.min(2.5, Math.max(0.4, zoom * zoomFactor));
+
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Zoom anchored to the exact cursor position
+    const newPanX = mouseX - (mouseX - pan.x) * (newZoom / zoom);
+    const newPanY = mouseY - (mouseY - pan.y) * (newZoom / zoom);
+
+    setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
+  };
+
+  // Preview path while drawing a wire
+  let previewPathD = '';
+  if (wiringStart) {
+    const fromPos = getDeviceTerminalPosition(wiringStart.dev, wiringStart.term);
+    const startPt: Point = { x: fromPos.x, y: fromPos.y };
+    const startDir = fromPos.dir;
+    const endDir = mousePos.y > startPt.y ? (startDir === 'down' ? 'up' : 'down') : 'up';
+    const previewWaypoints = calculateOrthogonalPath(startPt, mousePos, startDir, endDir, 34, 26);
+    previewPathD = generateSvgPath(previewWaypoints, 8);
+  }
+
+  return (
+    <div
+      className="relative w-full h-full bg-[#fbfaf8] overflow-hidden select-none"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Zoom / Pan Controls HUD (Light Theme) */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-white/95 border border-stone-200/90 rounded-xl p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] backdrop-blur-md">
+        <button
+          onClick={() => setZoom((z) => Math.min(2.5, z + 0.15))}
+          className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-bold text-sm transition"
+          title="Zoom In"
+        >
+          +
+        </button>
+        <span className="text-xs font-mono text-stone-600 w-12 text-center font-bold">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
+          className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-bold text-sm transition"
+          title="Zoom Out"
+        >
+          -
+        </button>
+        <button
+          onClick={() => {
+            setZoom(1.0);
+            setPan({ x: 0, y: 0 });
+          }}
+          className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-xs text-stone-600 rounded-lg font-medium transition"
+          title="Reset Canvas View"
+        >
+          Reset
+        </button>
+      </div>
+
+      {/* Wire Tool Notice */}
+      {wiringStart && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-rose-600 text-white font-bold text-xs px-4 py-1.5 rounded-full shadow-lg animate-pulse">
+          Click destination terminal to complete connection (ESC or click board to cancel)
+        </div>
+      )}
+
+      {/* Interactive SVG Surface */}
+      <svg
+        ref={containerRef}
+        className={`w-full h-full ${
+          isSpacePressed
+            ? isPanning
+              ? 'cursor-grabbing'
+              : 'cursor-grab'
+            : isPanning
+            ? 'cursor-grabbing'
+            : 'cursor-default'
+        }`}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseDown={handleCanvasMouseDown}
+        onWheel={handleWheel}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        <defs>
+          {/* Engineering CAD Grid Background Pattern (Warm Light Mode) */}
+          <pattern id="smallGridLight" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f0ece4" strokeWidth="0.8" />
+          </pattern>
+          <pattern id="majorGridLight" width="100" height="100" patternUnits="userSpaceOnUse">
+            <rect width="100" height="100" fill="url(#smallGridLight)" />
+            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#e6dfd5" strokeWidth="1.2" />
+          </pattern>
+        </defs>
+
+        {/* Canvas World Transform Group */}
+        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+          {/* Grid Background */}
+          <rect x="-2000" y="-2000" width="6000" height="6000" fill="url(#majorGridLight)" />
+
+          {/* Layer 1: Wires */}
+          <g id="wires-layer">
+            {wires.map((wire) => (
+              <WireRenderer
+                key={wire.id}
+                wire={wire}
+                devices={devices}
+                isSelected={selectedWireId === wire.id}
+                standard={standard}
+                currentAmps={solved.wireCurrents[wire.id] || 0}
+                flowDirection={solved.wireFlowDirections?.[wire.id] || 'forward'}
+                voltageDropPercent={solved.wireVoltageDropPercents[wire.id] || 0}
+                onSelectWire={() => onSelectWire(wire)}
+                onStartSegmentDrag={(wireId, segIdx, isHoriz, pt, waypoints, e) => {
+                  const coords = getSvgCoordinates(e);
+                  setDraggingSegment({
+                    wireId,
+                    segmentIndex: segIdx,
+                    isHorizontal: isHoriz,
+                    startMouse: coords,
+                    initialWaypoints: waypoints,
+                  });
+                }}
+              />
+            ))}
+          </g>
+
+          {/* Layer 2: Rubber-Band Preview Wire while Drawing */}
+          {wiringStart && previewPathD && (
+            <g id="wire-preview-layer" className="pointer-events-none">
+              <path
+                d={previewPathD}
+                fill="none"
+                stroke={activeWireColor}
+                strokeWidth={3.6}
+                strokeDasharray="6 4"
+                strokeLinecap="round"
+                className="animate-[dash_0.5s_linear_infinite]"
+              />
+            </g>
+          )}
+
+          {/* Layer 3: Electrical Devices */}
+          <g id="devices-layer">
+            {devices.map((device) => (
+              <DeviceRenderer
+                key={device.id}
+                device={device}
+                isSelected={selectedDeviceId === device.id}
+                selectedTerminalId={wiringStart ? `${wiringStart.dev.id}:${wiringStart.term.id}` : null}
+                hoveredTerminalId={hoveredTerminalId}
+                onDeviceMouseDown={handleDeviceMouseDown}
+                onTerminalMouseDown={handleTerminalMouseDown}
+                setHoveredTerminalId={setHoveredTerminalId}
+                onToggleState={onToggleDeviceState}
+                onRotate={onRotateDevice}
+                onDuplicate={onDuplicateDevice}
+                onDelete={onDeleteDevice}
+              />
+            ))}
+          </g>
+
+          {/* Layer 4: Sparks & Arc Flash Effects */}
+          <g id="sparks-layer" className="pointer-events-none">
+            {solved.sparks.map((spark) => (
+              <g key={spark.id} transform={`translate(${spark.x}, ${spark.y})`}>
+                <circle r={26} fill="#fef08a" opacity={0.85} className="animate-ping" />
+                <circle r={14} fill="#e11d48" opacity={0.9} />
+                {/* Spark Rays */}
+                {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
+                  <line
+                    key={deg}
+                    x1={0}
+                    y1={0}
+                    x2={30 * Math.cos((deg * Math.PI) / 180)}
+                    y2={30 * Math.sin((deg * Math.PI) / 180)}
+                    stroke="#ffffff"
+                    strokeWidth={2.5}
+                  />
+                ))}
+                {/* Fault Banner */}
+                <rect x={-80} y={-44} width={160} height={22} rx={5} fill="#e11d48" />
+                <text x={0} y={-29} textAnchor="middle" fontSize={9.5} fontWeight="bold" fill="#ffffff">
+                  ⚡ ARC FAULT DETECTED
+                </text>
+              </g>
+            ))}
+          </g>
+        </g>
+      </svg>
+    </div>
+  );
+};
