@@ -17,6 +17,37 @@ export interface SolvedCircuit {
   tripReasons: Record<string, string>;
 }
 
+/**
+ * De-energized baseline used in Edit Mode: 0 V everywhere, 0 A in every conductor,
+ * no trips and no arc sparks. Static wiring/polarity/gauge audits are done separately.
+ */
+export function createDeEnergizedSolution(wires: ElectricalWire[]): SolvedCircuit {
+  const wireCurrents: Record<string, number> = {};
+  const wireFlowDirections: Record<string, 'forward' | 'reverse'> = {};
+  const wireVoltageDrops: Record<string, number> = {};
+  const wireVoltageDropPercents: Record<string, number> = {};
+  for (const w of wires) {
+    wireCurrents[w.id] = 0;
+    wireFlowDirections[w.id] = 'forward';
+    wireVoltageDrops[w.id] = 0;
+    wireVoltageDropPercents[w.id] = 0;
+  }
+  return {
+    nodeVoltages: {},
+    nodePotentials: {},
+    deviceEnergized: {},
+    wireCurrents,
+    wireFlowDirections,
+    wireVoltageDrops,
+    wireVoltageDropPercents,
+    totalWatts: 0,
+    totalAmps: 0,
+    sparks: [],
+    trippedDevices: [],
+    tripReasons: {},
+  };
+}
+
 export function solveCircuit(
   devices: ElectricalDevice[],
   wires: ElectricalWire[],

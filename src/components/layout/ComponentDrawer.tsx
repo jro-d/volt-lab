@@ -1,213 +1,232 @@
-import React, { useState } from 'react';
-import { CodeStandard, DeviceType, WiringMode } from '../../types/electrical';
-import { COMPONENT_CATALOG } from '../../data/defaultComponents';
-import { COLOR_STANDARDS, getWireStandards } from '../../data/standardsData';
+import React, { useMemo, useState } from 'react';
+import { DeviceType } from '../../types/electrical';
+import { COMPONENT_CATALOG, ComponentDefinition } from '../../data/defaultComponents';
 import { DeviceThumbnail } from '../devices/DeviceThumbnail';
-import { 
-  Zap, 
-  ShieldCheck, 
-  ToggleRight, 
-  Lightbulb, 
-  Layers, 
-  ChevronDown, 
-  ChevronRight, 
-  Plus, 
-  GitBranch, 
-  Cable,
+import {
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  Plus,
   Search,
-  Cpu
+  X,
+  Library,
 } from 'lucide-react';
 
 interface ComponentDrawerProps {
-  standard: CodeStandard;
-  wiringMode: WiringMode;
-  activeWireColor: string;
-  activeWireGauge: string;
-  activeWireLength: number;
-  onSelectWiringMode: (mode: WiringMode) => void;
-  onSelectWireColor: (color: string) => void;
-  onSelectWireGauge: (gauge: string) => void;
-  onSelectWireLength: (length: number) => void;
+  isOpen: boolean;
+  onClose: () => void;
   onAddComponent: (type: DeviceType) => void;
+  /** When true (grid energized) adding devices is locked */
+  isLocked?: boolean;
 }
 
+interface FolderNode {
+  id: string;
+  label: string;
+  /** device types that live directly in this folder */
+  types?: DeviceType[];
+  children?: FolderNode[];
+}
+
+/**
+ * EduVolt-style hierarchical library tree. Any catalog device that is not claimed by a folder
+ * below is surfaced in a trailing "Other Devices" folder so nothing is ever hidden.
+ */
+const LIBRARY_TREE: FolderNode[] = [
+  {
+    id: 'residential',
+    label: 'ROYU & PH Residential Devices',
+    types: ['switch_1gang', 'switch_3way', 'switch_4way', 'socket_duplex', 'socket_schuko', 'light_bulb'],
+  },
+  {
+    id: 'panelboards',
+    label: 'Panelboards & Circuit Breakers',
+    children: [
+      { id: 'pole1', label: '1 Pole', types: ['mcb_1p'] },
+      { id: 'pole2', label: '2 Poles (Bolt-On & DIN)', types: ['mcb_2p', 'service_disconnect_2p'] },
+      { id: 'pole3', label: '3 Poles', types: ['mcb_3p'] },
+      { id: 'safety', label: 'RCD / Safety Breakers', types: ['rcd_2p', 'spd_surge'] },
+    ],
+  },
+  {
+    id: 'conduits',
+    label: 'Conduits, Utility & Junction Boxes',
+    types: ['junction_box', 'junction_box_4way', 'junction_box_octagonal_orange', 'splice_wire_nut', 'wago_connector_3p'],
+  },
+  {
+    id: 'industrial',
+    label: 'Industrial & Motor Controls',
+    types: [
+      'contactor_3p',
+      'industrial_relay_dpdt',
+      'push_button_station',
+      'push_button_estop',
+      'pilot_light_indicator',
+      'motor_ac_industrial',
+      'motor_3phase_dol',
+    ],
+  },
+  { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller'] },
+  {
+    id: 'service',
+    label: 'Service Entrance & Grounding',
+    types: ['kwh_meter_1p', 'kwh_meter_3p', 'earth_busbar', 'neutral_busbar', 'ground_pit'],
+  },
+  {
+    id: 'appliances',
+    label: 'Appliances & Loads',
+    types: ['appliance_tv', 'appliance_water_heater', 'appliance_fan', 'appliance_ac'],
+  },
+];
+
+const collectTypes = (node: FolderNode): DeviceType[] => [
+  ...(node.types || []),
+  ...(node.children || []).flatMap(collectTypes),
+];
+
 export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
-  standard,
-  wiringMode,
-  activeWireColor,
-  activeWireGauge,
-  activeWireLength,
-  onSelectWiringMode,
-  onSelectWireColor,
-  onSelectWireGauge,
-  onSelectWireLength,
+  isOpen,
+  onClose,
   onAddComponent,
+  isLocked = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    industrial: false,
-    automation: false,
-    splice: false,
-    supply: false,
-    protection: false,
-    control: false,
-    load: false,
-  });
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const wireStandards = getWireStandards(standard);
-  const colors = COLOR_STANDARDS[standard];
+  const query = searchQuery.trim().toLowerCase();
 
-  const toggleSection = (sec: string) => {
-    setCollapsedSections(prev => ({ ...prev, [sec]: !prev[sec] }));
+  // Build the tree including an "Other Devices" safety-net folder for unclaimed catalog entries
+  const tree = useMemo<FolderNode[]>(() => {
+    const claimed = new Set(LIBRARY_TREE.flatMap(collectTypes));
+    const orphans = COMPONENT_CATALOG.filter((c) => !claimed.has(c.type)).map((c) => c.type);
+    return orphans.length > 0
+      ? [...LIBRARY_TREE, { id: 'other', label: 'Other Devices', types: orphans }]
+      : LIBRARY_TREE;
+  }, []);
+
+  const catalogByType = useMemo(() => {
+    const map = new Map<DeviceType, ComponentDefinition>();
+    COMPONENT_CATALOG.forEach((c) => map.set(c.type, c));
+    return map;
+  }, []);
+
+  const matchesQuery = (def: ComponentDefinition) =>
+    !query || def.name.toLowerCase().includes(query) || def.description.toLowerCase().includes(query);
+
+  const itemsFor = (types: DeviceType[] = []) =>
+    types
+      .map((t) => catalogByType.get(t))
+      .filter((d): d is ComponentDefinition => !!d && matchesQuery(d));
+
+  const countIn = (node: FolderNode): number =>
+    itemsFor(node.types).length + (node.children || []).reduce((n, c) => n + countIn(c), 0);
+
+  const toggleFolder = (id: string) => setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const renderItem = (item: ComponentDefinition) => (
+    <div
+      key={item.type}
+      draggable={!isLocked}
+      onDragStart={(e) => {
+        if (isLocked) {
+          e.preventDefault();
+          return;
+        }
+        e.dataTransfer.setData('application/voltlab-device', item.type);
+        e.dataTransfer.effectAllowed = 'copy';
+      }}
+      onClick={() => onAddComponent(item.type)}
+      className={`group flex items-center gap-2.5 p-1.5 rounded-xl border transition ${
+        isLocked
+          ? 'opacity-50 cursor-not-allowed border-transparent'
+          : 'cursor-grab active:cursor-grabbing border-transparent hover:bg-white hover:border-rose-300 hover:shadow-md'
+      }`}
+      title={isLocked ? 'Stop simulation (■) to modify wiring' : 'Click or drag onto workbench canvas'}
+    >
+      <DeviceThumbnail type={item.type} className="w-12 h-12 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-bold text-stone-900 group-hover:text-rose-600 transition-colors truncate">
+          {item.name}
+        </div>
+        <div className="text-[10px] text-stone-500 truncate">{item.description}</div>
+        <span className="text-[9px] font-mono font-bold px-1.5 rounded bg-stone-200/80 text-stone-700">
+          {item.terminals.length} terminals
+        </span>
+      </div>
+      <div className="w-5 h-5 rounded-md bg-stone-100 group-hover:bg-rose-600 text-stone-500 group-hover:text-white flex items-center justify-center transition shrink-0">
+        <Plus className="w-3 h-3" />
+      </div>
+    </div>
+  );
+
+  const renderFolder = (node: FolderNode, depth = 0): React.ReactNode => {
+    const count = countIn(node);
+    if (count === 0) return null;
+
+    // Searching force-expands every folder that has a hit
+    const isCollapsed = query ? false : !!collapsed[node.id];
+    const FolderIcon = isCollapsed ? Folder : FolderOpen;
+
+    return (
+      <div key={node.id}>
+        <button
+          onClick={() => toggleFolder(node.id)}
+          className={`w-full flex items-center justify-between gap-2 py-1.5 pr-2 rounded-lg hover:bg-stone-100/80 text-left transition ${
+            depth === 0 ? 'pl-1.5 text-xs font-bold text-stone-800' : 'pl-1.5 text-[11px] font-semibold text-stone-700'
+          }`}
+        >
+          <span className="flex items-center gap-1.5 min-w-0">
+            {isCollapsed ? (
+              <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+            )}
+            <FolderIcon className={`w-4 h-4 shrink-0 ${depth === 0 ? 'text-amber-500' : 'text-amber-400'}`} />
+            <span className="truncate">{node.label}</span>
+          </span>
+          <span className="text-[10px] font-mono text-stone-400 font-semibold shrink-0">{count}</span>
+        </button>
+
+        {!isCollapsed && (
+          <div className="ml-3 pl-2 border-l border-stone-200 space-y-0.5">
+            {(node.children || []).map((child) => renderFolder(child, depth + 1))}
+            {itemsFor(node.types).map(renderItem)}
+          </div>
+        )}
+      </div>
+    );
   };
 
-  const categories = [
-    { id: 'industrial', label: 'Industrial & Motor Controls', icon: Cpu },
-    { id: 'automation', label: 'PLC & Automation Logic', icon: Cpu },
-    { id: 'splice', label: 'Junction Boxes & Splices', icon: GitBranch },
-    { id: 'supply', label: 'Service & Metering', icon: Zap },
-    { id: 'protection', label: 'Distribution & MCBs', icon: ShieldCheck },
-    { id: 'busbar', label: 'Busbars & Ground Pits', icon: Layers },
-    { id: 'control', label: 'Switches & Controls', icon: ToggleRight },
-    { id: 'receptacle', label: 'Sockets & Outlets', icon: Layers },
-    { id: 'load', label: 'Lamps & Appliances', icon: Lightbulb },
-  ];
+  if (!isOpen) return null;
+
+  const total = tree.reduce((n, f) => n + countIn(f), 0);
 
   return (
-    <aside className="w-80 bg-[#faf8f5] border-r border-[#ece6de] flex flex-col h-full overflow-hidden select-none z-10 text-stone-800">
-      {/* Wire Tool Settings Card (Light Mode) */}
-      <div className="p-3.5 border-b border-[#ece6de] bg-white m-2.5 rounded-xl border shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5 font-mono">
-            <Cable className="w-3.5 h-3.5 text-rose-600" />
-            Conductor & Cable Tool
-          </span>
-          <span className="text-[10px] text-stone-500 font-mono font-bold">
-            {standard} Codes
-          </span>
-        </div>
-
-        {/* Cable / Multi-Wire Mode Selector */}
-        <div className="mb-2.5">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
-            Conductor Pairing
-          </label>
-          <div className="grid grid-cols-3 gap-1 bg-[#f4f0eb] p-1 rounded-lg">
-            <button
-              onClick={() => onSelectWiringMode('single')}
-              className={`py-1 text-[11px] font-bold rounded-md transition ${
-                wiringMode === 'single'
-                  ? 'bg-white text-stone-900 shadow-sm'
-                  : 'text-stone-600 hover:text-stone-900'
-              }`}
-              title="Single Conductor (Manual Line, Neutral, or Earth)"
-            >
-              1-Wire
-            </button>
-            <button
-              onClick={() => onSelectWiringMode('dual_ln')}
-              className={`py-1 text-[11px] font-bold rounded-md transition ${
-                wiringMode === 'dual_ln'
-                  ? 'bg-rose-600 text-white shadow-sm'
-                  : 'text-stone-600 hover:text-stone-900'
-              }`}
-              title="Paired 2-Wire Cable: Feed (Live) + Return (Neutral)"
-            >
-              2-Wire L+N
-            </button>
-            <button
-              onClick={() => onSelectWiringMode('triple_lnpe')}
-              className={`py-1 text-[11px] font-bold rounded-md transition ${
-                wiringMode === 'triple_lnpe'
-                  ? 'bg-stone-900 text-white shadow-sm'
-                  : 'text-stone-600 hover:text-stone-900'
-              }`}
-              title="3-Wire Cable: Live + Neutral Return + Earth Ground"
-            >
-              3-Wire +PE
-            </button>
-          </div>
-          <div className="text-[9px] text-stone-500 mt-1">
-            {wiringMode === 'single'
-              ? 'Connects a single wire of selected color.'
-              : wiringMode === 'dual_ln'
-              ? 'Automatically pulls paired Live (Red) & Neutral Return (Blue) wires.'
-              : 'Pulls complete cable: Live (Red), Neutral Return (Blue), and Earth (Green).'}
-          </div>
-        </div>
-
-        {/* Wire Color Swatches */}
-        <div className="mb-2.5">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
-            Conductor Color
-          </label>
-          <div className="grid grid-cols-6 gap-1.5">
-            {[
-              { color: colors.phase1, name: colors.names.phase1 },
-              { color: colors.phase2, name: colors.names.phase2 },
-              { color: colors.phase3, name: colors.names.phase3 },
-              { color: colors.neutral, name: colors.names.neutral },
-              { color: colors.earth, name: colors.names.earth },
-              { color: colors.switched, name: colors.names.switched },
-            ].map((swatch, i) => (
-              <button
-                key={i}
-                onClick={() => onSelectWireColor(swatch.color)}
-                style={{ backgroundColor: swatch.color }}
-                className={`h-6 rounded border transition-transform ${
-                  activeWireColor === swatch.color
-                    ? 'border-stone-900 scale-110 shadow-md ring-2 ring-stone-900/20'
-                    : 'border-stone-300 hover:scale-105'
-                }`}
-                title={swatch.name}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Wire Gauge Selector */}
-        <div className="mb-2">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
-            Conductor Gauge (Cross-Section)
-          </label>
-          <select
-            value={activeWireGauge}
-            onChange={(e) => onSelectWireGauge(e.target.value)}
-            className="w-full bg-[#faf8f5] border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-800 font-mono focus:outline-none focus:border-rose-500"
-          >
-            {wireStandards.map((ws) => (
-              <option key={ws.id} value={ws.name}>
-                {ws.name} (Max {ws.maxBreakerAmps}A)
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Wire Length Slider */}
-        <div>
-          <div className="flex justify-between text-[10px] text-stone-500 mb-0.5">
-            <span className="font-bold uppercase tracking-wider">Run Length</span>
-            <span className="font-mono text-stone-900 font-bold">{activeWireLength} m</span>
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={30}
-            step={1}
-            value={activeWireLength}
-            onChange={(e) => onSelectWireLength(Number(e.target.value))}
-            className="w-full accent-rose-600 cursor-pointer h-1.5 bg-stone-200 rounded-lg"
-          />
-        </div>
+    <aside className="absolute top-3 left-3 z-30 w-80 max-h-[calc(100%-36px)] rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-stone-200 flex flex-col overflow-hidden select-none text-stone-800">
+      {/* Floating window title bar */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200 bg-[#faf8f5]/90">
+        <span className="flex items-center gap-1.5 text-[11px] font-bold text-stone-900 uppercase tracking-wider font-mono">
+          <Library className="w-3.5 h-3.5 text-rose-600" />
+          Component Library
+          <span className="text-stone-400 font-semibold normal-case">({total})</span>
+        </span>
+        <button
+          onClick={onClose}
+          className="p-1 rounded-md text-stone-400 hover:text-stone-800 hover:bg-stone-200/70 transition"
+          title="Hide library"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
 
-      {/* Search Filter for Catalog */}
-      <div className="px-3 pb-2">
+      {/* Search */}
+      <div className="px-3 pt-2.5 pb-2">
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search catalog devices..."
+            placeholder="Search library..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 bg-white border border-[#ece6de] rounded-lg text-xs placeholder:text-stone-400 focus:outline-none focus:border-rose-500 shadow-sm"
@@ -215,86 +234,18 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
         </div>
       </div>
 
-      {/* Visual Device Catalog Accordion */}
-      <div className="flex-1 overflow-y-auto px-2.5 pb-4 space-y-2.5">
-        <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider px-1 font-mono">
-          Visual Device Catalog
+      {isLocked && (
+        <div className="mx-3 mb-2 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[10px] font-semibold text-amber-800">
+          🔒 Grid energized — stop simulation (■) to add devices.
         </div>
+      )}
 
-        {categories.map((cat) => {
-          const isCollapsed = !!collapsedSections[cat.id];
-          const items = COMPONENT_CATALOG.filter(c => {
-            const matchesCat = c.category === cat.id || (cat.id === 'busbar' && c.category === 'earthing');
-            if (!matchesCat) return false;
-            if (!searchQuery) return true;
-            return c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.description.toLowerCase().includes(searchQuery.toLowerCase());
-          });
-
-          if (items.length === 0) return null;
-
-          return (
-            <div key={cat.id} className="border border-[#ece6de] rounded-xl overflow-hidden bg-white shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
-              <button
-                onClick={() => toggleSection(cat.id)}
-                className="w-full flex items-center justify-between px-3 py-2 bg-[#faf8f5] hover:bg-[#f4f0eb] text-xs font-bold text-stone-800 transition text-left"
-              >
-                <span className="flex items-center gap-2">
-                  <cat.icon className="w-3.5 h-3.5 text-rose-600" />
-                  <span>{cat.label}</span>
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono text-stone-400 font-semibold">{items.length}</span>
-                  {isCollapsed ? (
-                    <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
-                  )}
-                </div>
-              </button>
-
-              {!isCollapsed && (
-                <div className="p-2 space-y-2">
-                  {items.map((item) => (
-                    <div
-                      key={item.type}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData('application/voltlab-device', item.type);
-                        e.dataTransfer.effectAllowed = 'copy';
-                      }}
-                      onClick={() => onAddComponent(item.type)}
-                      className="group flex items-center gap-2.5 p-2 rounded-xl bg-[#faf8f5]/60 hover:bg-white border border-stone-200/60 hover:border-rose-300 hover:shadow-md transition cursor-grab active:cursor-grabbing"
-                      title="Click or drag onto workbench canvas"
-                    >
-                      {/* Visual Equipment Picture Thumbnail */}
-                      <DeviceThumbnail type={item.type} className="w-14 h-14" />
-
-                      {/* Info & Specs */}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-bold text-stone-900 group-hover:text-rose-600 transition-colors truncate">
-                          {item.name}
-                        </div>
-                        <div className="text-[10px] text-stone-500 line-clamp-2 leading-tight mt-0.5">
-                          {item.description}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-stone-200/80 text-stone-700">
-                            {item.terminals.length} Terminals
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Add Button Icon */}
-                      <div className="w-6 h-6 rounded-lg bg-stone-100 group-hover:bg-rose-600 text-stone-500 group-hover:text-white flex items-center justify-center transition shrink-0 shadow-sm">
-                        <Plus className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Folder tree */}
+      <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
+        {tree.map((folder) => renderFolder(folder))}
+        {total === 0 && (
+          <div className="text-center text-xs text-stone-400 py-6">No devices match “{searchQuery}”.</div>
+        )}
       </div>
     </aside>
   );

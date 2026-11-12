@@ -4,6 +4,7 @@ import { DeviceRenderer } from '../devices/DeviceRenderer';
 import { WireRenderer } from './WireRenderer';
 import { calculateOrthogonalPath, generateSvgPath, Point, getDeviceTerminalPosition } from '../../core/wireRouter';
 import { SolvedCircuit } from '../../core/circuitSolver';
+import { cadStatus } from '../../utils/cadStatusStore';
 
 interface WiringCanvasProps {
   devices: ElectricalDevice[];
@@ -14,8 +15,16 @@ interface WiringCanvasProps {
   activeWireColor: string;
   activeWireGauge: string;
   selectedDeviceId: string | null;
+  /** Additional Shift+click multi-selection (ordered, first = alignment anchor) */
+  selectedDeviceIds?: string[];
   selectedWireId: string | null;
-  onSelectDevice: (id: string | null) => void;
+  /** Grid energized: dragging, wiring and structural edits are locked */
+  isSimulating?: boolean;
+  /** Grid snap in px (0 = OFF) */
+  snapSize?: number;
+  /** Called when the user attempts an edit that is currently locked */
+  onBlockedEdit?: (reason: 'simulating' | 'locked-device') => void;
+  onSelectDevice: (id: string | null, additive?: boolean) => void;
   onSelectWire: (wire: ElectricalWire | null) => void;
   onUpdateDevicePosition: (id: string, x: number, y: number) => void;
   onConnectWire: (fromDevId: string, fromTermId: string, toDevId: string, toTermId: string, mode?: WiringMode) => void;
@@ -36,7 +45,11 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   activeWireColor,
   activeWireGauge,
   selectedDeviceId,
+  selectedDeviceIds = [],
   selectedWireId,
+  isSimulating = false,
+  snapSize = 10,
+  onBlockedEdit,
   onSelectDevice,
   onSelectWire,
   onUpdateDevicePosition,
@@ -50,7 +63,11 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 }) => {
   const containerRef = useRef<SVGSVGElement | null>(null);
 
-  // HTML5 Drag and Drop from Component Drawer
+  // Snap helpers (snapSize 0 = OFF → whole-pixel precision)
+  const snapValue = (v: number) => (snapSize > 0 ? Math.round(v / snapSize) * snapSize : Math.round(v));
+  const waypointSnap = snapSize > 0 ? 5 : 1;
+
+  // HTML5 Drag and Drop from Component Library
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -65,13 +82,15 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       const rawY = e.clientY - rect.top;
       const svgX = (rawX - pan.x) / zoom;
       const svgY = (rawY - pan.y) / zoom;
-      onDropDevice(type, Math.round(svgX / 10) * 10, Math.round(svgY / 10) * 10);
+      onDropDevice(type, snapValue(svgX), snapValue(svgY));
     }
   };
 
   // Dragging device state
   const [draggingDevId, setDraggingDevId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 });
+  // A drag gesture that is not allowed (energized grid / locked device): we only toast once it actually moves
+  const blockedDragRef = useRef<{ x: number; y: number; reason: 'simulating' | 'locked-device'; notified: boolean } | null>(null);
 
   // Dragging wire segment state
   const [draggingSegment, setDraggingSegment] = useState<{
@@ -122,6 +141,24 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     };
   }, [wiringStart, onSelectDevice, onSelectWire]);
 
+  // Publish zoom / wiring state to the CAD status bar
+  React.useEffect(() => {
+    cadStatus.set({ zoom });
+  }, [zoom]);
+
+  React.useEffect(() => {
+    cadStatus.set({ wiring: !!wiringStart });
+  }, [wiringStart]);
+
+  React.useEffect(() => {
+    return () => cadStatus.set({ wiring: false });
+  }, []);
+
+  // Energizing the grid cancels any half-drawn conductor
+  React.useEffect(() => {
+    if (isSimulating) setWiringStart(null);
+  }, [isSimulating]);
+
   // Convert client mouse event to SVG workspace coordinates
   const getSvgCoordinates = (e: React.MouseEvent): Point => {
     if (!containerRef.current) return { x: 0, y: 0 };
@@ -137,10 +174,31 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   const handleDeviceMouseDown = (device: ElectricalDevice, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Shift+click builds a multi-selection (used by Align H / Align V)
+    if (e.shiftKey) {
+      onSelectDevice(device.id, true);
+      onSelectWire(null);
+      return;
+    }
+
     onSelectDevice(device.id);
     onSelectWire(null);
 
     const coords = getSvgCoordinates(e);
+
+    // Dragging is locked while energized or when the device position is locked.
+    // We still allow the click through so switches / breakers / pushbuttons keep working.
+    if (isSimulating || device.state.locked) {
+      blockedDragRef.current = {
+        x: coords.x,
+        y: coords.y,
+        reason: isSimulating ? 'simulating' : 'locked-device',
+        notified: false,
+      };
+      return;
+    }
+
     setDraggingDevId(device.id);
     setDragOffset({
       x: coords.x - device.x,
@@ -150,6 +208,11 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   const handleTerminalMouseDown = (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isSimulating) {
+      // Wire creation is locked while the grid is energized
+      onBlockedEdit?.('simulating');
+      return;
+    }
     if (!wiringStart) {
       // Start wire
       setWiringStart({ dev: device, term: terminal });
@@ -165,6 +228,16 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   const handleMouseMove = (e: React.MouseEvent) => {
     const coords = getSvgCoordinates(e);
     setMousePos(coords);
+    cadStatus.set({ cursorX: Math.round(coords.x), cursorY: Math.round(coords.y) });
+
+    // Locked drag attempt: notify once after the pointer has clearly started dragging
+    const blocked = blockedDragRef.current;
+    if (blocked && !blocked.notified) {
+      if (Math.hypot(coords.x - blocked.x, coords.y - blocked.y) > 6) {
+        blocked.notified = true;
+        onBlockedEdit?.(blocked.reason);
+      }
+    }
 
     if (draggingSegment) {
       const deltaX = coords.x - draggingSegment.startMouse.x;
@@ -176,9 +249,9 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         }
         if (i === draggingSegment.segmentIndex || i === draggingSegment.segmentIndex + 1) {
           if (draggingSegment.isHorizontal) {
-            return { ...pt, y: Math.round((draggingSegment.initialWaypoints[i].y + deltaY) / 5) * 5 };
+            return { ...pt, y: Math.round((draggingSegment.initialWaypoints[i].y + deltaY) / waypointSnap) * waypointSnap };
           } else {
-            return { ...pt, x: Math.round((draggingSegment.initialWaypoints[i].x + deltaX) / 5) * 5 };
+            return { ...pt, x: Math.round((draggingSegment.initialWaypoints[i].x + deltaX) / waypointSnap) * waypointSnap };
           }
         }
         return pt;
@@ -190,8 +263,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     }
 
     if (draggingDevId) {
-      const newX = Math.round((coords.x - dragOffset.x) / 10) * 10;
-      const newY = Math.round((coords.y - dragOffset.y) / 10) * 10;
+      const newX = snapValue(coords.x - dragOffset.x);
+      const newY = snapValue(coords.y - dragOffset.y);
       onUpdateDevicePosition(draggingDevId, Math.max(10, newX), Math.max(10, newY));
     } else if (isPanning) {
       setPan({
@@ -205,6 +278,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     setDraggingDevId(null);
     setIsPanning(false);
     setDraggingSegment(null);
+    blockedDragRef.current = null;
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
@@ -293,7 +367,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
       {/* Wire Tool Notice */}
       {wiringStart && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-rose-600 text-white font-bold text-xs px-4 py-1.5 rounded-full shadow-lg animate-pulse">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-rose-600 text-white font-bold text-xs px-4 py-1.5 rounded-full shadow-lg animate-pulse">
           Click destination terminal to complete connection (ESC or click board to cancel)
         </div>
       )}
@@ -346,6 +420,10 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                 voltageDropPercent={solved.wireVoltageDropPercents[wire.id] || 0}
                 onSelectWire={() => onSelectWire(wire)}
                 onStartSegmentDrag={(wireId, segIdx, isHoriz, pt, waypoints, e) => {
+                  if (isSimulating) {
+                    onBlockedEdit?.('simulating');
+                    return;
+                  }
                   const coords = getSvgCoordinates(e);
                   setDraggingSegment({
                     wireId,
@@ -381,6 +459,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                 key={device.id}
                 device={device}
                 isSelected={selectedDeviceId === device.id}
+                isGroupMember={selectedDeviceIds.length > 1 && selectedDeviceIds.includes(device.id) && selectedDeviceId !== device.id}
+                dragLocked={isSimulating || !!device.state.locked}
                 selectedTerminalId={wiringStart ? `${wiringStart.dev.id}:${wiringStart.term.id}` : null}
                 hoveredTerminalId={hoveredTerminalId}
                 onDeviceMouseDown={handleDeviceMouseDown}

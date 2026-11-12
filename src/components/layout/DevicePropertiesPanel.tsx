@@ -23,6 +23,8 @@ interface DevicePropertiesPanelProps {
   onClose: () => void;
   onRotateDevice?: (device: ElectricalDevice) => void;
   onDuplicateDevice?: (device: ElectricalDevice) => void;
+  /** Shift the panel right so it doesn't overlap the floating component library */
+  isLibraryOpen?: boolean;
 }
 
 export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
@@ -35,6 +37,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   onClose,
   onRotateDevice,
   onDuplicateDevice,
+  isLibraryOpen = false,
 }) => {
   if (!device && !wire) return null;
 
@@ -45,7 +48,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   const rcdSensitivities = [10, 30, 100, 300];
 
   return (
-    <div className="absolute top-4 left-84 z-20 w-80 bg-white/95 border border-stone-200 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-md p-4 text-stone-800 select-none animate-in fade-in slide-in-from-top-2 duration-150">
+    <div className={`absolute top-4 ${isLibraryOpen ? 'left-[340px]' : 'left-4'} z-20 w-80 bg-white/95 border border-stone-200 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-md p-4 text-stone-800 select-none animate-in fade-in slide-in-from-top-2 duration-150`}>
       {/* Header */}
       <div className="flex items-center justify-between pb-2 mb-3 border-b border-stone-100">
         <div className="flex items-center gap-2">

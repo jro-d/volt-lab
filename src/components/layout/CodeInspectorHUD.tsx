@@ -15,6 +15,8 @@ import {
 interface CodeInspectorHUDProps {
   report: ElectricalAnalysisReport;
   solved: SolvedCircuit;
+  /** Edit Mode shows a static (de-energized) audit; Simulation Mode shows live results */
+  isSimulating?: boolean;
   onResetSimulation: () => void;
   onHighlightViolation?: (violation: CodeViolation) => void;
 }
@@ -22,6 +24,7 @@ interface CodeInspectorHUDProps {
 export const CodeInspectorHUD: React.FC<CodeInspectorHUDProps> = ({
   report,
   solved,
+  isSimulating = true,
   onResetSimulation,
   onHighlightViolation,
 }) => {
@@ -39,7 +42,7 @@ export const CodeInspectorHUD: React.FC<CodeInspectorHUDProps> = ({
   const fatalShockViolations = report.violations.filter(v => v.hazardLevel === 'fatal_electrocution');
 
   return (
-    <aside className="w-84 bg-[#faf8f5] border-l border-[#ece6de] flex flex-col h-full overflow-hidden select-none z-10 font-sans text-stone-800">
+    <aside className="w-[21rem] shrink-0 bg-[#faf8f5] border-l border-[#ece6de] flex flex-col h-full overflow-hidden select-none z-10 font-sans text-stone-800">
       {/* Header */}
       <div className="p-3.5 border-b border-[#ece6de] bg-white flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
         <div>
@@ -67,6 +70,18 @@ export const CodeInspectorHUD: React.FC<CodeInspectorHUDProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {/* Mode banner */}
+        <div
+          className={`rounded-lg px-2.5 py-1.5 text-[10px] font-mono font-bold border ${
+            isSimulating
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-amber-50 border-amber-200 text-amber-800'
+          }`}
+        >
+          {isSimulating
+            ? '● LIVE — results reflect the energized circuit'
+            : '○ EDIT MODE — static wiring, polarity & gauge audit (grid de-energized)'}
+        </div>
         {/* COMPACT SHOCK HAZARD ALERT PILL */}
         {fatalShockViolations.length > 0 && !isHazardDismissed && (
           <div className="bg-rose-50 border border-rose-300 rounded-xl p-2.5 text-rose-950 shadow-sm animate-in fade-in duration-150">

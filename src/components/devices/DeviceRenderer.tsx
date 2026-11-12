@@ -24,6 +24,10 @@ import { IndustrialMotorDevice } from './IndustrialMotorDevice';
 interface DeviceRendererProps {
   device: ElectricalDevice;
   isSelected?: boolean;
+  /** Part of a Shift+click multi-selection (outline only, no floating action bar) */
+  isGroupMember?: boolean;
+  /** True while the grid is energized or the device position is locked */
+  dragLocked?: boolean;
   selectedTerminalId?: string | null;
   hoveredTerminalId?: string | null;
   onDeviceMouseDown: (device: ElectricalDevice, e: React.MouseEvent) => void;
@@ -38,6 +42,8 @@ interface DeviceRendererProps {
 export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
   device,
   isSelected,
+  isGroupMember,
+  dragLocked,
   selectedTerminalId,
   hoveredTerminalId,
   onDeviceMouseDown,
@@ -128,11 +134,11 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
   return (
     <g
       onMouseDown={(e) => onDeviceMouseDown(device, e)}
-      className="cursor-move group"
+      className={`${dragLocked ? 'cursor-pointer' : 'cursor-move'} group`}
     >
       {/* Rotatable Device Container & Selection Outline */}
       <g transform={rot ? `rotate(${rot}, ${cx}, ${cy})` : undefined}>
-        {isSelected && (
+        {(isSelected || isGroupMember) && (
           <rect
             x={device.x - 4}
             y={device.y - 4}
@@ -140,13 +146,25 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
             height={device.height + 8}
             rx={6}
             fill="none"
-            stroke="#0284c7"
+            stroke={isSelected ? '#0284c7' : '#7c3aed'}
             strokeWidth={1.8}
             strokeDasharray="4 4"
             className="pointer-events-none"
           />
         )}
         {renderComponent()}
+
+        {/* Position-lock padlock badge */}
+        {device.state.locked && (
+          <g
+            transform={`translate(${device.x + device.width + 2}, ${device.y - 2})`}
+            className="pointer-events-none"
+          >
+            <circle r={8} fill="#f59e0b" stroke="#ffffff" strokeWidth={1.2} />
+            <rect x={-3} y={-1} width={6} height={5} rx={1} fill="#ffffff" />
+            <path d="M -2 -1 L -2 -3 A 2 2 0 0 1 2 -3 L 2 -1" fill="none" stroke="#ffffff" strokeWidth={1.1} />
+          </g>
+        )}
       </g>
 
       {/* Floating Action Bar on Selected Device (Rotate, Duplicate, Delete) */}
