@@ -1,180 +1,122 @@
 import React from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import { DeviceComponentProps, DeviceTerminals, momentaryPress } from './DeviceTerminals';
 
-interface PushButtonStationDeviceProps {
-  device: ElectricalDevice;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const PushButtonStationDevice: React.FC<PushButtonStationDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
+/**
+ * 2-hole 22mm operator station: green START (momentary NO 3-4) above red STOP (momentary NC 1-2).
+ * Top terminal strip carries the START contact block, bottom strip the STOP contact block.
+ */
+export const PushButtonStationDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device, onToggleState, onPatchState } = props;
   const { x, y, width, height } = device;
   const isStartPressed = !!device.state.startPressed;
   const isStopPressed = !!device.state.stopPressed;
+  const cx = x + width / 2;
+  const startCy = y + height * 0.43;
+  const stopCy = y + height * 0.75;
 
-  const handleToggleStart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onToggleState) {
-      onToggleState({
-        ...device,
-        state: {
-          ...device.state,
-          startPressed: !isStartPressed,
-        }
-      });
+  const press = (e: React.MouseEvent, key: 'startPressed' | 'stopPressed') => {
+    if (onPatchState) momentaryPress(e, device.id, key, onPatchState);
+    else {
+      e.stopPropagation();
+      onToggleState?.({ ...device, state: { ...device.state, [key]: !device.state[key] } });
     }
   };
 
-  const handleToggleStop = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onToggleState) {
-      onToggleState({
-        ...device,
-        state: {
-          ...device.state,
-          stopPressed: !isStopPressed,
-        }
-      });
-    }
-  };
+  const Button = ({
+    cy,
+    pressed,
+    cap,
+    capDown,
+    ring,
+    keyName,
+    title,
+    children,
+  }: {
+    cy: number;
+    pressed: boolean;
+    cap: string;
+    capDown: string;
+    ring: string;
+    keyName: 'startPressed' | 'stopPressed';
+    title: string;
+    children: React.ReactNode;
+  }) => (
+    <g
+      transform={`translate(${cx}, ${cy})`}
+      className="cursor-pointer"
+      onMouseDown={(e) => press(e, keyName)}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <title>{title}</title>
+      {/* chrome bezel */}
+      <circle r={17} fill="#e5e7eb" stroke="#9ca3af" strokeWidth={1.1} />
+      <circle r={14.5} fill="#1f2937" />
+      <circle
+        r={pressed ? 10.5 : 12.5}
+        fill={pressed ? capDown : cap}
+        stroke={ring}
+        strokeWidth={1}
+        filter={pressed ? undefined : 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))'}
+        style={{ transition: 'r 80ms' }}
+      />
+      <ellipse cx={-3} cy={-4} rx={6} ry={3.5} fill="#ffffff" opacity={pressed ? 0.08 : 0.22} />
+      {children}
+    </g>
+  );
 
   return (
     <g id={`device-${device.id}`}>
-      {/* Heavy-Duty Industrial Enclosure Body (Yellow Base with Gray Bezel) */}
+      {/* Enclosure base + cover */}
       <rect
         x={x}
         y={y}
         width={width}
         height={height}
         rx={8}
-        fill="#f8fafc"
-        stroke="#64748b"
-        strokeWidth={1.8}
-        filter="drop-shadow(0 6px 14px rgba(0,0,0,0.14))"
+        fill="#9ca3af"
+        stroke="#4b5563"
+        strokeWidth={1.4}
+        filter="drop-shadow(0 6px 14px rgba(15,23,42,0.2))"
       />
+      <rect x={x + 3} y={y + 20} width={width - 6} height={height - 40} rx={6} fill="#e5e7eb" stroke="#9ca3af" strokeWidth={0.8} />
+      {/* Contact-block terminal strips */}
+      <rect x={x + 3} y={y + 2} width={width - 6} height={16} rx={3} fill="#1f2937" />
+      <rect x={x + 3} y={y + height - 18} width={width - 6} height={16} rx={3} fill="#1f2937" />
 
-      {/* 4 Corner Enclosure Screws */}
-      {[
-        { cx: x + 6, cy: y + 6 },
-        { cx: x + width - 6, cy: y + 6 },
-        { cx: x + 6, cy: y + height - 6 },
-        { cx: x + width - 6, cy: y + height - 6 },
-      ].map((pos, idx) => (
-        <g key={idx}>
-          <circle cx={pos.cx} cy={pos.cy} r={2.5} fill="#cbd5e1" stroke="#475569" strokeWidth={0.6} />
-          <line x1={pos.cx - 1.2} y1={pos.cy} x2={pos.cx + 1.2} y2={pos.cy} stroke="#475569" strokeWidth={0.6} />
-        </g>
-      ))}
+      {/* Legend plates */}
+      <rect x={cx - 21} y={y + 31} width={42} height={10} rx={1.5} fill="#14532d" />
+      <text x={cx} y={y + 38.4} textAnchor="middle" fontSize="6.2" fontWeight="900" fill="#f0fdf4" fontFamily="ui-sans-serif, system-ui">
+        START
+      </text>
+      <rect x={cx - 21} y={y + height * 0.59 - 5} width={42} height={10} rx={1.5} fill="#7f1d1d" />
+      <text x={cx} y={y + height * 0.59 + 2.4} textAnchor="middle" fontSize="6.2" fontWeight="900" fill="#fef2f2" fontFamily="ui-sans-serif, system-ui">
+        STOP
+      </text>
 
-      {/* Upper START Button Bezel & Actuator (Green, Normally Open) */}
-      <g
-        transform={`translate(${x + width / 2}, ${y + 44})`}
-        onClick={handleToggleStart}
-        className="cursor-pointer group"
+      <Button
+        cy={startCy}
+        pressed={isStartPressed}
+        cap="#22c55e"
+        capDown="#15803d"
+        ring="#14532d"
+        keyName="startPressed"
+        title="START — momentary Normally Open 3-4 (hold to press)"
       >
-        <title>START Button (Normally Open momentary contact - Click to press/release)</title>
-        {/* Chrome Outer Collar */}
-        <circle r={21} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={1.2} />
-        <circle r={18} fill="#0f172a" />
-        {/* Green Push Button Cap */}
-        <circle
-          r={isStartPressed ? 14 : 16}
-          fill={isStartPressed ? "#16a34a" : "#22c55e"}
-          stroke={isStartPressed ? "#14532d" : "#15803d"}
-          strokeWidth={1.2}
-          filter={isStartPressed ? undefined : "drop-shadow(0 3px 5px rgba(0,0,0,0.3))"}
-          className="transition-all duration-100"
-        />
-        {/* "I" Start Icon */}
-        <text
-          x={0}
-          y={4}
-          textAnchor="middle"
-          fontSize="12"
-          fontWeight="900"
-          fontFamily="sans-serif"
-          fill="#ffffff"
-        >
-          I
-        </text>
-        <text x={0} y={-24} textAnchor="middle" fontSize="6" fontWeight="bold" fill="#15803d">
-          START (NO)
-        </text>
-      </g>
-
-      {/* Center Divider Groove */}
-      <line x1={x + 10} y1={y + 72} x2={x + width - 10} y2={y + 72} stroke="#cbd5e1" strokeWidth={1} strokeDasharray="3 2" />
-
-      {/* Lower STOP Button Bezel & Actuator (Red, Normally Closed) */}
-      <g
-        transform={`translate(${x + width / 2}, ${y + 100})`}
-        onClick={handleToggleStop}
-        className="cursor-pointer group"
+        <text x={0} y={4} textAnchor="middle" fontSize="11" fontWeight="900" fill="#ffffff">I</text>
+      </Button>
+      <Button
+        cy={stopCy}
+        pressed={isStopPressed}
+        cap="#ef4444"
+        capDown="#b91c1c"
+        ring="#7f1d1d"
+        keyName="stopPressed"
+        title="STOP — momentary Normally Closed 1-2 (hold to open)"
       >
-        <title>STOP Button (Normally Closed contact - Click to open/press)</title>
-        {/* Chrome Outer Collar */}
-        <circle r={21} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={1.2} />
-        <circle r={18} fill="#0f172a" />
-        {/* Red Push Button Cap */}
-        <circle
-          r={isStopPressed ? 14 : 16}
-          fill={isStopPressed ? "#b91c1c" : "#ef4444"}
-          stroke={isStopPressed ? "#7f1d1d" : "#991b1b"}
-          strokeWidth={1.2}
-          filter={isStopPressed ? undefined : "drop-shadow(0 3px 5px rgba(0,0,0,0.3))"}
-          className="transition-all duration-100"
-        />
-        {/* "O" Stop Icon */}
-        <circle cx={0} cy={0} r={5} fill="none" stroke="#ffffff" strokeWidth={2.2} />
-        <text x={0} y={26} textAnchor="middle" fontSize="6" fontWeight="bold" fill="#b91c1c">
-          STOP (NC)
-        </text>
-      </g>
+        <circle r={4.5} fill="none" stroke="#ffffff" strokeWidth={2} />
+      </Button>
 
-      {/* Terminals */}
-      {device.terminals.map((terminal) => {
-        const tx = x + width * terminal.relX;
-        const ty = y + height * terminal.relY;
-        const termKey = `${device.id}:${terminal.id}`;
-
-        return (
-          <g key={terminal.id}>
-            <TerminalPoint
-              terminal={terminal}
-              x={tx}
-              y={ty}
-              isHovered={hoveredTerminalId === termKey}
-              isSelected={selectedTerminalId === termKey}
-              onMouseDown={(e) => onTerminalMouseDown(device, terminal, e)}
-              onMouseEnter={() => setHoveredTerminalId(termKey)}
-              onMouseLeave={() => setHoveredTerminalId(null)}
-            />
-            {/* Terminal Pin Label */}
-            <text
-              x={tx}
-              y={terminal.relY < 0.3 ? ty + 12 : ty - 8}
-              textAnchor="middle"
-              fontSize="6"
-              fontWeight="bold"
-              fontFamily="monospace"
-              fill={terminal.id.includes('start') ? '#10b981' : '#f59e0b'}
-            >
-              {terminal.label || terminal.id}
-            </text>
-          </g>
-        );
-      })}
+      <DeviceTerminals {...props} labelColor={(t) => (t.type === 'no' ? '#6ee7b7' : '#fcd34d')} />
     </g>
   );
 };

@@ -1,5 +1,6 @@
 import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard } from '../types/electrical';
 import { createDeviceFromCatalog } from './defaultComponents';
+import { MOTOR_CONTROL_LABS } from './motorControlLabs';
 
 export type LabCategory = 'all' | 'sockets' | 'lighting' | 'splice' | 'appliances' | 'residential' | 'industrial' | 'automation';
 
@@ -16,6 +17,9 @@ export interface LabLesson {
 }
 
 export const LAB_LESSONS: LabLesson[] = [
+  // Phase 3: Marine & Industrial Motor Control Trainer (440V / 220V)
+  ...MOTOR_CONTROL_LABS,
+
   // 0. ROYU PHILIPPINE HARDWARE ECOSYSTEM LAB
   {
     id: 'lab-royu-residential-ecosystem',

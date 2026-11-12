@@ -25,7 +25,23 @@ interface DevicePropertiesPanelProps {
   onDuplicateDevice?: (device: ElectricalDevice) => void;
   /** Shift the panel right so it doesn't overlap the floating component library */
   isLibraryOpen?: boolean;
+  /** Live state patch (momentary push buttons, TOR test/reset, cutaway toggle) */
+  onPatchDeviceState?: (deviceId: string, patch: Record<string, any>) => void;
 }
+
+/** Hold-to-press helper for momentary push buttons in the inspector */
+const holdProps = (
+  deviceId: string,
+  key: string,
+  onPatch?: (deviceId: string, patch: Record<string, any>) => void
+) =>
+  onPatch
+    ? {
+        onMouseDown: () => onPatch(deviceId, { [key]: true }),
+        onMouseUp: () => onPatch(deviceId, { [key]: false }),
+        onMouseLeave: () => onPatch(deviceId, { [key]: false }),
+      }
+    : {};
 
 export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   device,
@@ -38,7 +54,10 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   onRotateDevice,
   onDuplicateDevice,
   isLibraryOpen = false,
+  onPatchDeviceState,
 }) => {
+  const patchState = (key: string, value: any) =>
+    device && (onPatchDeviceState ? onPatchDeviceState(device.id, { [key]: value }) : onUpdateDeviceProperty(device.id, key, value));
   if (!device && !wire) return null;
 
   const wireStandards = getWireStandards(standard);
@@ -749,7 +768,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </label>
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => onUpdateDeviceProperty(device.id, 'startPressed', !device.state.startPressed)}
+              {...holdProps(device.id, 'startPressed', onPatchDeviceState)}
+              onClick={() => !onPatchDeviceState && onUpdateDeviceProperty(device.id, 'startPressed', !device.state.startPressed)}
               className={`py-2 px-3 text-xs font-bold rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
                 device.state.startPressed
                   ? 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-300'
@@ -760,7 +780,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               <span className="text-[10px] uppercase">{device.state.startPressed ? 'Pressed (NO Closed)' : 'Start (NO Open)'}</span>
             </button>
             <button
-              onClick={() => onUpdateDeviceProperty(device.id, 'stopPressed', !device.state.stopPressed)}
+              {...holdProps(device.id, 'stopPressed', onPatchDeviceState)}
+              onClick={() => !onPatchDeviceState && onUpdateDeviceProperty(device.id, 'stopPressed', !device.state.stopPressed)}
               className={`py-2 px-3 text-xs font-bold rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
                 device.state.stopPressed
                   ? 'bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-300'
@@ -772,7 +793,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             </button>
           </div>
           <span className="text-[9px] text-stone-400 block">
-            Green Start is Momentary Normally Open (NO). Red Stop is Normally Closed (NC).
+            Hold to press — both are momentary (spring return). START 3-4 is NO, STOP 1-2 is NC.
           </span>
         </div>
       )}
@@ -850,7 +871,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               Rated Motor Current (AC-3)
             </label>
             <div className="grid grid-cols-4 gap-1">
-              {[9, 12, 18, 25].map((amps) => (
+              {[9, 18, 25, 32].map((amps) => (
                 <button
                   key={amps}
                   onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
@@ -865,16 +886,225 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               ))}
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
+            {[
+              { k: 'Main 1-2 / 3-4 / 5-6', on: !!device.state.coilEnergized || !!device.state.manualOverride, no: true },
+              { k: 'Aux NO 13-14', on: !!device.state.coilEnergized || !!device.state.manualOverride, no: true },
+              { k: 'Aux NC 21-22', on: !(device.state.coilEnergized || device.state.manualOverride), no: false },
+              { k: 'Line current', on: (device.state.measuredAmps || 0) > 0, no: true, val: `${(device.state.measuredAmps || 0).toFixed(2)} A` },
+            ].map((c) => (
+              <div key={c.k} className={`rounded-lg border px-2 py-1 ${c.on ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-stone-50 border-stone-200 text-stone-500'}`}>
+                <div className="font-bold">{c.k}</div>
+                <div>{c.val ?? (c.on ? 'CLOSED' : 'OPEN')}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Tag</label>
+              <input
+                value={device.state.tag || ''}
+                onChange={(e) => onUpdateDeviceProperty(device.id, 'tag', e.target.value.toUpperCase().slice(0, 6))}
+                className="w-full h-7 px-2 text-xs font-mono font-bold rounded-lg border border-stone-200 bg-[#faf8f5]"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Role</label>
+              <select
+                value={device.state.role || ''}
+                onChange={(e) => onUpdateDeviceProperty(device.id, 'role', e.target.value || undefined)}
+                className="w-full h-7 px-1.5 text-xs font-mono font-bold rounded-lg border border-stone-200 bg-[#faf8f5]"
+              >
+                <option value="">— (DOL)</option>
+                <option value="FOR">FOR (forward)</option>
+                <option value="REV">REV (reverse)</option>
+                <option value="RUN">RUN</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={() => patchState('viewMode', device.state.viewMode === 'cutaway' ? 'front' : 'cutaway')}
+              className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
+                device.state.viewMode === 'cutaway'
+                  ? 'bg-sky-600 text-white border-sky-700'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-200'
+              }`}
+              title="Reveal the coil, armature, return spring and moving contact bridges"
+            >
+              🔍 {device.state.viewMode === 'cutaway' ? 'Cutaway ON' : 'Cutaway'}
+            </button>
+            <button
+              onClick={() => patchState('manualOverride', !device.state.manualOverride)}
+              className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
+                device.state.manualOverride
+                  ? 'bg-amber-600 text-white border-amber-700'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-200'
+              }`}
+            >
+              {device.state.manualOverride ? 'Plunger Forced IN' : 'Test Plunger'}
+            </button>
+          </div>
+          <span className="text-[9px] text-stone-400 block">
+            Coil OFF: return spring holds NC 21-22 closed. Coil ON: armature pulls in — main poles &amp; NO 13-14 close and NC 21-22 opens.
+          </span>
+        </div>
+      )}
+
+      {/* --- THERMAL OVERLOAD RELAY (TOR) --- */}
+      {device && device.type === 'thermal_overload_relay' && (
+        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+          <div className="flex justify-between items-center">
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Relay Status</label>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.tripped ? 'bg-orange-100 text-orange-700 animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}>
+              {device.state.tripped ? '⚠ TRIPPED (95-96 OPEN)' : '● READY (95-96 CLOSED)'}
+            </span>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+              Ampere Dial Setting (Ir)
+            </label>
+            <div className="grid grid-cols-6 gap-1">
+              {[4, 5, 6, 7, 8, 10].map((a) => (
+                <button
+                  key={a}
+                  onClick={() => patchState('tripAmps', a)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    (device.state.tripAmps || 6) === a ? 'bg-sky-700 text-white border-sky-800 shadow-sm' : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                  }`}
+                >
+                  {a}A
+                </button>
+              ))}
+            </div>
+            <div className="mt-1.5 h-2 rounded-full bg-stone-100 overflow-hidden">
+              <div
+                className={`h-full transition-all ${((device.state.measuredAmps || 0) / (device.state.tripAmps || 6)) > 1 ? 'bg-rose-500' : 'bg-amber-400'}`}
+                style={{ width: `${Math.min(100, ((device.state.measuredAmps || 0) / (device.state.tripAmps || 6)) * 100)}%` }}
+              />
+            </div>
+            <span className="text-[9px] text-stone-400 mt-1 block font-mono">
+              Thermal image: {(device.state.measuredAmps || 0).toFixed(2)}A of {device.state.tripAmps || 6}A setting. Set Ir to the motor nameplate FLA.
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={() => patchState('tripped', true)}
+              disabled={!!device.state.tripped}
+              className="py-2 text-xs font-black rounded-xl border bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 disabled:opacity-50"
+            >
+              TEST (Trip)
+            </button>
+            <button
+              onClick={() => onPatchDeviceState ? onPatchDeviceState(device.id, { tripped: false, tripReason: undefined }) : onUpdateDeviceProperty(device.id, 'tripped', false)}
+              disabled={!device.state.tripped}
+              className="py-2 text-xs font-black rounded-xl border bg-blue-600 hover:bg-blue-700 text-white border-blue-700 disabled:opacity-40"
+            >
+              R · RESET
+            </button>
+          </div>
+          <span className="text-[9px] text-stone-400 block">
+            95-96 NC is wired in series with the coil circuit; 97-98 NO lights a fault pilot lamp when tripped.
+          </span>
+        </div>
+      )}
+
+      {/* --- CONTROL TRANSFORMER --- */}
+      {device && device.type === 'control_transformer' && (
+        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+          <div className="flex justify-between items-center">
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Secondary (X1-X2)</label>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.secondaryLive ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}>
+              {device.state.secondaryLive ? `● ${device.state.secondaryVolts || 220}V LIVE` : '○ DE-ENERGIZED'}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 text-center">
+            {[
+              { k: 'Primary', v: `${device.state.primaryVolts || 440}V` },
+              { k: 'Secondary', v: `${device.state.secondaryVolts || 220}V` },
+              { k: 'Ratio', v: `${((device.state.primaryVolts || 440) / (device.state.secondaryVolts || 220)).toFixed(1)}:1` },
+            ].map((c) => (
+              <div key={c.k} className="rounded-lg border border-stone-200 bg-[#faf8f5] py-1">
+                <div className="text-[9px] font-bold text-stone-400 uppercase">{c.k}</div>
+                <div className="text-xs font-mono font-black text-stone-800">{c.v}</div>
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">VA Rating</label>
+            <div className="grid grid-cols-4 gap-1">
+              {[100, 250, 500, 1000].map((va) => (
+                <button
+                  key={va}
+                  onClick={() => onUpdateDeviceProperty(device.id, 'vaRating', va)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    (device.state.vaRating || 250) === va ? 'bg-slate-800 text-white border-slate-900' : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                  }`}
+                >
+                  {va}
+                </button>
+              ))}
+            </div>
+          </div>
+          <span className="text-[9px] text-stone-400 block">
+            Connect H1-H2 across two phases (e.g. L1-L2 at 440V). X1 becomes the 220V control hot rail, X2 the control return.
+          </span>
+        </div>
+      )}
+
+      {/* --- 3-PHASE 440V FEEDER --- */}
+      {device && device.type === 'source_3phase_440v' && (
+        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
           <button
-            onClick={() => onUpdateDeviceProperty(device.id, 'manualOverride', !device.state.manualOverride)}
-            className={`w-full py-1.5 px-3 text-xs font-bold rounded-lg border transition ${
-              device.state.manualOverride
-                ? 'bg-amber-600 text-white border-amber-700'
-                : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-200'
+            onClick={() => patchState('closed', device.state.closed === false)}
+            className={`w-full py-2 text-xs font-black rounded-xl border transition ${
+              device.state.closed !== false ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-stone-100 text-stone-600 border-stone-200'
             }`}
           >
-            {device.state.manualOverride ? 'Manual Plunger Pressed' : 'Push Armature Plunger Manually'}
+            {device.state.closed !== false ? '● MAIN ISOLATOR ON — L1 / L2 / L3 LIVE' : '○ MAIN ISOLATOR OFF'}
           </button>
+          <div className="grid grid-cols-3 gap-1.5 text-center">
+            {[
+              { k: 'L1', c: 'bg-red-600' },
+              { k: 'L2', c: 'bg-yellow-400' },
+              { k: 'L3', c: 'bg-blue-600' },
+            ].map((ph) => (
+              <div key={ph.k} className="rounded-lg border border-stone-200 bg-[#faf8f5] py-1 flex items-center justify-center gap-1.5">
+                <span className={`w-2.5 h-2.5 rounded-full ${ph.c}`} />
+                <span className="text-xs font-mono font-black">{ph.k}</span>
+                <span className="text-[9px] font-mono text-stone-400">{Math.round((device.state.lineVoltage || 440) / Math.sqrt(3))}V</span>
+              </div>
+            ))}
+          </div>
+          <span className="text-[9px] text-stone-400 block font-mono">
+            {device.state.lineVoltage || 440}V line-to-line · {device.state.frequency || 60}Hz · sequence L1→L2→L3 (CW).
+          </span>
+        </div>
+      )}
+
+      {/* --- FORWARD / REVERSE / STOP STATION --- */}
+      {device && device.type === 'push_button_fwd_rev' && (
+        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+            Momentary Operators (hold to press)
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {[
+              { key: 'stopPressed', label: 'STOP', sub: 'NC 1-2', on: 'bg-rose-600 text-white border-rose-700', off: 'bg-rose-50 text-rose-800 border-rose-200' },
+              { key: 'fwdPressed', label: 'FWD ▶', sub: 'NO 3-4', on: 'bg-emerald-600 text-white border-emerald-700', off: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+              { key: 'revPressed', label: '◀ REV', sub: 'NO 5-6', on: 'bg-amber-500 text-white border-amber-600', off: 'bg-amber-50 text-amber-800 border-amber-200' },
+            ].map((b) => (
+              <button
+                key={b.key}
+                {...holdProps(device.id, b.key, onPatchDeviceState)}
+                onClick={() => !onPatchDeviceState && onUpdateDeviceProperty(device.id, b.key, !device.state[b.key])}
+                className={`py-2 rounded-xl border text-xs font-black flex flex-col items-center transition ${device.state[b.key] ? b.on : b.off}`}
+              >
+                {b.label}
+                <span className="text-[9px] font-mono font-bold opacity-80">{b.sub}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -885,8 +1115,12 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
               Motor Status
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.running ? 'bg-emerald-100 text-emerald-700 animate-pulse' : 'bg-stone-100 text-stone-500'}`}>
-              {device.state.running ? '⚡ SPINNING (1750 RPM)' : '○ STOPPED'}
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.motorFault ? 'bg-rose-100 text-rose-700 animate-pulse' : device.state.running ? 'bg-emerald-100 text-emerald-700 animate-pulse' : 'bg-stone-100 text-stone-500'}`}>
+              {device.state.motorFault
+                ? `⚠ ${device.state.motorFault}`
+                : device.state.running
+                ? `⚡ ${device.state.motorDirection === 'CCW' ? '⟲ CCW REVERSE' : '⟳ CW FORWARD'}`
+                : '○ STOPPED'}
             </span>
           </div>
           <div>
@@ -914,7 +1148,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               ))}
             </div>
             <span className="text-[9px] text-stone-400 mt-1 block font-mono">
-              Rated: {(device.state.wattage || 2200)} Watts / 230-460V 3-Phase TEFC.
+              Rated: {(device.state.wattage || 2200)} W · 440V 3-phase TEFC · line current {(device.state.measuredAmps || 0).toFixed(2)} A. Swap any two of U1/V1/W1 to reverse rotation.
             </span>
           </div>
         </div>

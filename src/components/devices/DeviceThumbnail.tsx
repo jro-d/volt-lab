@@ -350,12 +350,96 @@ export const DeviceThumbnail: React.FC<DeviceThumbnailProps> = ({ type, classNam
         )}
 
         {type === 'contactor_3p' && (
-          <g transform="translate(16, 6)">
-            <rect x="0" y="0" width="48" height="68" rx="4" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="1.2" />
-            <rect x="12" y="10" width="32" height="48" rx="3" fill="#1e293b" />
-            {/* Moving Orange Tab */}
-            <rect x="22" y="26" width="12" height="16" rx="2" fill="#f97316" />
-            <text x="24" y="64" textAnchor="middle" fontSize="6.5" fontWeight="bold" fill="#0f172a">3P KM1</text>
+          <g transform="translate(10, 6)">
+            <rect x="0" y="0" width="42" height="68" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.2" />
+            <rect x="2" y="2" width="38" height="10" rx="2" fill="#334155" />
+            <rect x="2" y="56" width="38" height="10" rx="2" fill="#334155" />
+            {[10, 21, 32].map((cx) => (
+              <React.Fragment key={cx}>
+                <circle cx={cx} cy="7" r="2.4" fill="#dc2626" />
+                <circle cx={cx} cy="61" r="2.4" fill="#ca8a04" />
+              </React.Fragment>
+            ))}
+            <rect x="5" y="17" width="32" height="10" rx="1.5" fill="#ffffff" />
+            <text x="10" y="24" fontSize="5.5" fontWeight="900" fill="#15803d">TeSys</text>
+            <rect x="12" y="32" width="18" height="14" rx="2" fill="#1e293b" />
+            <rect x="15" y="35" width="12" height="8" rx="1" fill="#f97316" />
+            <rect x="44" y="4" width="16" height="60" rx="3" fill="#aeb5bf" stroke="#8b939e" strokeWidth="0.8" />
+            <circle cx="52" cy="10" r="2.4" fill="#10b981" />
+            <circle cx="52" cy="58" r="2.4" fill="#f59e0b" />
+            <text x="52" y="36" textAnchor="middle" fontSize="4.5" fontWeight="900" fill="#065f46">NO</text>
+            <text x="52" y="44" textAnchor="middle" fontSize="4.5" fontWeight="900" fill="#92400e">NC</text>
+          </g>
+        )}
+
+        {type === 'thermal_overload_relay' && (
+          <g transform="translate(10, 10)">
+            <rect x="0" y="0" width="42" height="60" rx="4" fill="#cfd4da" stroke="#8b939e" strokeWidth="1.2" />
+            <rect x="2" y="2" width="38" height="9" rx="2" fill="#334155" />
+            <rect x="2" y="49" width="38" height="9" rx="2" fill="#334155" />
+            <circle cx="14" cy="28" r="9" fill="#0284c7" stroke="#0c4a6e" strokeWidth="1" />
+            <line x1="14" y1="28" x2="19" y2="22" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+            <rect x="27" y="18" width="10" height="5" rx="1" fill="#22c55e" />
+            <rect x="27" y="27" width="10" height="4" rx="2" fill="#dc2626" />
+            <circle cx="32" cy="38" r="3.5" fill="#2563eb" />
+            <text x="32" y="39.6" textAnchor="middle" fontSize="4" fontWeight="900" fill="#ffffff">R</text>
+            <rect x="44" y="4" width="16" height="52" rx="3" fill="#b6bdc7" stroke="#8b939e" strokeWidth="0.8" />
+            <text x="52" y="22" textAnchor="middle" fontSize="4.2" fontWeight="900" fill="#92400e">95</text>
+            <text x="52" y="30" textAnchor="middle" fontSize="4.2" fontWeight="900" fill="#92400e">96</text>
+            <text x="52" y="40" textAnchor="middle" fontSize="4.2" fontWeight="900" fill="#065f46">97</text>
+            <text x="52" y="48" textAnchor="middle" fontSize="4.2" fontWeight="900" fill="#065f46">98</text>
+          </g>
+        )}
+
+        {type === 'control_transformer' && (
+          <g transform="translate(10, 6)">
+            <rect x="6" y="0" width="48" height="12" rx="2" fill="#1f2937" />
+            <rect x="6" y="56" width="48" height="12" rx="2" fill="#1f2937" />
+            <circle cx="16" cy="6" r="2.4" fill="#dc2626" />
+            <circle cx="44" cy="6" r="2.4" fill="#dc2626" />
+            <circle cx="16" cy="62" r="2.4" fill="#eab308" />
+            <circle cx="44" cy="62" r="2.4" fill="#2563eb" />
+            <rect x="2" y="14" width="56" height="40" rx="2" fill="#4b5563" stroke="#1f2937" strokeWidth="1" />
+            <rect x="12" y="18" width="36" height="32" rx="4" fill="#c2410c" stroke="#431407" strokeWidth="0.8" />
+            <rect x="15" y="27" width="30" height="14" rx="1.5" fill="#fef3c7" />
+            <text x="30" y="36.5" textAnchor="middle" fontSize="5.5" fontWeight="900" fill="#1f2937">440/220</text>
+          </g>
+        )}
+
+        {type === 'source_3phase_440v' && (
+          <g transform="translate(4, 16)">
+            <rect x="0" y="0" width="72" height="46" rx="4" fill="#d1d5db" stroke="#6b7280" strokeWidth="1.2" />
+            <rect x="2" y="2" width="68" height="9" rx="2" fill="#111827" />
+            <text x="36" y="9" textAnchor="middle" fontSize="5.5" fontWeight="900" fill="#fde047">440V 3Φ</text>
+            <circle cx="14" cy="21" r="4" fill="#dc2626" />
+            <circle cx="26" cy="21" r="4" fill="#eab308" />
+            <circle cx="38" cy="21" r="4" fill="#2563eb" />
+            <rect x="50" y="14" width="16" height="15" rx="2" fill="#facc15" />
+            <circle cx="58" cy="21.5" r="5" fill="#dc2626" />
+            <rect x="3" y="33" width="66" height="11" rx="2" fill="#1f2937" />
+            {[12, 27, 42, 57].map((cx, i) => (
+              <circle key={cx} cx={cx} cy="38.5" r="2.8" fill={['#dc2626', '#eab308', '#2563eb', '#16a34a'][i]} />
+            ))}
+          </g>
+        )}
+
+        {type === 'push_button_fwd_rev' && (
+          <g transform="translate(6, 14)">
+            <rect x="0" y="0" width="68" height="52" rx="6" fill="#9ca3af" stroke="#4b5563" strokeWidth="1.2" />
+            <rect x="3" y="8" width="62" height="36" rx="5" fill="#e5e7eb" />
+            {[
+              { cx: 14, c: '#ef4444' },
+              { cx: 34, c: '#22c55e' },
+              { cx: 54, c: '#f59e0b' },
+            ].map((b) => (
+              <React.Fragment key={b.cx}>
+                <circle cx={b.cx} cy="28" r="8" fill="#d1d5db" stroke="#6b7280" strokeWidth="0.6" />
+                <circle cx={b.cx} cy="28" r="5.8" fill={b.c} />
+              </React.Fragment>
+            ))}
+            <text x="14" y="16" textAnchor="middle" fontSize="4.6" fontWeight="900" fill="#111827">STOP</text>
+            <text x="34" y="16" textAnchor="middle" fontSize="4.6" fontWeight="900" fill="#111827">FWD</text>
+            <text x="54" y="16" textAnchor="middle" fontSize="4.6" fontWeight="900" fill="#111827">REV</text>
           </g>
         )}
 

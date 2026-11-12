@@ -29,11 +29,19 @@ interface WiringCanvasProps {
   onUpdateDevicePosition: (id: string, x: number, y: number) => void;
   onConnectWire: (fromDevId: string, fromTermId: string, toDevId: string, toTermId: string, mode?: WiringMode) => void;
   onToggleDeviceState: (device: ElectricalDevice) => void;
+  /** Merge a partial state patch into a device (momentary push buttons, dials, view toggles) */
+  onPatchDeviceState?: (deviceId: string, patch: Record<string, any>) => void;
+  /** Device ids to glow-highlight (e.g. hovered ladder symbol) */
+  highlightDeviceIds?: string[];
   onUpdateWireWaypoints?: (wireId: string, waypoints: Point[]) => void;
   onDropDevice?: (type: DeviceType, x: number, y: number) => void;
   onRotateDevice?: (device: ElectricalDevice) => void;
   onDuplicateDevice?: (device: ElectricalDevice) => void;
   onDeleteDevice?: (device: ElectricalDevice) => void;
+  /** Changing this value re-fits the camera to the drawing (e.g. when a lab is loaded) */
+  fitKey?: string;
+  /** Pixels on the left covered by floating panels (kept clear when fitting) */
+  insetLeft?: number;
 }
 
 export const WiringCanvas: React.FC<WiringCanvasProps> = ({
@@ -55,11 +63,15 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   onUpdateDevicePosition,
   onConnectWire,
   onToggleDeviceState,
+  onPatchDeviceState,
+  highlightDeviceIds = [],
   onUpdateWireWaypoints,
   onDropDevice,
   onRotateDevice,
   onDuplicateDevice,
   onDeleteDevice,
+  fitKey,
+  insetLeft = 0,
 }) => {
   const containerRef = useRef<SVGSVGElement | null>(null);
 
@@ -140,6 +152,61 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [wiringStart, onSelectDevice, onSelectWire]);
+
+  // Zoom-to-fit: frame every device (and routed wire waypoint) in the visible canvas area
+  const fitToView = React.useCallback(() => {
+    const el = containerRef.current;
+    if (!el || devices.length === 0) {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      return;
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const d of devices) {
+      minX = Math.min(minX, d.x);
+      minY = Math.min(minY, d.y);
+      maxX = Math.max(maxX, d.x + d.width);
+      maxY = Math.max(maxY, d.y + d.height);
+    }
+    for (const w of wires) {
+      for (const p of w.waypoints || []) {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+      }
+    }
+    const rect = el.getBoundingClientRect();
+    const pad = 48;
+    const availW = Math.max(200, rect.width - insetLeft - pad * 2);
+    const availH = Math.max(200, rect.height - pad * 2);
+    const bw = Math.max(1, maxX - minX);
+    const bh = Math.max(1, maxY - minY);
+    const z = Math.min(1.4, Math.max(0.4, Math.min(availW / bw, availH / bh)));
+    setZoom(z);
+    setPan({
+      x: insetLeft + pad + (availW - bw * z) / 2 - minX * z,
+      y: pad + (availH - bh * z) / 2 - minY * z,
+    });
+  }, [devices, wires, insetLeft]);
+
+  // Re-fit when a different project / lab is loaded
+  React.useEffect(() => {
+    if (fitKey === undefined) return;
+    const t = setTimeout(fitToView, 30);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey]);
+
+  // "F" frames the drawing
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'f') fitToView();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fitToView]);
 
   // Publish zoom / wiring state to the CAD status bar
   React.useEffect(() => {
@@ -299,8 +366,16 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     }
   };
 
+  // Block page scroll while wheel-zooming (React's onWheel is passive, so use a native listener)
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const block = (ev: WheelEvent) => ev.preventDefault();
+    el.addEventListener('wheel', block, { passive: false });
+    return () => el.removeEventListener('wheel', block);
+  }, []);
+
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
     const newZoom = Math.min(2.5, Math.max(0.4, zoom * zoomFactor));
 
@@ -354,16 +429,37 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           -
         </button>
         <button
+          onClick={fitToView}
+          className="px-2.5 py-1 bg-stone-800 hover:bg-stone-900 text-xs text-white rounded-lg font-bold transition"
+          title="Zoom to fit the whole drawing (F)"
+        >
+          Fit
+        </button>
+        <button
           onClick={() => {
             setZoom(1.0);
             setPan({ x: 0, y: 0 });
           }}
           className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-xs text-stone-600 rounded-lg font-medium transition"
-          title="Reset Canvas View"
+          title="Reset to 100% at the origin"
         >
-          Reset
+          1:1
         </button>
       </div>
+
+      {/* Empty workbench onboarding */}
+      {devices.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]" style={{ paddingLeft: insetLeft }}>
+          <div className="max-w-md text-center bg-white/90 border border-stone-200 rounded-2xl px-6 py-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] backdrop-blur">
+            <div className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-rose-600 mb-1">Empty workbench</div>
+            <div className="text-base font-serif font-bold text-stone-900 mb-1.5">Drag a device from the library to begin</div>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Click a terminal, then another terminal to run a conductor. Press <b>▶ Simulate</b> to energize.
+              New here? Open <b>Examples</b> and try the <b>⚓ Marine DOL</b> or <b>🔄 Forward-Reverse</b> motor starter labs.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Wire Tool Notice */}
       {wiringStart && (
@@ -472,6 +568,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                 onTerminalMouseDown={handleTerminalMouseDown}
                 setHoveredTerminalId={setHoveredTerminalId}
                 onToggleState={onToggleDeviceState}
+                onPatchState={onPatchDeviceState}
+                isHighlighted={highlightDeviceIds.includes(device.id)}
                 onRotate={onRotateDevice}
                 onDuplicate={onDuplicateDevice}
                 onDelete={onDeleteDevice}
@@ -481,29 +579,36 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
           {/* Layer 4: Sparks & Arc Flash Effects */}
           <g id="sparks-layer" className="pointer-events-none">
-            {solved.sparks.map((spark) => (
-              <g key={spark.id} transform={`translate(${spark.x}, ${spark.y})`}>
-                <circle r={26} fill="#fef08a" opacity={0.85} className="animate-ping" />
-                <circle r={14} fill="#e11d48" opacity={0.9} />
-                {/* Spark Rays */}
-                {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
-                  <line
-                    key={deg}
-                    x1={0}
-                    y1={0}
-                    x2={30 * Math.cos((deg * Math.PI) / 180)}
-                    y2={30 * Math.sin((deg * Math.PI) / 180)}
-                    stroke="#ffffff"
-                    strokeWidth={2.5}
-                  />
-                ))}
-                {/* Fault Banner */}
-                <rect x={-80} y={-44} width={160} height={22} rx={5} fill="#e11d48" />
-                <text x={0} y={-29} textAnchor="middle" fontSize={9.5} fontWeight="bold" fill="#ffffff">
-                  ⚡ ARC FAULT DETECTED
-                </text>
-              </g>
-            ))}
+            {solved.sparks.map((spark) => {
+              const isArc = spark.severity === 'arc_flash';
+              const R = isArc ? 1.6 : 1;
+              return (
+                <g key={spark.id} transform={`translate(${spark.x}, ${spark.y})`}>
+                  {isArc && <circle r={60} fill="#fde68a" opacity={0.35} className="animate-ping" />}
+                  <circle r={26 * R} fill="#fef08a" opacity={0.85} className="animate-ping" />
+                  <circle r={14 * R} fill={isArc ? '#f97316' : '#e11d48'} opacity={0.92} />
+                  <circle r={6 * R} fill="#ffffff" />
+                  {/* Spark Rays */}
+                  {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg, i) => (
+                    <line
+                      key={deg}
+                      x1={0}
+                      y1={0}
+                      x2={(i % 2 ? 22 : 32) * R * Math.cos((deg * Math.PI) / 180)}
+                      y2={(i % 2 ? 22 : 32) * R * Math.sin((deg * Math.PI) / 180)}
+                      stroke="#ffffff"
+                      strokeWidth={2.5}
+                      strokeLinecap="round"
+                    />
+                  ))}
+                  {/* Fault Banner */}
+                  <rect x={-96} y={-48 * R - 8} width={192} height={24} rx={6} fill={isArc ? '#7c2d12' : '#e11d48'} stroke="#fde68a" strokeWidth={1.2} />
+                  <text x={0} y={-48 * R + 8} textAnchor="middle" fontSize={10} fontWeight="bold" fill="#ffffff">
+                    {isArc ? '💥 PHASE-TO-PHASE ARC FLASH' : '⚡ ARC FAULT DETECTED'}
+                  </text>
+                </g>
+              );
+            })}
           </g>
         </g>
       </svg>

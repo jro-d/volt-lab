@@ -1,3 +1,5 @@
+import type { LadderRung } from './ladder';
+
 export type CodeStandard = 'PEC' | 'IEC';
 
 export type WiringMode = 'single' | 'dual_ln' | 'triple_lnpe';
@@ -26,7 +28,7 @@ export interface DeviceTerminal {
   relX: number; // percentage (0..1) or pixel relative to device width
   relY: number; // percentage (0..1) or pixel relative to device height
   label?: string;
-  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT';
+  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2';
   spliceGroup?: string; // for junction boxes where terminals in the same group are shorted
 }
 
@@ -81,7 +83,12 @@ export type DeviceType =
   | 'royu_safety_breaker_2p'
   | 'din_rail_track'
   | 'utility_box_surface_pvc'
-  | 'royu_modular_combo_plate';
+  | 'royu_modular_combo_plate'
+  // Phase 3: Marine & Industrial Motor Control Trainer
+  | 'thermal_overload_relay'
+  | 'control_transformer'
+  | 'source_3phase_440v'
+  | 'push_button_fwd_rev';
 
 export interface ElectricalDevice {
   id: string;
@@ -94,7 +101,7 @@ export interface ElectricalDevice {
   height: number;
   rotation?: number; // 0, 90, 180, 270 degrees
   // Real Manufacturer Engineering Specs
-  brand?: 'ROYU' | 'Schneider' | 'Generic';
+  brand?: 'ROYU' | 'Schneider' | 'Siemens' | 'Generic';
   modelNumber?: string;
   kaRating?: number; // Interrupting capacity in kA (e.g. 6kA or 10kA)
   mountingType?: 'bolt_on' | 'plug_in' | 'din_rail' | 'flush_utility' | 'surface_nema3r';
@@ -115,7 +122,7 @@ export interface ElectricalDevice {
     resistanceOhms?: number;
     hasCover?: boolean; // for junction boxes
     boxMaterial?: 'orange_pvc' | 'galvanized_steel';
-    viewMode?: 'front' | 'rear'; // for sockets/switches (faceplate vs internal mechanism)
+    viewMode?: 'front' | 'rear' | 'cutaway'; // sockets/switches (faceplate vs mechanism) or contactor X-ray cutaway
     mccbStyle?: 'din_rail' | 'industrial_black';
     tabBroken?: boolean; // for duplex outlets with split brass tab
     topologyMode?: 'pigtail' | 'daisy_chain'; // for educational templates
@@ -128,6 +135,14 @@ export interface ElectricalDevice {
     pilotLit?: boolean;
     receptaclePowered?: boolean;
     trackWidth?: number; // for din_rail_track
+    // Phase 3: motor control states
+    tag?: string; // schematic device tag (KM1, KM2, F2, S1 ...)
+    role?: string; // functional role shown on ladder (FOR, REV, RUN ...)
+    tripAmps?: number; // thermal overload relay dial setting
+    measuredAmps?: number; // solver-derived line current through a device
+    motorDirection?: 'CW' | 'CCW' | null; // solver-derived rotation of 3-phase motor
+    motorFault?: string | null; // solver-derived motor fault (single phasing etc.)
+    secondaryLive?: boolean; // control transformer secondary energized
     [key: string]: any;
   };
 }
@@ -150,6 +165,7 @@ export interface ElectricalWire {
   conductorRole?: 'feed_live' | 'return_neutral' | 'earth_ground' | 'switched_live' | 'traveler';
 }
 
+
 export interface ElectricalProject {
   id: string;
   title: string;
@@ -160,4 +176,8 @@ export interface ElectricalProject {
   systemEarthing: 'TN-S' | 'TN-C-S' | 'TT';
   devices: ElectricalDevice[];
   wires: ElectricalWire[];
+  /** Student-built control ladder (Rung Builder) */
+  ladder?: LadderRung[];
+  /** Lab reference ladder diagram (target logic) */
+  targetLadder?: LadderRung[];
 }
