@@ -72,9 +72,98 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </button>
       </div>
 
+      {/* ── MANUFACTURER DATASHEET CARD ── */}
+      {device && (
+        <div className="mb-3.5 p-2.5 rounded-xl bg-gradient-to-br from-stone-50 to-stone-100/70 border border-stone-200/90 text-stone-800 shadow-sm">
+          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-stone-200/60">
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[10px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded ${
+                device.brand === 'ROYU'
+                  ? 'bg-blue-600 text-white'
+                  : device.brand === 'Schneider'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-stone-600 text-white'
+              }`}>
+                {device.brand || 'ROYU'}
+              </span>
+              <span className="text-[11px] font-bold font-mono text-stone-900">
+                {device.modelNumber || (device.type.includes('mcb') ? 'ROYU RCB220' : device.type.includes('combo') ? 'ROYU RWS103' : 'GENERIC-SPEC')}
+              </span>
+            </div>
+            {device.kaRating && (
+              <span className="text-[10px] font-mono font-black text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
+                {device.kaRating} kAIC
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+            <div>
+              <span className="text-stone-400 block font-medium">Mounting:</span>
+              <span className="font-semibold text-stone-700 capitalize">
+                {device.mountingType ? device.mountingType.replace('_', ' ') : 'Flush Utility Box'}
+              </span>
+            </div>
+            <div>
+              <span className="text-stone-400 block font-medium">Reference Code:</span>
+              <span className="font-mono font-semibold text-stone-700">
+                {device.pecReference || 'PEC 2017'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- CIRCUIT BREAKER PROPERTIES --- */}
       {device && (device.type.includes('mcb') || device.type.includes('service_disconnect')) && (
         <div className="space-y-3">
+          {/* ROYU / IEC Breaker Profile Form Factor */}
+          <div>
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+              Breaker Profile & Mounting
+            </label>
+            <div className="grid grid-cols-3 gap-1">
+              {[
+                { id: 'royu_bolt_on', label: 'ROYU Bolt-On', sub: '10kA 240V' },
+                { id: 'royu_din_rail', label: 'ROYU DIN-Rail', sub: '6kA 240V' },
+                { id: 'generic_iec', label: 'Generic IEC', sub: '6kA DIN' },
+              ].map(prof => {
+                const active = (device.state.breakerProfile || (device.state.mccbStyle === 'industrial_black' ? 'royu_bolt_on' : 'royu_din_rail')) === prof.id;
+                return (
+                  <button
+                    key={prof.id}
+                    onClick={() => {
+                      onUpdateDeviceProperty(device.id, 'breakerProfile', prof.id);
+                      onUpdateDeviceProperty(device.id, 'mccbStyle', prof.id === 'royu_bolt_on' ? 'industrial_black' : 'din_rail');
+                      if (prof.id === 'royu_bolt_on') {
+                        onUpdateDeviceProperty(device.id, 'brand', 'ROYU');
+                        onUpdateDeviceProperty(device.id, 'kaRating', 10);
+                        onUpdateDeviceProperty(device.id, 'mountingType', 'bolt_on');
+                        onUpdateDeviceProperty(device.id, 'modelNumber', device.type === 'mcb_2p' ? 'ROYU RCB220' : 'ROYU RCB120');
+                      } else if (prof.id === 'royu_din_rail') {
+                        onUpdateDeviceProperty(device.id, 'brand', 'ROYU');
+                        onUpdateDeviceProperty(device.id, 'kaRating', 6);
+                        onUpdateDeviceProperty(device.id, 'mountingType', 'din_rail');
+                        onUpdateDeviceProperty(device.id, 'modelNumber', device.type === 'mcb_2p' ? 'ROYU RDM220' : 'ROYU RDM120');
+                      } else {
+                        onUpdateDeviceProperty(device.id, 'brand', 'Generic');
+                        onUpdateDeviceProperty(device.id, 'kaRating', 6);
+                        onUpdateDeviceProperty(device.id, 'mountingType', 'din_rail');
+                      }
+                    }}
+                    className={`py-1 px-1 text-center rounded-lg border transition ${
+                      active
+                        ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                        : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    }`}
+                  >
+                    <div className="text-[10px] font-bold leading-tight">{prof.label}</div>
+                    <div className={`text-[8px] ${active ? 'text-rose-100' : 'text-stone-400'}`}>{prof.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {/* Ampere Rating Selector */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
@@ -199,6 +288,206 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             </div>
             <span className="text-[9px] text-stone-500 mt-1 block">
               30mA is mandatory for personnel shock protection (PEC 2.10.1.8 / IEC 60364-4-41).
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* --- ROYU ENCLOSED SAFETY BREAKER (ACU DISCONNECT) --- */}
+      {device && device.type === 'royu_safety_breaker_2p' && (
+        <div className="space-y-3">
+          {/* Front Enclosure Cover Toggle */}
+          <div>
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+              NEMA 1 Enclosure Cover
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => onUpdateDeviceProperty(device.id, 'enclosureCoverOpen', false)}
+                className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                  !device.state.enclosureCoverOpen
+                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                }`}
+              >
+                🔒 Closed (Front Face)
+              </button>
+              <button
+                onClick={() => onUpdateDeviceProperty(device.id, 'enclosureCoverOpen', true)}
+                className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                  device.state.enclosureCoverOpen
+                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                }`}
+              >
+                🔓 Open (Inspect Lugs)
+              </button>
+            </div>
+          </div>
+
+          {/* Ampere Rating */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                Safety Breaker Rating (In)
+              </label>
+              <span className="text-xs font-mono font-bold text-rose-600">{device.state.ratedAmps || 30}A</span>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {[15, 20, 30, 40].map((amps) => (
+                <button
+                  key={amps}
+                  onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    (device.state.ratedAmps || 30) === amps
+                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                  }`}
+                >
+                  {amps}A
+                </button>
+              ))}
+            </div>
+            <span className="text-[9px] text-stone-400 mt-1 block">
+              PEC 4.40.2.1: Disconnecting means must be within sight from air-conditioning equipment.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* --- ROYU WIDE-SERIES MODULAR COMBO STRAP --- */}
+      {device && device.type === 'royu_modular_combo_plate' && (
+        <div className="space-y-3">
+          {/* Front / Rear View Toggle */}
+          <div>
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+              Plate View Mode
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => onUpdateDeviceProperty(device.id, 'viewMode', 'front')}
+                className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                  device.state.viewMode !== 'rear'
+                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                }`}
+              >
+                Front Faceplate
+              </button>
+              <button
+                onClick={() => onUpdateDeviceProperty(device.id, 'viewMode', 'rear')}
+                className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                  device.state.viewMode === 'rear'
+                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                }`}
+              >
+                🔄 Rear Wiring Strap
+              </button>
+            </div>
+            <span className="text-[9px] text-stone-400 mt-1 block">
+              Flip to Rear View to wire common jumpers between SW, Pilot, and Outlet!
+            </span>
+          </div>
+
+          {/* Slot 2 Module Option */}
+          <div>
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+              Slot 2 Modular Insert
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => onUpdateDeviceProperty(device.id, 'comboSlot2', 'pilot')}
+                className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                  device.state.comboSlot2 !== 'switch2'
+                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                }`}
+              >
+                🔴 Neon Pilot Lamp
+              </button>
+              <button
+                onClick={() => onUpdateDeviceProperty(device.id, 'comboSlot2', 'switch2')}
+                className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                  device.state.comboSlot2 === 'switch2'
+                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                }`}
+              >
+                ⚡ 2nd 1-Way Switch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- UTILITY BOX PROPERTIES --- */}
+      {device && device.type === 'utility_box_surface_pvc' && (
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+              Box Material & Finish
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => onUpdateDeviceProperty(device.id, 'boxMaterial', 'orange_pvc')}
+                className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                  device.state.boxMaterial !== 'galvanized_steel'
+                    ? 'bg-orange-600 text-white border-orange-700 shadow-sm'
+                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                }`}
+              >
+                🟧 PVC Safety Orange
+              </button>
+              <button
+                onClick={() => onUpdateDeviceProperty(device.id, 'boxMaterial', 'galvanized_steel')}
+                className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                  device.state.boxMaterial === 'galvanized_steel'
+                    ? 'bg-stone-700 text-white border-stone-800 shadow-sm'
+                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                }`}
+              >
+                ⬜ Galvanized Steel (GI)
+              </button>
+            </div>
+            <span className="text-[9px] text-stone-400 mt-1 block">
+              PEC 3.14.2.2: Standard 2"×4" utility box volume 230 cm³ (14.0 in³). Max 7× 2.0mm² conductors.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* --- DIN RAIL TRACK PROPERTIES --- */}
+      {device && device.type === 'din_rail_track' && (
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+              DIN Rail Length
+            </label>
+            <div className="grid grid-cols-3 gap-1">
+              {[
+                { w: 160, label: '160 mm' },
+                { w: 260, label: '260 mm' },
+                { w: 380, label: '380 mm' },
+              ].map(opt => (
+                <button
+                  key={opt.w}
+                  onClick={() => {
+                    onUpdateDeviceProperty(device.id, 'trackWidth', opt.w);
+                    onUpdateDeviceProperty(device.id, 'width', opt.w);
+                  }}
+                  className={`py-1.5 text-xs font-bold rounded-lg border transition ${
+                    (device.state.trackWidth || device.width) === opt.w
+                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <span className="text-[9px] text-stone-400 mt-1 block">
+              Mounts standard 35mm modular MCBs, RCDs, and industrial terminals per IEC 60715.
             </span>
           </div>
         </div>

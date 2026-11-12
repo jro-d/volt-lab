@@ -19,7 +19,7 @@ export function analyzeCodeCompliance(
     const toDev = devices.find(d => d.id === wire.toDeviceId);
 
     // Find protecting upstream breaker
-    const breaker = [fromDev, toDev].find(d => d && (d.type === 'mcb_1p' || d.type === 'mcb_2p' || d.type === 'mcb_3p' || d.type === 'service_disconnect_2p'));
+    const breaker = [fromDev, toDev].find(d => d && (d.type === 'mcb_1p' || d.type === 'mcb_2p' || d.type === 'mcb_3p' || d.type === 'service_disconnect_2p' || d.type === 'royu_safety_breaker_2p'));
     const wireStd = wireStandards.find(s => s.name === wire.wireGauge) || wireStandards[0];
 
     if (breaker && wireStd) {
@@ -67,8 +67,11 @@ export function analyzeCodeCompliance(
   // 3. Grounding & Bonding Verification (PEC 2.50 / IEC 60364-4-41)
   // Check sockets
   for (const dev of devices) {
-    if (dev.type === 'socket_duplex' || dev.type === 'socket_schuko') {
-      const gndWire = wires.find(w => (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ground' || w.fromTerminalId === 'earth')) || (w.toDeviceId === dev.id && (w.toTerminalId === 'ground' || w.toTerminalId === 'earth')));
+    if (dev.type === 'socket_duplex' || dev.type === 'socket_schuko' || dev.type === 'royu_modular_combo_plate') {
+      const gndWire = wires.find(w => 
+        (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ground' || w.fromTerminalId === 'earth' || w.fromTerminalId === 'rec_pe')) || 
+        (w.toDeviceId === dev.id && (w.toTerminalId === 'ground' || w.toTerminalId === 'earth' || w.toTerminalId === 'rec_pe'))
+      );
       if (!gndWire) {
         violations.push({
           id: `viol_gnd_${dev.id}`,
@@ -101,7 +104,7 @@ export function analyzeCodeCompliance(
           recommendation: 'Consider System A (Pigtail Splice with wire nuts in an orange octagonal box) so downstream continuity does not depend on this receptacle body.'
         });
       }
-    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_3phase_dol') {
+    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_3phase_dol' || dev.type === 'royu_safety_breaker_2p') {
       const gndWire = wires.find(w => 
         (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ground' || w.fromTerminalId === 'pe')) || 
         (w.toDeviceId === dev.id && (w.toTerminalId === 'ground' || w.toTerminalId === 'pe'))
@@ -126,13 +129,15 @@ export function analyzeCodeCompliance(
   // 4. Polarity & Switched Neutral Electrocution Hazards (PEC 4.4.1.2 & 2.0.1.10)
   // Check for Switched Neutral on single-pole switches
   for (const sw of devices) {
-    if (sw.type === 'switch_1gang') {
-      const inPot = solved.nodePotentials[`${sw.id}:l_in`];
-      const outPot = solved.nodePotentials[`${sw.id}:sw_out`];
+    if (sw.type === 'switch_1gang' || sw.type === 'royu_modular_combo_plate') {
+      const termL = sw.type === 'royu_modular_combo_plate' ? 'sw_in' : 'l_in';
+      const termSw = sw.type === 'royu_modular_combo_plate' ? 'sw_out' : 'sw_out';
+      const inPot = solved.nodePotentials[`${sw.id}:${termL}`];
+      const outPot = solved.nodePotentials[`${sw.id}:${termSw}`];
 
       // If switch is connected to Neutral
       const isSwitchingNeutral = inPot === 'neutral' || outPot === 'neutral' || wires.some(w => 
-        ((w.fromDeviceId === sw.id && w.fromTerminalId === 'l_in') || (w.toDeviceId === sw.id && w.toTerminalId === 'l_in')) &&
+        ((w.fromDeviceId === sw.id && w.fromTerminalId === termL) || (w.toDeviceId === sw.id && w.toTerminalId === termL)) &&
         (w.conductorRole === 'return_neutral' || w.color === '#0f172a' || w.color === '#2563eb')
       );
 

@@ -130,6 +130,25 @@ export function solveCircuit(
         addEdge(terminalKey(dev.id, 'in_l2'), terminalKey(dev.id, 'out_l2'));
         addEdge(terminalKey(dev.id, 'in_l3'), terminalKey(dev.id, 'out_l3'));
       }
+    } else if (dev.type === 'royu_safety_breaker_2p') {
+      if (dev.state.closed && !dev.state.tripped) {
+        addEdge(terminalKey(dev.id, 'in_l'), terminalKey(dev.id, 'out_l'));
+        addEdge(terminalKey(dev.id, 'in_n'), terminalKey(dev.id, 'out_n'));
+      }
+    } else if (dev.type === 'utility_box_surface_pvc') {
+      // Internal pass-through continuity for wire routes inside 2x4 utility box
+      addEdge(terminalKey(dev.id, 'l_in'), terminalKey(dev.id, 'l_out'));
+      addEdge(terminalKey(dev.id, 'n_in'), terminalKey(dev.id, 'n_out'));
+      addEdge(terminalKey(dev.id, 'pe_in'), terminalKey(dev.id, 'pe_out'));
+    } else if (dev.type === 'royu_modular_combo_plate') {
+      // Slot 1: Switch 1
+      if (dev.state.switchClosed !== false && dev.state.closed !== false) {
+        addEdge(terminalKey(dev.id, 'sw_in'), terminalKey(dev.id, 'sw_out'));
+      }
+      // Slot 2: Switch 2 (if configured as switch)
+      if (dev.state.comboSlot2 === 'switch2' && dev.state.switch2Closed) {
+        addEdge(terminalKey(dev.id, 'sw2_in'), terminalKey(dev.id, 'sw2_out'));
+      }
     } else if (dev.type === 'switch_1gang') {
       if (dev.state.closed) {
         addEdge(terminalKey(dev.id, 'l_in'), terminalKey(dev.id, 'sw_out'));
@@ -396,7 +415,7 @@ export function solveCircuit(
       });
 
       // Trip the closest upstream MCB
-      const upstreamMcb = devices.find(d => (d.type === 'mcb_1p' || d.type === 'mcb_2p' || d.type === 'service_disconnect_2p') && d.state.closed);
+      const upstreamMcb = devices.find(d => (d.type === 'mcb_1p' || d.type === 'mcb_2p' || d.type === 'mcb_3p' || d.type === 'service_disconnect_2p' || d.type === 'royu_safety_breaker_2p') && d.state.closed);
       if (upstreamMcb) {
         trippedDevices.push(upstreamMcb.id);
         tripReasons[upstreamMcb.id] = 'Magnetic Instantaneous Trip (Short Circuit Fault Current > 1,500A)';
@@ -539,6 +558,23 @@ export function solveCircuit(
         dev.state.plcPowered = true;
         totalWatts += 15; // 15W internal CPU power
       }
+    } else if (dev.type === 'royu_modular_combo_plate') {
+      const plPot = nodePotentials[terminalKey(dev.id, 'pilot_l')];
+      const pnPot = nodePotentials[terminalKey(dev.id, 'pilot_n')];
+      const isPilotLit = (plPot === 'live' && pnPot === 'neutral') || (pnPot === 'live' && plPot === 'neutral');
+      dev.state.pilotLit = isPilotLit;
+      if (isPilotLit && dev.state.comboSlot2 !== 'switch2') {
+        totalWatts += 0.5;
+      }
+
+      const rlPot = nodePotentials[terminalKey(dev.id, 'rec_l')];
+      const rnPot = nodePotentials[terminalKey(dev.id, 'rec_n')];
+      const isRecPowered = rlPot === 'live' && rnPot === 'neutral';
+      dev.state.receptaclePowered = isRecPowered;
+      if (isRecPowered) {
+        totalWatts += 150; // Nominal branch plug load
+      }
+      deviceEnergized[dev.id] = isPilotLit || isRecPowered;
     }
   }
 
@@ -639,6 +675,16 @@ export function solveCircuit(
       const liveT = plPot === 'live' ? 'p_l' : 'p_n';
       const neutT = plPot === 'live' ? 'p_n' : 'p_l';
       traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), 15 / gridVoltage);
+    } else if (dev.type === 'royu_modular_combo_plate') {
+      if (dev.state.pilotLit && dev.state.comboSlot2 !== 'switch2') {
+        const plPot = nodePotentials[terminalKey(dev.id, 'pilot_l')];
+        const liveT = plPot === 'live' ? 'pilot_l' : 'pilot_n';
+        const neutT = plPot === 'live' ? 'pilot_n' : 'pilot_l';
+        traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), 0.5 / gridVoltage);
+      }
+      if (dev.state.receptaclePowered) {
+        traceLoadCurrent(terminalKey(dev.id, 'rec_l'), terminalKey(dev.id, 'rec_n'), 150 / gridVoltage);
+      }
     }
   }
 

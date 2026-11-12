@@ -8,6 +8,11 @@ export interface ComponentDefinition {
   width: number;
   height: number;
   description: string;
+  brand?: 'ROYU' | 'Schneider' | 'Generic';
+  modelNumber?: string;
+  kaRating?: number;
+  mountingType?: 'bolt_on' | 'plug_in' | 'din_rail' | 'flush_utility' | 'surface_nema3r';
+  pecReference?: string;
   defaultProperties: Record<string, any>;
   terminals: DeviceTerminal[];
 }
@@ -101,12 +106,18 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     defaultLabel: 'MCB-1P',
     width: 44,
     height: 110,
-    description: 'Single-pole DIN-rail breaker for lighting or socket branch circuit.',
+    brand: 'ROYU',
+    modelNumber: 'ROYU RCB120',
+    kaRating: 10,
+    mountingType: 'bolt_on',
+    pecReference: 'PEC 2017 Art. 2.40.1.4(D)',
+    description: 'Single-pole bolt-on / DIN-rail breaker for lighting or socket branch circuit.',
     defaultProperties: {
       closed: true,
       tripped: false,
       ratedAmps: 16,
-      tripCurve: 'C'
+      tripCurve: 'C',
+      breakerProfile: 'royu_bolt_on',
     },
     terminals: [
       { id: 'in', name: 'Line In (Top)', type: 'phase', relX: 0.50, relY: 0.08, label: '1' },
@@ -120,12 +131,18 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     defaultLabel: 'MCB-2P',
     width: 70,
     height: 110,
+    brand: 'ROYU',
+    modelNumber: 'ROYU RCB220',
+    kaRating: 10,
+    mountingType: 'bolt_on',
+    pecReference: 'PEC 2017 Art. 2.40.1.4(D)',
     description: 'Two-pole breaker for 230V line-to-line loads (water heater, aircon).',
     defaultProperties: {
       closed: true,
       tripped: false,
       ratedAmps: 32,
-      tripCurve: 'C'
+      tripCurve: 'C',
+      breakerProfile: 'royu_bolt_on',
     },
     terminals: [
       { id: 'in_1', name: 'Line 1 In', type: 'phase', relX: 0.30, relY: 0.08, label: '1' },
@@ -141,12 +158,18 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     defaultLabel: 'MCB-3P',
     width: 95,
     height: 110,
+    brand: 'Schneider',
+    modelNumber: 'Acti9 iC60N',
+    kaRating: 10,
+    mountingType: 'din_rail',
+    pecReference: 'PEC 2017 Art. 2.40 & 4.30',
     description: 'Three-pole DIN-rail breaker for 3-phase machinery and motors.',
     defaultProperties: {
       closed: true,
       tripped: false,
       ratedAmps: 32,
-      tripCurve: 'D'
+      tripCurve: 'D',
+      breakerProfile: 'generic_iec',
     },
     terminals: [
       { id: 'in_l1', name: 'L1 In', type: 'phase', relX: 0.20, relY: 0.08, label: '1' },
@@ -218,6 +241,10 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     defaultLabel: 'SW-1WAY',
     width: 70,
     height: 110,
+    brand: 'ROYU',
+    modelNumber: 'ROYU RWS101',
+    mountingType: 'flush_utility',
+    pecReference: 'PEC 2017 Art. 4.4.1.2',
     description: 'Single-pole standard flush wall switch with manual rocker click.',
     defaultProperties: {
       closed: false,
@@ -234,6 +261,10 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     defaultLabel: 'SW-3WAY',
     width: 70,
     height: 110,
+    brand: 'ROYU',
+    modelNumber: 'ROYU RWS301',
+    mountingType: 'flush_utility',
+    pecReference: 'PEC 2017 Art. 4.4.1.2',
     description: '3-way switch for multi-location lighting control with Common and Travelers.',
     defaultProperties: {
       position: 'A', // 'A' routes COM -> T1, 'B' routes COM -> T2
@@ -251,6 +282,10 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     defaultLabel: 'SW-4WAY',
     width: 70,
     height: 110,
+    brand: 'ROYU',
+    modelNumber: 'ROYU RWS401',
+    mountingType: 'flush_utility',
+    pecReference: 'PEC 2017 Art. 4.4.1.2',
     description: '4-way intermediate switch placed between two 3-way switches.',
     defaultProperties: {
       crossState: false, // straight or cross
@@ -269,6 +304,10 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     defaultLabel: 'REC-DUPLEX',
     width: 110,
     height: 70,
+    brand: 'ROYU',
+    modelNumber: 'ROYU RDU202',
+    mountingType: 'flush_utility',
+    pecReference: 'PEC 2017 Art. 4.6.1.1',
     description: 'Philippine Wide-Series 2-gang convenience outlet with front faceplate and rear snap-in modular mechanism.',
     defaultProperties: {
       hasPluggedLoad: true,
@@ -631,6 +670,109 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
       { id: 'w1', name: 'Phase W1', type: 'phase3', relX: 0.68, relY: 0.22, label: 'W1', phaseLabel: 'L3' },
       { id: 'pe', name: 'Chassis Earth (PE)', type: 'earth', relX: 0.84, relY: 0.22, label: 'PE', phaseLabel: 'PE' },
     ]
+  },
+  {
+    type: 'royu_safety_breaker_2p',
+    category: 'protection',
+    name: 'ROYU 2P Safety Breaker (ACU Disconnect)',
+    defaultLabel: 'SAFETY-DISC',
+    width: 86,
+    height: 136,
+    brand: 'ROYU',
+    modelNumber: 'ROYU RSB230',
+    kaRating: 10,
+    mountingType: 'surface_nema3r',
+    pecReference: 'PEC 2017 Art. 4.40.2.1 & 4.22.3.1',
+    description: 'Enclosed 2-pole 30A safety breaker in NEMA 1 thermoplastic enclosure with padlocking latch. Mandatory local disconnect beside 1.5-2.0 HP air conditioners.',
+    defaultProperties: {
+      closed: true,
+      tripped: false,
+      ratedAmps: 30,
+      tripCurve: 'C',
+      enclosureCoverOpen: false,
+      breakerProfile: 'royu_bolt_on',
+    },
+    terminals: [
+      { id: 'in_l', name: 'Line 1 Feed (L1)', type: 'phase', relX: 0.28, relY: 0.10, label: 'L1', phaseLabel: 'L1' },
+      { id: 'in_n', name: 'Line 2 / Neutral Feed (L2/N)', type: 'neutral', relX: 0.72, relY: 0.10, label: 'L2', phaseLabel: 'L2' },
+      { id: 'out_l', name: 'Load 1 to Appliance (T1)', type: 'phase', relX: 0.28, relY: 0.90, label: 'T1', phaseLabel: 'L1' },
+      { id: 'out_n', name: 'Load 2 to Appliance (T2)', type: 'neutral', relX: 0.72, relY: 0.90, label: 'T2', phaseLabel: 'L2' },
+      { id: 'pe', name: 'Equipment Ground Bonding Lug', type: 'earth', relX: 0.50, relY: 0.90, label: 'PE', phaseLabel: 'PE' },
+    ]
+  },
+  {
+    type: 'din_rail_track',
+    category: 'busbar',
+    name: 'DIN-Rail 35mm Mounting Track',
+    defaultLabel: 'DIN-TRACK',
+    width: 260,
+    height: 36,
+    brand: 'Generic',
+    modelNumber: 'TS35/7.5 EN 50022',
+    mountingType: 'din_rail',
+    pecReference: 'PEC 2017 Art. 2.50.6.13 (Chassis Bonding)',
+    description: 'Standard 35mm slotted zinc-plated steel top-hat mounting rail for panelboard layout with earth grounding bond screw.',
+    defaultProperties: {
+      trackWidth: 260,
+    },
+    terminals: [
+      { id: 'pe', name: 'DIN Rail Chassis Ground Bonding Lug', type: 'earth', relX: 0.95, relY: 0.50, label: 'PE', phaseLabel: 'PE' },
+    ]
+  },
+  {
+    type: 'utility_box_surface_pvc',
+    category: 'splice',
+    name: 'ROYU 2"x4" Deep PVC Utility Box',
+    defaultLabel: 'UTIL-BOX',
+    width: 76,
+    height: 120,
+    brand: 'ROYU',
+    modelNumber: 'ROYU RUB204',
+    mountingType: 'flush_utility',
+    pecReference: 'PEC 2017 Art. 3.14.2.2 (Box Fill)',
+    description: 'Philippine standard 2"x4" surface/flush orange PVC utility box with 1/2" & 3/4" knockouts and internal pass-through splice clips.',
+    defaultProperties: {
+      boxMaterial: 'orange_pvc',
+    },
+    terminals: [
+      { id: 'l_in', name: 'Phase In (Conduit Entry)', type: 'phase', relX: 0.25, relY: 0.12, label: 'L_IN', spliceGroup: 'L' },
+      { id: 'n_in', name: 'Neutral In (Conduit Entry)', type: 'neutral', relX: 0.50, relY: 0.12, label: 'N_IN', spliceGroup: 'N' },
+      { id: 'pe_in', name: 'Ground In (Conduit Entry)', type: 'earth', relX: 0.75, relY: 0.12, label: 'PE_IN', spliceGroup: 'PE' },
+      { id: 'l_out', name: 'Phase Out (To Switch/Outlet)', type: 'phase', relX: 0.25, relY: 0.88, label: 'L_OUT', spliceGroup: 'L' },
+      { id: 'n_out', name: 'Neutral Out (To Switch/Outlet)', type: 'neutral', relX: 0.50, relY: 0.88, label: 'N_OUT', spliceGroup: 'N' },
+      { id: 'pe_out', name: 'Ground Out (To Switch/Outlet)', type: 'earth', relX: 0.75, relY: 0.88, label: 'PE_OUT', spliceGroup: 'PE' },
+    ]
+  },
+  {
+    type: 'royu_modular_combo_plate',
+    category: 'control',
+    name: 'ROYU Wide-Series Combo (Switch + Pilot + Outlet)',
+    defaultLabel: 'ROYU-COMBO',
+    width: 82,
+    height: 130,
+    brand: 'ROYU',
+    modelNumber: 'ROYU RWS103',
+    mountingType: 'flush_utility',
+    pecReference: 'PEC 2017 Art. 4.4 & 4.6',
+    description: 'Philippine ROYU Wide-Series 3-module strap plate with 1-Way Switch, Neon Red Pilot Lamp (or 2nd Switch), and Universal 3-Prong Grounded Outlet. Features Front/Rear wiring view.',
+    defaultProperties: {
+      viewMode: 'rear',
+      closed: true,
+      switchClosed: true,
+      switch2Closed: false,
+      comboSlot2: 'pilot',
+      pilotLit: false,
+      receptaclePowered: false,
+    },
+    terminals: [
+      { id: 'sw_in', name: 'SW1 Line In (Feed)', type: 'phase', relX: 0.28, relY: 0.16, label: 'SW_L' },
+      { id: 'sw_out', name: 'SW1 Line Out (To Lamp)', type: 'switched', relX: 0.72, relY: 0.16, label: 'SW_OUT' },
+      { id: 'pilot_l', name: 'Neon Pilot Phase (L)', type: 'phase', relX: 0.28, relY: 0.48, label: 'PL_L' },
+      { id: 'pilot_n', name: 'Neon Pilot Neutral (N)', type: 'neutral', relX: 0.72, relY: 0.48, label: 'PL_N' },
+      { id: 'rec_l', name: 'Receptacle Line (L)', type: 'phase', relX: 0.25, relY: 0.82, label: 'REC_L' },
+      { id: 'rec_n', name: 'Receptacle Neutral (N)', type: 'neutral', relX: 0.75, relY: 0.82, label: 'REC_N' },
+      { id: 'rec_pe', name: 'Receptacle Ground (PE)', type: 'earth', relX: 0.50, relY: 0.90, label: 'REC_PE' },
+    ]
   }
 ];
 
@@ -651,6 +793,11 @@ export function createDeviceFromCatalog(type: DeviceType, x: number, y: number, 
     y,
     width: def.width,
     height: def.height,
+    brand: def.brand,
+    modelNumber: def.modelNumber,
+    kaRating: def.kaRating,
+    mountingType: def.mountingType,
+    pecReference: def.pecReference,
     terminals: def.terminals.map(t => ({ ...t })),
     state: { ...def.defaultProperties },
   };

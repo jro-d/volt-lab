@@ -45,14 +45,14 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     if (d.type.includes('meter')) symbol = 'meter';
     else if (d.type.includes('rcd')) symbol = 'rcd';
     else if (d.type.includes('spd')) symbol = 'spd';
-    else if (d.type.includes('busbar')) symbol = 'busbar';
+    else if (d.type.includes('busbar') || d.type === 'din_rail_track') symbol = 'busbar';
     else if (d.type.includes('relay')) symbol = 'relay';
     else if (d.type.includes('contactor')) symbol = 'contactor';
     else if (d.type === 'push_button_station') symbol = 'pushbutton';
     else if (d.type === 'push_button_estop') symbol = 'estop';
     else if (d.type === 'pilot_light_indicator') symbol = 'pilot';
     else if (d.type === 'plc_micro_controller') symbol = 'plc';
-    else if (d.type.includes('switch')) symbol = 'switch';
+    else if (d.type.includes('switch') || d.type === 'royu_modular_combo_plate') symbol = 'switch';
     else if (d.type.includes('bulb')) symbol = 'light';
     else if (d.type.includes('socket')) symbol = 'socket';
     else if (d.type.includes('earth') || d.type.includes('pit')) symbol = 'earth';
@@ -60,8 +60,9 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     else if (d.type === 'appliance_fan') symbol = 'fan';
     else if (d.type === 'appliance_ac') symbol = 'ac';
     else if (d.type === 'appliance_water_heater') symbol = 'heater';
-    else if (d.type.includes('junction_box')) symbol = 'junction';
+    else if (d.type.includes('junction_box') || d.type === 'utility_box_surface_pvc') symbol = 'junction';
     else if (d.type.includes('splice') || d.type.includes('wago')) symbol = 'splice';
+    else if (d.type === 'royu_safety_breaker_2p') symbol = 'breaker';
 
     return {
       id: d.id,

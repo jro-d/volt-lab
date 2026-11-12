@@ -420,6 +420,57 @@ export const DeviceThumbnail: React.FC<DeviceThumbnailProps> = ({ type, classNam
             <text x="30" y="47" textAnchor="middle" fontSize="5" fontWeight="bold" fill="#ffffff">3P MOTOR</text>
           </g>
         )}
+
+        {type === 'royu_safety_breaker_2p' && (
+          <g transform="translate(16, 6)">
+            <rect x="0" y="0" width="48" height="68" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.2" />
+            <rect x="4" y="6" width="40" height="12" rx="2" fill="#dc2626" />
+            <text x="24" y="15" textAnchor="middle" fontSize="5.5" fontWeight="900" fill="#ffffff">ROYU SAFETY</text>
+            <rect x="8" y="24" width="32" height="28" rx="2" fill="#18181b" stroke="#475569" strokeWidth="0.8" />
+            <rect x="14" y="30" width="20" height="12" rx="2" fill="#ef4444" stroke="#ffffff" strokeWidth="0.6" />
+            <text x="24" y="39" textAnchor="middle" fontSize="6" fontWeight="bold" fill="#ffffff">ON</text>
+            <text x="24" y="60" textAnchor="middle" fontSize="5.5" fontWeight="bold" fill="#475569">2P 30A</text>
+          </g>
+        )}
+
+        {type === 'din_rail_track' && (
+          <g transform="translate(6, 26)">
+            <rect x="0" y="0" width="68" height="28" rx="2" fill="#cbd5e1" stroke="#64748b" strokeWidth="1" />
+            <line x1="0" y1="5" x2="68" y2="5" stroke="#ffffff" strokeWidth="1" />
+            <line x1="0" y1="23" x2="68" y2="23" stroke="#475569" strokeWidth="1" />
+            {[10, 24, 38, 52].map(sx => (
+              <rect key={sx} x={sx} y="10" width="8" height="8" rx="2" fill="#334155" opacity="0.6" />
+            ))}
+          </g>
+        )}
+
+        {type === 'utility_box_surface_pvc' && (
+          <g transform="translate(18, 6)">
+            <rect x="0" y="0" width="44" height="68" rx="4" fill="#ea580c" stroke="#9a3412" strokeWidth="1.2" />
+            <rect x="4" y="5" width="36" height="58" rx="3" fill="#7c2d12" stroke="#431407" strokeWidth="0.8" />
+            <circle cx="22" cy="12" r="3" fill="#ca8a04" />
+            <circle cx="22" cy="56" r="3" fill="#ca8a04" />
+            <text x="22" y="34" textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#fed7aa">ROYU</text>
+            <text x="22" y="42" textAnchor="middle" fontSize="5" fontWeight="bold" fill="#ffedd5">2"×4" BOX</text>
+          </g>
+        )}
+
+        {type === 'royu_modular_combo_plate' && (
+          <g transform="translate(16, 6)">
+            <rect x="0" y="0" width="48" height="68" rx="5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.2" />
+            {/* Rocker */}
+            <rect x="6" y="8" width="36" height="15" rx="2" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.6" />
+            <circle cx="24" cy="13" r="1.5" fill="#f97316" />
+            {/* Red Pilot */}
+            <rect x="6" y="27" width="36" height="12" rx="2" fill="#ffffff" stroke="#e2e8f0" strokeWidth="0.6" />
+            <circle cx="24" cy="33" r="4" fill="#ef4444" stroke="#b91c1c" strokeWidth="0.8" />
+            {/* Outlet */}
+            <rect x="6" y="43" width="36" height="19" rx="2" fill="#ffffff" stroke="#cbd5e1" strokeWidth="0.6" />
+            <line x1="16" y1="48" x2="16" y2="53" stroke="#1e293b" strokeWidth="1" />
+            <line x1="32" y1="48" x2="32" y2="53" stroke="#1e293b" strokeWidth="1" />
+            <circle cx="24" cy="56" r="1.5" fill="#1e293b" />
+          </g>
+        )}
       </svg>
     </div>
   );

@@ -16,6 +16,330 @@ export interface LabLesson {
 }
 
 export const LAB_LESSONS: LabLesson[] = [
+  // 0. ROYU PHILIPPINE HARDWARE ECOSYSTEM LAB
+  {
+    id: 'lab-royu-residential-ecosystem',
+    title: '🇵🇭 ROYU Residential Branch Circuit: ACU Safety Breaker & Modular Switch-Outlet Combo',
+    subtitle: 'PEC 2017 Art. 4.40 & Art. 4.4 / 4.6 Philippine Residential Installation',
+    category: 'residential',
+    badge: '🇵🇭 ROYU Hardware',
+    difficulty: 'Intermediate',
+    description: 'A realistic Philippine residential branch circuit featuring standard ROYU hardware: 2P Main Breaker on DIN rail, Octagonal Orange PVC Junction Box distributing to a 2P 30A ROYU Enclosed Safety Breaker for a 1.5 HP Inverter Air Conditioner (PEC Art. 4.40), and a ROYU Wide-Series Combo Plate (1-Way Switch controlling a ceiling light + Neon Red Pilot Lamp + Universal 3-Prong Grounded Outlet).',
+    objectives: [
+      'Understand how Philippine residential installations use 2-pole breakers for 230V line-to-line electrical systems.',
+      'Inspect the ROYU 2P 30A Safety Breaker local disconnect installed within sight of the 1.5 HP Air Conditioner (PEC 4.40.2.1).',
+      'Examine the ROYU Wide-Series Combo Plate in Rear View and trace the common live jumper strap across the switch, pilot lamp, and convenience receptacle.',
+      'Toggle the Safety Breaker cover open/closed to inspect the internal 2P bolt-on breaker mechanism, copper lugs, and equipment grounding.',
+    ],
+    project: {
+      id: 'proj_royu_ecosystem',
+      title: 'ROYU Residential Installation: ACU Disconnect & Modular Combo',
+      description: 'Philippine 230V residential installation with ROYU 2P Breakers, Safety Disconnect, Octagonal Box, and Wide-Series Combo.',
+      codeStandard: 'PEC',
+      gridVoltage: 230,
+      gridFrequency: 60,
+      systemEarthing: 'TN-S',
+      devices: [
+        {
+          ...createDeviceFromCatalog('din_rail_track', 50, 70, 'din_track'),
+          name: 'Panel DIN-Rail (35mm)',
+          state: { trackWidth: 160 }
+        },
+        {
+          ...createDeviceFromCatalog('mcb_2p', 80, 50, 'mcb_main'),
+          name: 'Main 2P 30A ROYU Breaker',
+          brand: 'ROYU',
+          modelNumber: 'ROYU RCB220',
+          kaRating: 10,
+          mountingType: 'bolt_on',
+          state: { closed: true, tripped: false, ratedAmps: 30, tripCurve: 'C', breakerProfile: 'royu_bolt_on' }
+        },
+        {
+          ...createDeviceFromCatalog('earth_busbar', 80, 200, 'pe_bar'),
+          name: 'PE Ground Busbar'
+        },
+        {
+          ...createDeviceFromCatalog('ground_pit', 80, 390, 'earth_rod'),
+          name: 'Ground Inspection Pit'
+        },
+        {
+          ...createDeviceFromCatalog('junction_box_octagonal_orange', 270, 70, 'jbox_main'),
+          name: 'ROYU Octagonal Orange Box'
+        },
+        {
+          ...createDeviceFromCatalog('royu_safety_breaker_2p', 470, 50, 'acu_safety'),
+          name: 'ROYU 2P 30A Safety Breaker (ACU)',
+          brand: 'ROYU',
+          modelNumber: 'ROYU RSB230',
+          kaRating: 10,
+          state: { closed: true, tripped: false, ratedAmps: 30, tripCurve: 'C', enclosureCoverOpen: false }
+        },
+        {
+          ...createDeviceFromCatalog('appliance_ac', 670, 80, 'appliance_ac'),
+          name: '1.5 HP Inverter Aircon',
+          state: { wattage: 1200, powered: true }
+        },
+        {
+          ...createDeviceFromCatalog('utility_box_surface_pvc', 280, 270, 'util_box'),
+          name: 'ROYU 2"x4" Utility Box'
+        },
+        {
+          ...createDeviceFromCatalog('royu_modular_combo_plate', 470, 250, 'combo_plate'),
+          name: 'ROYU Wide Combo Plate',
+          brand: 'ROYU',
+          modelNumber: 'ROYU RWS103',
+          mountingType: 'flush_utility',
+          state: {
+            viewMode: 'front',
+            closed: true,
+            switchClosed: true,
+            comboSlot2: 'pilot',
+            pilotLit: true,
+            receptaclePowered: true,
+            hasPluggedLoad: false,
+          }
+        },
+        {
+          ...createDeviceFromCatalog('light_bulb', 680, 270, 'room_lamp'),
+          name: 'Ceiling Room Lamp',
+          state: { wattage: 60, lit: true, brightness: 1.0 }
+        }
+      ],
+      wires: [
+        {
+          id: 'w_gnd_pit',
+          fromDeviceId: 'earth_rod',
+          fromTerminalId: 'clamp',
+          toDeviceId: 'pe_bar',
+          toTerminalId: 'pe_main',
+          wireGauge: '8 AWG (8.0 mm²)',
+          color: '#16a34a',
+          lengthMeters: 3,
+          conductorRole: 'earth_ground'
+        },
+        {
+          id: 'w_feed_l',
+          fromDeviceId: 'mcb_main',
+          fromTerminalId: 'out_1',
+          toDeviceId: 'jbox_main',
+          toTerminalId: 'l_in',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#dc2626',
+          lengthMeters: 4,
+          conductorRole: 'feed_live'
+        },
+        {
+          id: 'w_feed_n',
+          fromDeviceId: 'mcb_main',
+          fromTerminalId: 'out_2',
+          toDeviceId: 'jbox_main',
+          toTerminalId: 'n_in',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#2563eb',
+          lengthMeters: 4,
+          conductorRole: 'return_neutral'
+        },
+        {
+          id: 'w_feed_pe',
+          fromDeviceId: 'pe_bar',
+          fromTerminalId: 'pe_1',
+          toDeviceId: 'jbox_main',
+          toTerminalId: 'pe_in',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#16a34a',
+          lengthMeters: 4,
+          conductorRole: 'earth_ground'
+        },
+        {
+          id: 'w_acu_l',
+          fromDeviceId: 'jbox_main',
+          fromTerminalId: 'l_out',
+          toDeviceId: 'acu_safety',
+          toTerminalId: 'in_l',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#dc2626',
+          lengthMeters: 3,
+          conductorRole: 'feed_live'
+        },
+        {
+          id: 'w_acu_n',
+          fromDeviceId: 'jbox_main',
+          fromTerminalId: 'n_out',
+          toDeviceId: 'acu_safety',
+          toTerminalId: 'in_n',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#2563eb',
+          lengthMeters: 3,
+          conductorRole: 'return_neutral'
+        },
+        {
+          id: 'w_acu_pe',
+          fromDeviceId: 'jbox_main',
+          fromTerminalId: 'pe_out',
+          toDeviceId: 'acu_safety',
+          toTerminalId: 'pe',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#16a34a',
+          lengthMeters: 3,
+          conductorRole: 'earth_ground'
+        },
+        {
+          id: 'w_load_ac_l',
+          fromDeviceId: 'acu_safety',
+          fromTerminalId: 'out_l',
+          toDeviceId: 'appliance_ac',
+          toTerminalId: 'line',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#dc2626',
+          lengthMeters: 2,
+          conductorRole: 'feed_live'
+        },
+        {
+          id: 'w_load_ac_n',
+          fromDeviceId: 'acu_safety',
+          fromTerminalId: 'out_n',
+          toDeviceId: 'appliance_ac',
+          toTerminalId: 'neutral',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#2563eb',
+          lengthMeters: 2,
+          conductorRole: 'return_neutral'
+        },
+        {
+          id: 'w_load_ac_pe',
+          fromDeviceId: 'acu_safety',
+          fromTerminalId: 'pe',
+          toDeviceId: 'appliance_ac',
+          toTerminalId: 'ground',
+          wireGauge: '10 AWG (5.5 mm²)',
+          color: '#16a34a',
+          lengthMeters: 2,
+          conductorRole: 'earth_ground'
+        },
+        {
+          id: 'w_drop_l',
+          fromDeviceId: 'jbox_main',
+          fromTerminalId: 'l_out',
+          toDeviceId: 'util_box',
+          toTerminalId: 'l_in',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#dc2626',
+          lengthMeters: 3,
+          conductorRole: 'feed_live'
+        },
+        {
+          id: 'w_drop_n',
+          fromDeviceId: 'jbox_main',
+          fromTerminalId: 'n_out',
+          toDeviceId: 'util_box',
+          toTerminalId: 'n_in',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#2563eb',
+          lengthMeters: 3,
+          conductorRole: 'return_neutral'
+        },
+        {
+          id: 'w_drop_pe',
+          fromDeviceId: 'jbox_main',
+          fromTerminalId: 'pe_out',
+          toDeviceId: 'util_box',
+          toTerminalId: 'pe_in',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#16a34a',
+          lengthMeters: 3,
+          conductorRole: 'earth_ground'
+        },
+        {
+          id: 'w_combo_feed_l',
+          fromDeviceId: 'util_box',
+          fromTerminalId: 'l_out',
+          toDeviceId: 'combo_plate',
+          toTerminalId: 'sw_in',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#dc2626',
+          lengthMeters: 1,
+          conductorRole: 'feed_live'
+        },
+        {
+          id: 'w_jumper_rec_l',
+          fromDeviceId: 'combo_plate',
+          fromTerminalId: 'sw_in',
+          toDeviceId: 'combo_plate',
+          toTerminalId: 'rec_l',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#dc2626',
+          lengthMeters: 0.2,
+          conductorRole: 'feed_live'
+        },
+        {
+          id: 'w_jumper_pilot_l',
+          fromDeviceId: 'combo_plate',
+          fromTerminalId: 'sw_in',
+          toDeviceId: 'combo_plate',
+          toTerminalId: 'pilot_l',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#dc2626',
+          lengthMeters: 0.2,
+          conductorRole: 'feed_live'
+        },
+        {
+          id: 'w_combo_feed_n',
+          fromDeviceId: 'util_box',
+          fromTerminalId: 'n_out',
+          toDeviceId: 'combo_plate',
+          toTerminalId: 'rec_n',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#2563eb',
+          lengthMeters: 1,
+          conductorRole: 'return_neutral'
+        },
+        {
+          id: 'w_jumper_pilot_n',
+          fromDeviceId: 'combo_plate',
+          fromTerminalId: 'rec_n',
+          toDeviceId: 'combo_plate',
+          toTerminalId: 'pilot_n',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#2563eb',
+          lengthMeters: 0.2,
+          conductorRole: 'return_neutral'
+        },
+        {
+          id: 'w_combo_feed_pe',
+          fromDeviceId: 'util_box',
+          fromTerminalId: 'pe_out',
+          toDeviceId: 'combo_plate',
+          toTerminalId: 'rec_pe',
+          wireGauge: '12 AWG (3.5 mm²)',
+          color: '#16a34a',
+          lengthMeters: 1,
+          conductorRole: 'earth_ground'
+        },
+        {
+          id: 'w_sw_to_lamp',
+          fromDeviceId: 'combo_plate',
+          fromTerminalId: 'sw_out',
+          toDeviceId: 'room_lamp',
+          toTerminalId: 'hot',
+          wireGauge: '14 AWG (2.0 mm²)',
+          color: '#ea580c',
+          lengthMeters: 3,
+          conductorRole: 'switched_live'
+        },
+        {
+          id: 'w_lamp_return_n',
+          fromDeviceId: 'room_lamp',
+          fromTerminalId: 'neutral',
+          toDeviceId: 'util_box',
+          toTerminalId: 'n_out',
+          wireGauge: '14 AWG (2.0 mm²)',
+          color: '#2563eb',
+          lengthMeters: 3,
+          conductorRole: 'return_neutral'
+        }
+      ]
+    }
+  },
   // 1. SOCKET WITH GFCI
   {
     id: 'lab-socket-gfci',

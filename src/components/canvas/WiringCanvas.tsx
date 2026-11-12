@@ -452,9 +452,14 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
             </g>
           )}
 
-          {/* Layer 3: Electrical Devices */}
+          {/* Layer 3: Electrical Devices (mounting tracks & utility boxes render beneath mounted breakers/switches) */}
           <g id="devices-layer">
-            {devices.map((device) => (
+            {[...devices]
+              .sort((a, b) => {
+                const getOrder = (t: string) => (t === 'din_rail_track' ? 0 : t.includes('box') ? 1 : 2);
+                return getOrder(a.type) - getOrder(b.type);
+              })
+              .map((device) => (
               <DeviceRenderer
                 key={device.id}
                 device={device}

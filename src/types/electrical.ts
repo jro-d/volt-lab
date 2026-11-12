@@ -76,7 +76,12 @@ export type DeviceType =
   | 'push_button_estop'
   | 'pilot_light_indicator'
   | 'plc_micro_controller'
-  | 'motor_ac_industrial';
+  | 'motor_ac_industrial'
+  // Phase 2: ROYU Philippine Electrical Hardware Ecosystem
+  | 'royu_safety_breaker_2p'
+  | 'din_rail_track'
+  | 'utility_box_surface_pvc'
+  | 'royu_modular_combo_plate';
 
 export interface ElectricalDevice {
   id: string;
@@ -88,6 +93,12 @@ export interface ElectricalDevice {
   width: number;
   height: number;
   rotation?: number; // 0, 90, 180, 270 degrees
+  // Real Manufacturer Engineering Specs
+  brand?: 'ROYU' | 'Schneider' | 'Generic';
+  modelNumber?: string;
+  kaRating?: number; // Interrupting capacity in kA (e.g. 6kA or 10kA)
+  mountingType?: 'bolt_on' | 'plug_in' | 'din_rail' | 'flush_utility' | 'surface_nema3r';
+  pecReference?: string;
   terminals: DeviceTerminal[];
   state: {
     closed?: boolean; // for switches and breakers
@@ -108,6 +119,15 @@ export interface ElectricalDevice {
     mccbStyle?: 'din_rail' | 'industrial_black';
     tabBroken?: boolean; // for duplex outlets with split brass tab
     topologyMode?: 'pigtail' | 'daisy_chain'; // for educational templates
+    // ROYU Hardware Ecosystem states
+    breakerProfile?: 'royu_bolt_on' | 'royu_din_rail' | 'generic_iec';
+    enclosureCoverOpen?: boolean; // for ROYU safety breaker
+    comboSlot2?: 'pilot' | 'switch2'; // for ROYU wide-series combo plate
+    switchClosed?: boolean;
+    switch2Closed?: boolean;
+    pilotLit?: boolean;
+    receptaclePowered?: boolean;
+    trackWidth?: number; // for din_rail_track
     [key: string]: any;
   };
 }

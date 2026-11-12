@@ -20,6 +20,10 @@ import { EstopDevice } from './EstopDevice';
 import { PilotLightDevice } from './PilotLightDevice';
 import { PlcDevice } from './PlcDevice';
 import { IndustrialMotorDevice } from './IndustrialMotorDevice';
+import { RoyuSafetyBreakerDevice } from './RoyuSafetyBreakerDevice';
+import { DinRailTrackDevice } from './DinRailTrackDevice';
+import { UtilityBoxSurfacePvcDevice } from './UtilityBoxSurfacePvcDevice';
+import { RoyuModularComboPlateDevice } from './RoyuModularComboPlateDevice';
 
 interface DeviceRendererProps {
   device: ElectricalDevice;
@@ -126,6 +130,14 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
         return <PlcDevice {...commonProps} />;
       case 'motor_ac_industrial':
         return <IndustrialMotorDevice {...commonProps} />;
+      case 'royu_safety_breaker_2p':
+        return <RoyuSafetyBreakerDevice {...commonProps} />;
+      case 'din_rail_track':
+        return <DinRailTrackDevice {...commonProps} />;
+      case 'utility_box_surface_pvc':
+        return <UtilityBoxSurfacePvcDevice {...commonProps} />;
+      case 'royu_modular_combo_plate':
+        return <RoyuModularComboPlateDevice {...commonProps} />;
       default:
         return <McbDevice {...commonProps} />;
     }
