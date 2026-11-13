@@ -53,6 +53,9 @@ interface TopNavBarProps {
   // Floating panels
   isLibraryOpen: boolean;
   onToggleLibrary: () => void;
+  // Digital Multimeter / Clamp Meter
+  dmmMode?: boolean;
+  onToggleDmmMode?: () => void;
   isHudOpen: boolean;
   onToggleHud: () => void;
   // CAD lock & align tools
@@ -119,6 +122,8 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   onToggleSimulation,
   isLibraryOpen,
   onToggleLibrary,
+  dmmMode = false,
+  onToggleDmmMode,
   isHudOpen,
   onToggleHud,
   hasSelectedDevice,
@@ -291,6 +296,16 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             <FlipHorizontal2 className="w-4 h-4" />
           </RibbonButton>
           </span>
+        )}
+        {onToggleDmmMode && (
+          <RibbonButton
+            onClick={onToggleDmmMode}
+            active={dmmMode}
+            title="Digital Multimeter & Clamp Meter (Click wire for Amps, or 2 terminals for Volts)"
+            label="DMM"
+          >
+            <Zap className="w-4 h-4 text-amber-500" />
+          </RibbonButton>
         )}
       </div>
 

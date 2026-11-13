@@ -48,6 +48,14 @@ export const App: React.FC = () => {
 
   // Edit Mode (de-energized, safe wiring) vs Simulation Mode (grid energized)
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [dmmMode, setDmmMode] = useState<boolean>(false);
+  const [dmmProbeA, setDmmProbeA] = useState<{ deviceId: string; terminalId: string } | null>(null);
+  const [dmmReadout, setDmmReadout] = useState<{
+    mode: 'voltage' | 'clamp' | 'idle';
+    primary: string;
+    secondary?: string;
+    label?: string;
+  } | null>(null);
 
   // Floating panels & CAD settings
   const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(true);
@@ -206,6 +214,108 @@ export const App: React.FC = () => {
   const report = useMemo(() => {
     return analyzeCodeCompliance(analysis.devicesForAnalysis, project.wires, analysis.result, standard, project.gridVoltage);
   }, [analysis, project.wires, standard, project.gridVoltage]);
+
+  // Digital Multimeter / Clamp Meter handlers
+  const handleDmmClampWire = (wireId: string) => {
+    const amps = solved.wireCurrents[wireId] || 0;
+    const vd = solved.wireVoltageDropPercents[wireId] || 0;
+    const wire = project.wires.find((w) => w.id === wireId);
+    const freq = standard === 'PEC' ? '60.0 Hz' : '50.0 Hz';
+    const watts = amps * project.gridVoltage;
+    setDmmProbeA(null);
+    setDmmReadout({
+      mode: 'clamp',
+      label: wire?.label ? `CLAMP: ${wire.label}` : `CLAMP: ${wire?.wireGauge || 'Conductor'}`,
+      primary: `${amps.toFixed(2)} A AC`,
+      secondary: `${watts.toFixed(0)} W  •  ${freq}  •  ΔV ${vd.toFixed(2)}%`,
+    });
+  };
+
+  const handleDmmProbeTerminal = (deviceId: string, terminalId: string) => {
+    const keyB = `${deviceId}:${terminalId}`;
+    const devB = project.devices.find((d) => d.id === deviceId);
+    const termB = devB?.terminals.find((t) => t.id === terminalId);
+    const tagB = termB?.label || terminalId;
+
+    if (!dmmProbeA) {
+      setDmmProbeA({ deviceId, terminalId });
+      setDmmReadout({
+        mode: 'voltage',
+        label: `PROBE (+) on ${tagB}`,
+        primary: 'SELECT (−)',
+        secondary: 'Click second terminal to read RMS Voltage',
+      });
+      return;
+    }
+
+    const keyA = `${dmmProbeA.deviceId}:${dmmProbeA.terminalId}`;
+    const devA = project.devices.find((d) => d.id === dmmProbeA.deviceId);
+    const termA = devA?.terminals.find((t) => t.id === dmmProbeA.terminalId);
+    const tagA = termA?.label || dmmProbeA.terminalId;
+
+    const vA = solved.nodeVoltages[keyA] || 0;
+    const vB = solved.nodeVoltages[keyB] || 0;
+    const pA = solved.nodePotentials[keyA] || 'none';
+    const pB = solved.nodePotentials[keyB] || 'none';
+    const phA = solved.nodePhases[keyA];
+    const phB = solved.nodePhases[keyB];
+
+    let rmsVolts = 0;
+    if (keyA !== keyB) {
+      if (pA === 'live' && pB === 'live') {
+        if (phA && phB && phA !== phB) {
+          const base = Math.max(vA, vB, project.gridVoltage);
+          rmsVolts = Math.round(base * Math.sqrt(3));
+        } else {
+          rmsVolts = 0;
+        }
+      } else if ((pA === 'live' && (pB === 'neutral' || pB === 'earth')) || (pB === 'live' && (pA === 'neutral' || pA === 'earth'))) {
+        rmsVolts = Math.max(vA, vB);
+      }
+    }
+
+    const freq = standard === 'PEC' ? '60.0 Hz' : '50.0 Hz';
+    setDmmProbeA(null);
+    setDmmReadout({
+      mode: 'voltage',
+      label: `PROBE: ${tagA} ↔ ${tagB}`,
+      primary: `${rmsVolts.toFixed(1)} V AC`,
+      secondary: `${pA.toUpperCase()} (${phA || '-'}) ↔ ${pB.toUpperCase()} (${phB || '-'}) • ${freq}`,
+    });
+  };
+
+  // On-Delay Timer Relay (KT1) & live Panel Meter telemetry tick while simulating
+  React.useEffect(() => {
+    if (!isSimulating) return;
+    const hasTimers = project.devices.some((d) => d.type === 'timer_relay');
+    if (!hasTimers) return;
+    const id = window.setInterval(() => {
+      setProject((prev) => {
+        let changed = false;
+        const devices = prev.devices.map((d) => {
+          if (d.type !== 'timer_relay') return d;
+          const isCoilHot = !!solved.deviceEnergized[d.id];
+          const delaySec = typeof d.state.delaySec === 'number' ? d.state.delaySec : 5;
+          const prevElapsed = typeof d.state.elapsedSec === 'number' ? d.state.elapsedSec : 0;
+          const prevTimedOut = !!d.state.timedOut;
+          const prevEnergized = !!d.state.energized;
+
+          if (!isCoilHot) {
+            if (!prevEnergized && prevElapsed === 0 && !prevTimedOut) return d;
+            changed = true;
+            return { ...d, state: { ...d.state, energized: false, elapsedSec: 0, timedOut: false } };
+          }
+          const nextElapsed = Math.min(delaySec, Number((prevElapsed + 0.5).toFixed(1)));
+          const nextTimedOut = nextElapsed >= delaySec;
+          if (prevEnergized && prevElapsed === nextElapsed && prevTimedOut === nextTimedOut) return d;
+          changed = true;
+          return { ...d, state: { ...d.state, energized: true, elapsedSec: nextElapsed, timedOut: nextTimedOut } };
+        });
+        return changed ? { ...prev, devices } : prev;
+      });
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [isSimulating, project.devices, solved.deviceEnergized]);
 
   const trippedCount = project.devices.filter(d => d.state.tripped).length;
 
@@ -473,6 +583,17 @@ export const App: React.FC = () => {
     if (!dev || dev.state.locked) return;
     if (x === dev.x && y === dev.y) return;
     setProject(prev => applyDeviceMoves(prev, [{ id, x, y }]));
+  };
+
+  // Move multiple selected devices together (wires follow automatically)
+  const handleUpdateMultipleDevicePositions = (updates: { id: string; x: number; y: number }[]) => {
+    if (isSimulating || updates.length === 0) return;
+    const filtered = updates.filter((u) => {
+      const dev = project.devices.find((d) => d.id === u.id);
+      return dev && !dev.state.locked && (dev.x !== u.x || dev.y !== u.y);
+    });
+    if (filtered.length === 0) return;
+    setProject(prev => applyDeviceMoves(prev, filtered));
   };
 
   // Lock / unlock the selected device position (CAD tool)
@@ -840,6 +961,12 @@ export const App: React.FC = () => {
         onToggleSimulation={handleToggleSimulation}
         isLibraryOpen={isLibraryOpen}
         onToggleLibrary={() => setIsLibraryOpen(v => !v)}
+        dmmMode={dmmMode}
+        onToggleDmmMode={() => {
+          setDmmMode(v => !v);
+          setDmmProbeA(null);
+          setDmmReadout(null);
+        }}
         isHudOpen={isHudOpen}
         onToggleHud={() => setIsHudOpen(v => !v)}
         hasSelectedDevice={!!selectedDeviceId}
@@ -919,6 +1046,11 @@ export const App: React.FC = () => {
                 }
               }}
               onUpdateDevicePosition={handleUpdateDevicePosition}
+              onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
+              dmmMode={dmmMode}
+              dmmReadout={dmmReadout}
+              onDmmClampWire={handleDmmClampWire}
+              onDmmProbeTerminal={handleDmmProbeTerminal}
               onConnectWire={handleConnectWire}
               onToggleDeviceState={handleToggleDeviceState}
               onPatchDeviceState={handlePatchDeviceState}
@@ -983,6 +1115,11 @@ export const App: React.FC = () => {
                     }
                   }}
                   onUpdateDevicePosition={handleUpdateDevicePosition}
+              onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
+              dmmMode={dmmMode}
+              dmmReadout={dmmReadout}
+              onDmmClampWire={handleDmmClampWire}
+              onDmmProbeTerminal={handleDmmProbeTerminal}
                   onConnectWire={handleConnectWire}
                   onToggleDeviceState={handleToggleDeviceState}
                   onPatchDeviceState={handlePatchDeviceState}

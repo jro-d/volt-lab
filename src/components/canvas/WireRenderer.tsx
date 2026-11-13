@@ -240,6 +240,36 @@ export const WireRenderer: React.FC<WireRendererProps> = ({
         );
       })}
 
+      {/* Circuit / Wire Tag Pill */}
+      {wire.label && wire.label.trim().length > 0 && (
+        <g
+          transform={`translate(${(start.x + end.x) / 2}, ${(start.y + end.y) / 2 - (voltageDropPercent > 3.0 ? 18 : 0)})`}
+          className="pointer-events-none"
+        >
+          <rect
+            x={-Math.max(24, wire.label.trim().length * 3.8 + 8)}
+            y={-9}
+            width={Math.max(48, wire.label.trim().length * 7.6 + 16)}
+            height={18}
+            rx={4}
+            fill={isSelected ? '#0284c7' : '#0f172a'}
+            stroke={isSelected ? '#bae6fd' : '#475569'}
+            strokeWidth={1}
+          />
+          <text
+            x={0}
+            y={3.5}
+            textAnchor="middle"
+            fontSize={9.5}
+            fontWeight="700"
+            fontFamily="monospace"
+            fill="#f8fafc"
+          >
+            {wire.label.trim()}
+          </text>
+        </g>
+      )}
+
       {/* High Voltage Drop Alert Tag */}
       {voltageDropPercent > 3.0 && (
         <g transform={`translate(${(start.x + end.x) / 2}, ${(start.y + end.y) / 2})`}>

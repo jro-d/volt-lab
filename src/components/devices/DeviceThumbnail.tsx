@@ -32,7 +32,7 @@ export const DeviceThumbnail: React.FC<DeviceThumbnailProps> = ({ type, classNam
         </defs>
 
         {/* Dynamic rendering based on type */}
-        {type.includes('meter') && (
+        {(type === 'kwh_meter_1p' || type === 'kwh_meter_3p') && (
           <g transform="translate(14, 6)">
             {/* Meter Body */}
             <rect x="0" y="0" width="52" height="68" rx="4" fill="url(#thumbPlastic)" stroke="#94a3b8" strokeWidth="1.2" />
@@ -553,6 +553,90 @@ export const DeviceThumbnail: React.FC<DeviceThumbnailProps> = ({ type, classNam
             <line x1="16" y1="48" x2="16" y2="53" stroke="#1e293b" strokeWidth="1" />
             <line x1="32" y1="48" x2="32" y2="53" stroke="#1e293b" strokeWidth="1" />
             <circle cx="24" cy="56" r="1.5" fill="#1e293b" />
+          </g>
+        )}
+
+        {(type === 'switch_2gang' || type === 'switch_3gang') && (
+          <g transform="translate(14, 10)">
+            <rect x="0" y="0" width="52" height="60" rx="5" fill="#ffffff" stroke="#94a3b8" strokeWidth="1.2" />
+            {(type === 'switch_3gang' ? [0, 1, 2] : [0, 1]).map((i) => {
+              const count = type === 'switch_3gang' ? 3 : 2;
+              const w = 40 / count;
+              return (
+                <rect key={i} x={6 + i * w} y="12" width={w - 3} height="36" rx="2" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.9" />
+              );
+            })}
+          </g>
+        )}
+
+        {type === 'dimmer_switch' && (
+          <g transform="translate(18, 10)">
+            <rect x="0" y="0" width="44" height="60" rx="5" fill="#ffffff" stroke="#94a3b8" strokeWidth="1.2" />
+            <circle cx="22" cy="30" r="13" fill="#e2e8f0" stroke="#475569" strokeWidth="1.2" />
+            <line x1="22" y1="30" x2="29" y2="21" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round" />
+          </g>
+        )}
+
+        {type === 'ats_changeover' && (
+          <g transform="translate(10, 12)">
+            <rect x="0" y="0" width="60" height="56" rx="5" fill="#f8fafc" stroke="#475569" strokeWidth="1.4" />
+            <rect x="8" y="10" width="20" height="12" rx="2" fill="#22c55e" />
+            <rect x="32" y="10" width="20" height="12" rx="2" fill="#f59e0b" />
+            <rect x="12" y="32" width="36" height="14" rx="3" fill="#0f172a" />
+            <text x="30" y="42" textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#fff">ATS</text>
+          </g>
+        )}
+
+        {type === 'panelboard_frame' && (
+          <g transform="translate(8, 10)">
+            <rect x="0" y="0" width="64" height="60" rx="4" fill="#cbd5e1" stroke="#475569" strokeWidth="1.5" />
+            <rect x="8" y="22" width="48" height="12" fill="#64748b" />
+            <rect x="10" y="44" width="18" height="8" rx="1" fill="#1d4ed8" />
+            <rect x="36" y="44" width="18" height="8" rx="1" fill="#15803d" />
+          </g>
+        )}
+
+        {type === 'panel_meter' && (
+          <g transform="translate(14, 14)">
+            <rect x="0" y="0" width="52" height="52" rx="5" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+            <rect x="6" y="10" width="40" height="32" rx="3" fill="#061610" stroke="#334155" />
+            <text x="26" y="24" textAnchor="middle" fontSize="8" fontWeight="900" fill="#4ade80" fontFamily="monospace">230V</text>
+            <text x="26" y="36" textAnchor="middle" fontSize="7" fontWeight="800" fill="#38bdf8" fontFamily="monospace">12.4A</text>
+          </g>
+        )}
+
+        {type === 'timer_relay' && (
+          <g transform="translate(18, 8)">
+            <rect x="0" y="0" width="44" height="64" rx="4" fill="#f8fafc" stroke="#475569" strokeWidth="1.3" />
+            <rect x="3" y="10" width="38" height="10" fill="#15803d" />
+            <circle cx="22" cy="36" r="12" fill="#e2e8f0" stroke="#64748b" strokeWidth="1" />
+            <text x="22" y="39" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#0f172a">5s</text>
+          </g>
+        )}
+
+        {type === 'selector_hoa' && (
+          <g transform="translate(16, 12)">
+            <rect x="0" y="0" width="48" height="56" rx="5" fill="#cbd5e1" stroke="#475569" strokeWidth="1.3" />
+            <circle cx="24" cy="32" r="14" fill="#1e293b" />
+            <rect x="21" y="19" width="6" height="26" rx="2" fill="#f8fafc" transform="rotate(-35 24 32)" />
+          </g>
+        )}
+
+        {type === 'limit_switch' && (
+          <g transform="translate(18, 10)">
+            <rect x="6" y="24" width="32" height="36" rx="4" fill="#0369a1" stroke="#0c4a6e" strokeWidth="1.3" />
+            <line x1="22" y1="24" x2="34" y2="8" stroke="#94a3b8" strokeWidth="3" />
+            <circle cx="34" cy="8" r="4.5" fill="#f8fafc" stroke="#1e293b" strokeWidth="1.2" />
+          </g>
+        )}
+
+        {type === 'vfd_drive' && (
+          <g transform="translate(14, 8)">
+            <rect x="0" y="0" width="52" height="64" rx="5" fill="#1e293b" stroke="#475569" strokeWidth="1.4" />
+            <rect x="6" y="10" width="40" height="8" fill="#15803d" />
+            <rect x="8" y="24" width="36" height="18" rx="2" fill="#090d16" />
+            <text x="26" y="36" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#ef4444" fontFamily="monospace">60.0Hz</text>
+            <circle cx="38" cy="50" r="5" fill="#16a34a" />
           </g>
         )}
       </svg>
