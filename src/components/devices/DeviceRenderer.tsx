@@ -1,5 +1,6 @@
 import React from 'react';
 import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
+import { DeviceIdContext } from './TerminalContext';
 import { KwhMeterDevice } from './KwhMeterDevice';
 import { McbDevice } from './McbDevice';
 import { RcdDevice } from './RcdDevice';
@@ -195,7 +196,9 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
             className="pointer-events-none animate-pulse"
           />
         )}
-        {renderComponent()}
+        <DeviceIdContext.Provider value={device.id}>
+          {renderComponent()}
+        </DeviceIdContext.Provider>
 
         {/* Position-lock padlock badge */}
         {device.state.locked && (

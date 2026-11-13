@@ -1,478 +1,321 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
 import { TerminalPoint } from './TerminalPoint';
 
-interface ApplianceProps {
+interface ApplianceDeviceProps {
   device: ElectricalDevice;
+  isSelected?: boolean;
   selectedTerminalId?: string | null;
-  onTerminalMouseDown: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
   hoveredTerminalId?: string | null;
-  setHoveredTerminalId: (id: string | null) => void;
+  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
+  setHoveredTerminalId?: (id: string | null) => void;
   onToggleState?: (device: ElectricalDevice) => void;
 }
 
-export const ApplianceDevice: React.FC<ApplianceProps> = ({
+export const ApplianceDevice: React.FC<ApplianceDeviceProps> = ({
   device,
   selectedTerminalId,
-  onTerminalMouseDown,
   hoveredTerminalId,
+  onTerminalMouseDown,
   setHoveredTerminalId,
   onToggleState,
 }) => {
-  const { width, height } = device;
+  const uid = useId().replace(/:/g, '');
+  const { width, height, terminals } = device;
   const isTv = device.type === 'appliance_tv';
   const isFan = device.type === 'appliance_fan';
   const isAc = device.type === 'appliance_ac';
   const isPowered = !!device.state.powered;
+  const hasFault = !!device.state.hasEarthFault;
+  const cx = width / 2;
 
   const toggleEarthFault = (e: React.MouseEvent) => {
     e.stopPropagation();
     device.state.hasEarthFault = !device.state.hasEarthFault;
-    if (onToggleState) onToggleState(device);
+    onToggleState?.(device);
   };
 
-  // --- ELECTRIC FAN WITH ROTATING BLADES ---
-  if (isFan) {
-    const hubX = width / 2;
-    const hubY = 38;
-    const cageR = 30;
+  const renderTerminals = () =>
+    terminals.map((t) => {
+      const tx = width * t.relX;
+      const ty = height * t.relY;
+      const termId = `${device.id}:${t.id}`;
+      return (
+        <TerminalPoint
+          key={t.id}
+          terminal={t}
+          x={tx}
+          y={ty}
+          isSelected={selectedTerminalId === termId}
+          isHovered={hoveredTerminalId === termId}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onTerminalMouseDown?.(device, t, e);
+          }}
+          onMouseEnter={() => setHoveredTerminalId?.(termId)}
+          onMouseLeave={() => setHoveredTerminalId?.(null)}
+        />
+      );
+    });
 
+  // 1. SMART 4K OLED/LED TV
+  if (isTv) {
     return (
       <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
         <defs>
-          <linearGradient id={`fanGrad_${device.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="60%" stopColor="#f1f5f9" />
-            <stop offset="100%" stopColor="#cbd5e1" />
+          <linearGradient id={`tvBezel-${uid}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#334155" />
+            <stop offset="50%" stopColor="#0f172a" />
+            <stop offset="100%" stopColor="#020617" />
+          </linearGradient>
+          <linearGradient id={`tvScreen-${uid}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={isPowered ? '#0ea5e9' : '#1e293b'} />
+            <stop offset="55%" stopColor={isPowered ? '#1e3a8a' : '#0f172a'} />
+            <stop offset="100%" stopColor={isPowered ? '#312e81' : '#020617'} />
           </linearGradient>
         </defs>
 
-        {/* Base Drop Shadow */}
-        <ellipse cx={hubX + 2} cy={height - 20} rx={28} ry={10} fill="#000000" opacity={0.12} />
+        {/* Stand Base & Neck */}
+        <path d={`M ${cx - 8} ${height - 26} L ${cx - 24} ${height - 10} L ${cx + 24} ${height - 10} L ${cx + 8} ${height - 26} Z`} fill="#475569" stroke="#1e293b" strokeWidth={1} />
+        <rect x={cx - 32} y={height - 13} width={64} height={5} rx={2.5} fill="#64748b" stroke="#0f172a" strokeWidth={0.9} />
 
-        {/* Fan Pedestal Base */}
-        <ellipse cx={hubX} cy={height - 22} rx={28} ry={10} fill="url(#fanGrad_${device.id})" stroke="#94a3b8" strokeWidth={1.2} />
-        <ellipse cx={hubX} cy={height - 24} rx={22} ry={7} fill="#e2e8f0" stroke="#cbd5e1" strokeWidth={0.8} />
+        {/* Anodized Aluminum Ultra-Slim Frame */}
+        <rect x={2} y={3} width={width} height={height - 26} rx={5} fill="rgba(15, 23, 42, 0.25)" />
+        <rect x={0} y={0} width={width} height={height - 26} rx={5} fill={`url(#tvBezel-${uid})`} stroke="#475569" strokeWidth={1.4} />
 
-        {/* Speed Buttons on Base */}
-        <circle cx={hubX - 12} cy={height - 24} r={2.5} fill="#64748b" />
-        <circle cx={hubX - 4} cy={height - 24} r={2.5} fill="#64748b" />
-        <circle cx={hubX + 4} cy={height - 24} r={2.5} fill="#0284c7" />
-        <circle cx={hubX + 12} cy={height - 24} r={2.5} fill={isPowered ? '#22c55e' : '#ef4444'} />
+        {/* Screen Panel */}
+        <rect x={4} y={4} width={width - 8} height={height - 34} rx={2.5} fill={`url(#tvScreen-${uid})`} />
 
-        {/* Telescopic Stem Pole */}
-        <rect x={hubX - 4} y={hubY + cageR - 6} width={8} height={height - 54} fill="#64748b" stroke="#475569" strokeWidth={0.8} />
-        <rect x={hubX - 3} y={hubY + cageR} width={6} height={10} fill="#94a3b8" />
-
-        {/* Motor Housing Capsule */}
-        <rect x={hubX - 12} y={hubY - 10} width={24} height={20} rx={6} fill="#334155" stroke="#1e293b" strokeWidth={1} />
-
-        {/* Rear Wire Cage Ring */}
-        <circle cx={hubX} cy={hubY} r={cageR} fill="#f8fafc" stroke="#94a3b8" strokeWidth={1.5} />
-        {/* Wire Cage Spokes */}
-        {[0, 30, 60, 90, 120, 150].map((deg) => (
-          <line
-            key={deg}
-            x1={hubX - cageR * Math.cos((deg * Math.PI) / 180)}
-            y1={hubY - cageR * Math.sin((deg * Math.PI) / 180)}
-            x2={hubX + cageR * Math.cos((deg * Math.PI) / 180)}
-            y2={hubY + cageR * Math.sin((deg * Math.PI) / 180)}
-            stroke="#cbd5e1"
-            strokeWidth={0.8}
-          />
-        ))}
-
-        {/* ROTATING FAN ROTOR BLADES */}
-        <g transform={`translate(${hubX}, ${hubY})`}>
+        {isPowered ? (
           <g>
-            {isPowered && (
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                from="0"
-                to="360"
-                dur="0.22s"
-                repeatCount="indefinite"
-              />
-            )}
-            {/* 3 Aerodynamic Blue Translucent Blades */}
-            {[0, 120, 240].map((rot) => (
-              <g key={rot} transform={`rotate(${rot})`}>
-                <path
-                  d="M 0 0 C 8 -10, 18 -18, 5 -27 C -8 -25, -12 -12, 0 0 Z"
-                  fill="#0ea5e9"
-                  opacity={isPowered ? 0.75 : 0.88}
-                  stroke="#0284c7"
-                  strokeWidth={0.8}
-                />
-              </g>
-            ))}
-            {/* Blade Center Nut */}
-            <circle cx="0" cy="0" r="5.5" fill="#0369a1" stroke="#ffffff" strokeWidth={1} />
-          </g>
-        </g>
-
-        {/* Front Grill Center Badge */}
-        <circle cx={hubX} cy={hubY} r={8} fill="#ffffff" stroke="#0284c7" strokeWidth={1.2} />
-        <circle cx={hubX} cy={hubY} r={cageR} fill="none" stroke="#64748b" strokeWidth={1.5} />
-        <text x={hubX} y={hubY + 2.5} textAnchor="middle" fontSize={6} fontWeight="bold" fill="#0284c7">
-          FAN
-        </text>
-
-        {/* Operating status badge */}
-        {isPowered && (
-          <g transform={`translate(${hubX - 22}, 2)`}>
-            <rect x="0" y="0" width="44" height="11" rx="3" fill="#059669" opacity={0.9} />
-            <text x="22" y="8" textAnchor="middle" fontSize={6.5} fontWeight="bold" fill="#ffffff" letterSpacing="0.5">
-              SPINNING 65W
+            {/* Dynamic Color Glow & Dashboard Bars */}
+            <circle cx={cx - 18} cy={(height - 34) / 2} r={18} fill="rgba(56, 189, 248, 0.25)" />
+            <text x={cx} y={(height - 34) / 2 + 2} textAnchor="middle" fontSize={10} fontWeight="900" fontFamily="monospace" fill="#f8fafc" letterSpacing="1">
+              4K UHD LIVE
+            </text>
+            <text x={cx} y={(height - 34) / 2 + 13} textAnchor="middle" fontSize={5.8} fontFamily="monospace" fill="#7dd3fc">
+              HDMI 1 · 150W AC
             </text>
           </g>
+        ) : (
+          <text x={cx} y={(height - 34) / 2 + 4} textAnchor="middle" fontSize={7.5} fontWeight="bold" fontFamily="monospace" fill="#64748b">
+            STANDBY
+          </text>
         )}
 
-        {/* Terminals */}
-        {device.terminals.map((t) => {
-          const tx = width * t.relX;
-          const ty = height * t.relY;
-          const isHovered = hoveredTerminalId === `${device.id}:${t.id}`;
-          const isSelected = selectedTerminalId === `${device.id}:${t.id}`;
+        {/* Anti-glare Glass Diagonal Sheen */}
+        <polygon points={`4,4 ${width * 0.6},4 4,${height - 38}`} fill="rgba(255,255,255,0.08)" className="pointer-events-none" />
 
-          return (
-            <TerminalPoint
-              key={t.id}
-              terminal={t}
-              x={tx}
-              y={ty}
-              isHovered={isHovered}
-              isSelected={isSelected}
-              onMouseDown={(e) => onTerminalMouseDown(device, t, e)}
-              onMouseEnter={() => setHoveredTerminalId(`${device.id}:${t.id}`)}
-              onMouseLeave={() => setHoveredTerminalId(null)}
-            />
-          );
-        })}
+        {/* Standby / Active IR Receiver LED */}
+        <circle cx={cx} cy={height - 28} r={2} fill={isPowered ? '#22c55e' : '#ef4444'} />
+
+        {renderTerminals()}
       </g>
     );
   }
 
-  // --- AIR CONDITIONER (1.5 HP INVERTER INDOOR UNIT) ---
-  if (isAc) {
-    const isPowered = !!device.state.powered;
-
+  // 2. ELECTRIC PEDESTAL STAND FAN
+  if (isFan) {
+    const fanSpeed = device.state.speed || 2;
+    const fanCy = 46;
     return (
       <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
         <defs>
-          <linearGradient id={`acBody_${device.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <radialGradient id={`fanHub-${uid}`} cx="40%" cy="35%" r="65%">
             <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="70%" stopColor="#f8fafc" />
-            <stop offset="100%" stopColor="#e2e8f0" />
+            <stop offset="100%" stopColor="#475569" />
+          </radialGradient>
+        </defs>
+
+        {/* Pedestal Column & Weighted Base */}
+        <rect x={cx - 5} y={fanCy + 28} width={10} height={height - fanCy - 44} rx={2} fill="#94a3b8" stroke="#475569" strokeWidth={1} />
+        <rect x={cx - 28} y={height - 20} width={56} height={11} rx={5} fill="#334155" stroke="#0f172a" strokeWidth={1.2} />
+        {/* 3 Speed Piano Keys */}
+        {[1, 2, 3].map((sp) => (
+          <rect
+            key={`sp-${sp}`}
+            x={cx - 15 + (sp - 1) * 11}
+            y={height - 17}
+            width={8}
+            height={5}
+            rx={1}
+            fill={fanSpeed === sp && isPowered ? '#38bdf8' : '#e2e8f0'}
+            stroke="#0f172a"
+            strokeWidth={0.6}
+          />
+        ))}
+
+        {/* Chrome Radial Cage Guard */}
+        <circle cx={cx} cy={fanCy} r={39} fill="rgba(226, 232, 240, 0.35)" stroke="#64748b" strokeWidth={2} />
+        <circle cx={cx} cy={fanCy} r={34} fill="none" stroke="#94a3b8" strokeWidth={0.8} />
+        <circle cx={cx} cy={fanCy} r={22} fill="none" stroke="#94a3b8" strokeWidth={0.7} />
+
+        {/* Spinning / Stationary Translucent Pitched Airfoil Blades */}
+        <g
+          transform={`translate(${cx}, ${fanCy})`}
+          className={isPowered ? 'animate-spin' : ''}
+          style={{
+            transformOrigin: '0px 0px',
+            animationDuration: fanSpeed === 3 ? '0.28s' : fanSpeed === 2 ? '0.45s' : '0.7s',
+          }}
+        >
+          {[0, 120, 240].map((deg) => (
+            <path
+              key={deg}
+              transform={`rotate(${deg})`}
+              d="M 0 0 C 10 -12, 28 -14, 30 -3 C 31 8, 12 12, 0 0 Z"
+              fill={isPowered ? 'rgba(56, 189, 248, 0.72)' : 'rgba(100, 116, 139, 0.78)'}
+              stroke="#0284c7"
+              strokeWidth={0.9}
+            />
+          ))}
+        </g>
+
+        {/* Radial Guard Wires */}
+        {[0, 45, 90, 135].map((deg) => (
+          <line
+            key={`wire-${deg}`}
+            x1={cx - 38 * Math.cos((deg * Math.PI) / 180)}
+            y1={fanCy - 38 * Math.sin((deg * Math.PI) / 180)}
+            x2={cx + 38 * Math.cos((deg * Math.PI) / 180)}
+            y2={fanCy + 38 * Math.sin((deg * Math.PI) / 180)}
+            stroke="#94a3b8"
+            strokeWidth={0.7}
+            opacity={0.7}
+          />
+        ))}
+
+        {/* Chrome Center Spinner Hub */}
+        <circle cx={cx} cy={fanCy} r={9.5} fill={`url(#fanHub-${uid})`} stroke="#334155" strokeWidth={1.1} />
+        <text x={cx} y={fanCy + 2} textAnchor="middle" fontSize={5.5} fontWeight="bold" fill="#0f172a">
+          {isPowered ? `SPD${fanSpeed}` : 'FAN'}
+        </text>
+
+        {renderTerminals()}
+      </g>
+    );
+  }
+
+  // 3. 1.5 HP SPLIT-TYPE INVERTER AC INDOOR UNIT
+  if (isAc) {
+    const temp = device.state.setTemp || 16;
+    return (
+      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+        <defs>
+          <linearGradient id={`acShell-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="70%" stopColor="#f1f5f9" />
+            <stop offset="100%" stopColor="#cbd5e1" />
           </linearGradient>
-          <linearGradient id={`acAirGlow_${device.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.8} />
-            <stop offset="100%" stopColor="#0284c7" stopOpacity={0.1} />
+          <linearGradient id={`acAir-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.75} />
+            <stop offset="100%" stopColor="#0284c7" stopOpacity={0} />
           </linearGradient>
         </defs>
 
-        {/* Drop Shadow */}
-        <rect x={2} y={3} width={width} height={height - 18} rx={6} fill="#000000" opacity={0.12} />
+        <rect x={2} y={4} width={width} height={height - 18} rx={7} fill="rgba(15, 23, 42, 0.18)" />
+        <rect x={0} y={0} width={width} height={height - 18} rx={7} fill={`url(#acShell-${uid})`} stroke="#94a3b8" strokeWidth={1.6} />
 
-        {/* AC Main Casing */}
-        <rect
-          x={0}
-          y={0}
-          width={width}
-          height={height - 18}
-          rx={6}
-          fill={`url(#acBody_${device.id})`}
-          stroke="#cbd5e1"
-          strokeWidth={1.5}
-        />
+        {/* Top Evaporator Intake Louvers */}
+        {[7, 11, 15].map((ly) => (
+          <line key={ly} x1={12} y1={ly} x2={width - 12} y2={ly} stroke="#cbd5e1" strokeWidth={1} />
+        ))}
 
-        {/* Top Intake Air Louvers */}
-        <g stroke="#cbd5e1" strokeWidth={1}>
-          <line x1={12} y1={8} x2={width - 12} y2={8} />
-          <line x1={12} y1={12} x2={width - 12} y2={12} />
-          <line x1={12} y1={16} x2={width - 12} y2={16} />
-        </g>
+        {/* Chrome Trim Strip */}
+        <rect x={2} y={37} width={width - 4} height={2.5} fill="#94a3b8" />
 
-        {/* Inverter Badge */}
-        <rect x={12} y={24} width={38} height={11} rx={2} fill="#0f172a" />
-        <text x={31} y={32} textAnchor="middle" fontSize={6} fontWeight="bold" fill="#38bdf8" letterSpacing="0.5">
+        {/* Inverter Nameplate */}
+        <rect x={12} y={22} width={52} height={11} rx={2.5} fill="#0f172a" />
+        <text x={38} y={29.5} textAnchor="middle" fontSize={5.8} fontWeight="bold" fill="#38bdf8">
           INVERTER 1.5HP
         </text>
 
-        {/* Front Panel Seam Line */}
-        <line x1={0} y1={38} x2={width} y2={38} stroke="#cbd5e1" strokeWidth={0.8} />
-
-        {/* Digital LED Display (Right side of panel) */}
-        <rect
-          x={width - 48}
-          y={22}
-          width={38}
-          height={14}
-          rx={3}
-          fill={isPowered ? '#020617' : '#e2e8f0'}
-          stroke="#94a3b8"
-          strokeWidth={0.8}
-        />
+        {/* Smoked Acrylic Hidden Temperature LED Display */}
+        <rect x={width - 52} y={20} width={42} height={14} rx={3} fill="#020617" stroke="#475569" strokeWidth={0.9} />
         {isPowered ? (
-          <g>
-            <text
-              x={width - 36}
-              y={32.5}
-              fontSize={8.5}
-              fontWeight="900"
-              fontFamily="monospace"
-              fill="#38bdf8"
-              className="drop-shadow-[0_0_4px_rgba(56,189,248,0.8)]"
-            >
-              16°C
-            </text>
-            <text x={width - 14} y={32.5} fontSize={5.5} fontWeight="bold" fill="#22c55e">
-              COOL
-            </text>
-          </g>
+          <text x={width - 31} y={30.5} textAnchor="middle" fontSize={8.5} fontWeight="900" fontFamily="monospace" fill="#38bdf8">
+            {temp}°C
+          </text>
         ) : (
-          <text x={width - 29} y={31.5} textAnchor="middle" fontSize={6} fontWeight="bold" fill="#94a3b8">
+          <text x={width - 31} y={29.5} textAnchor="middle" fontSize={6} fontWeight="bold" fontFamily="monospace" fill="#64748b">
             OFF
           </text>
         )}
 
-        {/* Status Indicator LEDs */}
-        <circle cx={width - 16} cy={44} r={1.5} fill={isPowered ? '#22c55e' : '#64748b'} />
-        <circle cx={width - 22} cy={44} r={1.5} fill={isPowered ? '#38bdf8' : '#64748b'} />
-        <circle cx={width - 28} cy={44} r={1.5} fill="#64748b" />
-
-        {/* Motorized Bottom Air Discharge Louver */}
-        {isPowered ? (
-          <g>
-            {/* Air flow glow projection downward */}
-            <path
-              d={`M 14 ${height - 20} L ${width - 14} ${height - 20} L ${width - 6} ${height - 4} L 6 ${height - 4} Z`}
-              fill={`url(#acAirGlow_${device.id})`}
-            />
-            {/* Opened louver flap */}
-            <rect
-              x={10}
-              y={height - 21}
-              width={width - 20}
-              height={5}
-              rx={1.5}
-              fill="#64748b"
-              stroke="#334155"
-              strokeWidth={0.8}
-            />
-          </g>
-        ) : (
-          /* Closed flush flap */
-          <rect
-            x={10}
-            y={height - 22}
-            width={width - 20}
-            height={4}
-            rx={1}
-            fill="#e2e8f0"
-            stroke="#cbd5e1"
-            strokeWidth={0.8}
+        {/* Discharge Deflector Flap & Cool Mist Streaks */}
+        <rect x={12} y={height - 25} width={width - 24} height={6} rx={2} fill={isPowered ? '#e0f2fe' : '#cbd5e1'} stroke="#64748b" strokeWidth={0.8} />
+        {isPowered && (
+          <path
+            d={`M 16 ${height - 19} L ${width - 16} ${height - 19} L ${width - 6} ${height - 2} L 6 ${height - 2} Z`}
+            fill={`url(#acAir-${uid})`}
+            className="pointer-events-none"
           />
         )}
 
-        {/* Terminals */}
-        {device.terminals.map((t) => {
-          const tx = width * t.relX;
-          const ty = height * t.relY;
-          const isHovered = hoveredTerminalId === `${device.id}:${t.id}`;
-          const isSelected = selectedTerminalId === `${device.id}:${t.id}`;
-
-          return (
-            <TerminalPoint
-              key={t.id}
-              terminal={t}
-              x={tx}
-              y={ty}
-              isHovered={isHovered}
-              isSelected={isSelected}
-              onMouseDown={(e) => onTerminalMouseDown(device, t, e)}
-              onMouseEnter={() => setHoveredTerminalId(`${device.id}:${t.id}`)}
-              onMouseLeave={() => setHoveredTerminalId(null)}
-            />
-          );
-        })}
+        {renderTerminals()}
       </g>
     );
   }
 
-  if (isTv) {
-    return (
-      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-        {/* Drop Shadow */}
-        <rect
-          x={2}
-          y={3}
-          width={width}
-          height={height - 14}
-          rx={3}
-          fill="#000000"
-          opacity={0.12}
-        />
-
-        {/* TV Screen Bezel (Brushed Dark Slate) */}
-        <rect
-          x={0}
-          y={0}
-          width={width}
-          height={height - 14}
-          rx={3}
-          fill="#0f172a"
-          stroke="#334155"
-          strokeWidth={1.5}
-        />
-
-        {/* TV Screen Glass */}
-        <rect
-          x={4}
-          y={4}
-          width={width - 8}
-          height={height - 22}
-          rx={2}
-          fill={isPowered ? '#0284c7' : '#020617'}
-          stroke="#1e293b"
-          strokeWidth={0.8}
-        />
-
-        {/* Screen Content when powered */}
-        {isPowered && (
-          <g>
-            <circle cx={width / 2} cy={(height - 22) / 2} r={12} fill="#38bdf8" opacity={0.7} />
-            <polygon points={`${width / 2 - 4},${(height - 22) / 2 - 6} ${width / 2 + 6},${(height - 22) / 2} ${width / 2 - 4},${(height - 22) / 2 + 6}`} fill="#ffffff" />
-            <text x={width / 2} y={height - 25} textAnchor="middle" fontSize={7} fill="#ffffff" fontWeight="bold">SMART 4K TV</text>
-          </g>
-        )}
-
-        {/* TV Pedestal Stand */}
-        <rect x={width / 2 - 4} y={height - 14} width={8} height={10} fill="#64748b" />
-        <rect x={width / 2 - 22} y={height - 5} width={44} height={5} rx={1.5} fill="#1e293b" stroke="#475569" strokeWidth={0.8} />
-
-        {/* Power LED Indicator */}
-        <circle cx={width - 8} cy={height - 16} r={1.8} fill={isPowered ? '#22c55e' : '#ef4444'} />
-
-        {/* Power Cord Plug Terminal */}
-        {device.terminals.map((t) => {
-          const tx = width * t.relX;
-          const ty = height * t.relY;
-          const isHovered = hoveredTerminalId === `${device.id}:${t.id}`;
-          const isSelected = selectedTerminalId === `${device.id}:${t.id}`;
-
-          return (
-            <TerminalPoint
-              key={t.id}
-              terminal={t}
-              x={tx}
-              y={ty}
-              isHovered={isHovered}
-              isSelected={isSelected}
-              onMouseDown={(e) => onTerminalMouseDown(device, t, e)}
-              onMouseEnter={() => setHoveredTerminalId(`${device.id}:${t.id}`)}
-              onMouseLeave={() => setHoveredTerminalId(null)}
-            />
-          );
-        })}
-      </g>
-    );
-  }
-
-  // Water Heater unit
-  const hasFault = !!device.state.hasEarthFault;
-
+  // 4. INSTANT SHOWER WATER HEATER (3.5kW / 4.5kW)
+  const wattageKw = ((device.state.wattage || 3500) / 1000).toFixed(1);
   return (
     <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
       <defs>
-        <linearGradient id={`heaterBody_${device.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id={`whBody-${uid}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="50%" stopColor="#f8fafc" />
-          <stop offset="100%" stopColor="#e2e8f0" />
+          <stop offset="65%" stopColor="#f1f5f9" />
+          <stop offset="100%" stopColor="#cbd5e1" />
         </linearGradient>
+        <radialGradient id={`whKnob-${uid}`} cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#e2e8f0" />
+          <stop offset="60%" stopColor="#64748b" />
+          <stop offset="100%" stopColor="#1e293b" />
+        </radialGradient>
       </defs>
 
-      {/* Drop Shadow */}
-      <rect
-        x={2}
-        y={3}
-        width={width}
-        height={height - 14}
-        rx={8}
-        fill="#000000"
-        opacity={0.12}
-      />
+      <rect x={2} y={4} width={width} height={height - 14} rx={10} fill="rgba(15, 23, 42, 0.2)" />
+      {/* Stainless Cold Water Inlet & Hot Shower Outlet Fittings */}
+      <rect x={22} y={height - 16} width={9} height={11} rx={1.5} fill="#94a3b8" stroke="#475569" strokeWidth={0.9} />
+      <rect x={width - 31} y={height - 16} width={9} height={11} rx={1.5} fill="#d97706" stroke="#78350f" strokeWidth={0.9} />
 
-      {/* Water Heater White ABS Casing */}
-      <rect
-        x={0}
-        y={0}
-        width={width}
-        height={height - 14}
-        rx={8}
-        fill={`url(#heaterBody_${device.id})`}
-        stroke="#cbd5e1"
-        strokeWidth={1.5}
-      />
+      {/* Glossy ABS Heater Shell */}
+      <rect x={0} y={0} width={width} height={height - 14} rx={10} fill={`url(#whBody-${uid})`} stroke="#94a3b8" strokeWidth={1.6} />
 
-      {/* Brand Header Banner */}
-      <rect x={10} y={10} width={width - 20} height={18} rx={3} fill="#0284c7" />
-      <text x={width / 2} y={22} textAnchor="middle" fontSize={8} fontWeight="bold" fill="#ffffff">
-        SHOWER 3.5kW
+      {/* Header Plate */}
+      <rect x={9} y={8} width={width - 18} height={16} rx={4} fill="#0369a1" />
+      <text x={cx} y={18.5} textAnchor="middle" fontSize={7.5} fontWeight="900" fill="#ffffff">
+        SHOWER {wattageKw}kW
       </text>
 
-      {/* Temperature Control Dial */}
-      <circle cx={width / 2} cy={48} r={16} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={1} />
-      <circle cx={width / 2} cy={48} r={12} fill="#0f172a" />
-      <line x1={width / 2} y1={40} x2={width / 2} y2={44} stroke="#ef4444" strokeWidth={2.5} />
+      {/* Chrome Temperature Knob with Numbered Scale */}
+      <circle cx={cx} cy={47} r={17} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={1} strokeDasharray="3 2" />
+      <circle cx={cx} cy={47} r={12.5} fill={`url(#whKnob-${uid})`} stroke="#0f172a" strokeWidth={1.1} />
+      <line x1={cx} y1={37} x2={cx} y2={42} stroke="#ef4444" strokeWidth={2.5} strokeLinecap="round" />
 
-      {/* Heating Status LED */}
-      <circle cx={25} cy={75} r={3} fill={isPowered ? '#ef4444' : '#64748b'} className={isPowered ? 'animate-ping' : ''} />
-      <circle cx={25} cy={75} r={3} fill={isPowered ? '#ef4444' : '#64748b'} />
-      <text x={33} y={77} fontSize={7} fill="#334155" fontWeight="bold">HEATER</text>
+      {/* Heating LED & Earth-Fault Simulator Button */}
+      <circle cx={18} cy={74} r={3.5} fill={isPowered ? '#ef4444' : '#64748b'} />
+      <text x={25} y={76.5} fontSize={6.5} fontWeight="bold" fill="#334155">
+        ELCB
+      </text>
 
-      {/* Interactive Fault Injector Button */}
-      <g
-        onClick={toggleEarthFault}
-        className="cursor-pointer group"
-        transform={`translate(${width - 48}, 68)`}
-      >
+      <g onClick={toggleEarthFault} className="cursor-pointer" transform={`translate(${width - 48}, 66)`}>
         <rect
           x={0}
           y={0}
           width={42}
-          height={16}
-          rx={3}
-          fill={hasFault ? '#dc2626' : '#64748b'}
-          className="transition-colors group-hover:brightness-110 shadow-sm"
+          height={15}
+          rx={3.5}
+          fill={hasFault ? '#dc2626' : '#f1f5f9'}
+          stroke={hasFault ? '#7f1d1d' : '#94a3b8'}
+          strokeWidth={1}
         />
-        <text x={21} y={11} textAnchor="middle" fontSize={6.5} fontWeight="bold" fill="#ffffff">
-          {hasFault ? 'FAULT ON' : 'SIM FAULT'}
+        <text x={21} y={10} textAnchor="middle" fontSize={5.8} fontWeight="bold" fill={hasFault ? '#ffffff' : '#334155'}>
+          {hasFault ? 'FAULT!' : 'TEST ELCB'}
         </text>
       </g>
 
-      {/* Terminals */}
-      {device.terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const isHovered = hoveredTerminalId === `${device.id}:${t.id}`;
-        const isSelected = selectedTerminalId === `${device.id}:${t.id}`;
-
-        return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isHovered={isHovered}
-            isSelected={isSelected}
-            onMouseDown={(e) => onTerminalMouseDown(device, t, e)}
-            onMouseEnter={() => setHoveredTerminalId(`${device.id}:${t.id}`)}
-            onMouseLeave={() => setHoveredTerminalId(null)}
-          />
-        );
-      })}
+      {renderTerminals()}
     </g>
   );
 };

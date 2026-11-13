@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
 export const TOR_DIAL_STEPS = [4, 5, 6, 7, 8, 10];
@@ -10,6 +10,7 @@ export const TOR_DIAL_STEPS = [4, 5, 6, 7, 8, 10];
  */
 export const ThermalOverloadDevice: React.FC<DeviceComponentProps> = (props) => {
   const { device, onPatchState, onToggleState } = props;
+  const uid = useId().replace(/:/g, '');
   const { x, y, width, height } = device;
   const tripped = !!device.state.tripped;
   const setting: number = device.state.tripAmps || 6;
@@ -53,12 +54,12 @@ export const ThermalOverloadDevice: React.FC<DeviceComponentProps> = (props) => 
   return (
     <g id={`device-${device.id}`}>
       <defs>
-        <linearGradient id="tor-housing" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`tor-housing-${uid}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#e5e7eb" />
           <stop offset="60%" stopColor="#cfd4da" />
           <stop offset="100%" stopColor="#a7afb9" />
         </linearGradient>
-        <radialGradient id="tor-dial" cx="40%" cy="35%" r="70%">
+        <radialGradient id={`tor-dial-${uid}`} cx="40%" cy="35%" r="70%">
           <stop offset="0%" stopColor="#7dd3fc" />
           <stop offset="70%" stopColor="#0284c7" />
           <stop offset="100%" stopColor="#075985" />
@@ -72,7 +73,7 @@ export const ThermalOverloadDevice: React.FC<DeviceComponentProps> = (props) => 
         width={mainW}
         height={height}
         rx={6}
-        fill="url(#tor-housing)"
+        fill={`url(#tor-housing-${uid})`}
         stroke="#8b939e"
         strokeWidth={1.3}
         filter="drop-shadow(0 6px 12px rgba(15,23,42,0.18))"
@@ -135,7 +136,7 @@ export const ThermalOverloadDevice: React.FC<DeviceComponentProps> = (props) => 
             </g>
           );
         })}
-        <circle cx={dialCx} cy={dialCy} r={11.5} fill="url(#tor-dial)" stroke="#0c4a6e" strokeWidth={1} />
+        <circle cx={dialCx} cy={dialCy} r={11.5} fill={`url(#tor-dial-${uid})`} stroke="#0c4a6e" strokeWidth={1} />
         <line
           x1={dialCx}
           y1={dialCy}

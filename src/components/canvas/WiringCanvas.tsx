@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ElectricalDevice, ElectricalWire, DeviceTerminal, CodeStandard, WiringMode, DeviceType } from '../../types/electrical';
 import { DeviceRenderer } from '../devices/DeviceRenderer';
+import { TerminalHighlightContext, HighlightedEndpointInfo } from '../devices/TerminalContext';
 import { WireRenderer } from './WireRenderer';
 import { calculateOrthogonalPath, generateSvgPath, Point, getDeviceTerminalPosition } from '../../core/wireRouter';
 import { SolvedCircuit } from '../../core/circuitSolver';
@@ -357,6 +358,11 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         y: e.clientY - pan.y,
       });
     } else {
+      // Do not wipe wire selection if click landed directly on a wire
+      const target = e.target as Element | null;
+      if (target?.closest?.('[data-wire-id]')) {
+        return;
+      }
       // Left click on empty space deselects
       onSelectDevice(null);
       onSelectWire(null);
@@ -402,6 +408,43 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     const previewWaypoints = calculateOrthogonalPath(startPt, mousePos, startDir, endDir, 34, 26);
     previewPathD = generateSvgPath(previewWaypoints, 8);
   }
+
+  const terminalHighlightValue = useMemo(() => {
+    const connectedTerminalKeys = new Set<string>();
+    const highlightedWireEndpoints = new Map<string, HighlightedEndpointInfo>();
+
+    for (const w of wires) {
+      connectedTerminalKeys.add(`${w.fromDeviceId}:${w.fromTerminalId}`);
+      connectedTerminalKeys.add(`${w.toDeviceId}:${w.toTerminalId}`);
+    }
+
+    const activeWire = selectedWireId ? wires.find((w) => w.id === selectedWireId) : undefined;
+    if (activeWire) {
+      const fromDev = devices.find((d) => d.id === activeWire.fromDeviceId);
+      const toDev = devices.find((d) => d.id === activeWire.toDeviceId);
+      const fromTerm = fromDev?.terminals.find((t) => t.id === activeWire.fromTerminalId);
+      const toTerm = toDev?.terminals.find((t) => t.id === activeWire.toTerminalId);
+
+      highlightedWireEndpoints.set(`${activeWire.fromDeviceId}:${activeWire.fromTerminalId}`, {
+        role: 'FROM',
+        label: fromTerm?.label || fromTerm?.name || activeWire.fromTerminalId,
+        wireColor: activeWire.color,
+        gauge: activeWire.wireGauge,
+      });
+      highlightedWireEndpoints.set(`${activeWire.toDeviceId}:${activeWire.toTerminalId}`, {
+        role: 'TO',
+        label: toTerm?.label || toTerm?.name || activeWire.toTerminalId,
+        wireColor: activeWire.color,
+        gauge: activeWire.wireGauge,
+      });
+    }
+
+    return {
+      connectedTerminalKeys,
+      highlightedWireEndpoints,
+      selectedWireColor: activeWire?.color ?? null,
+    };
+  }, [wires, devices, selectedWireId]);
 
   return (
     <div
@@ -549,33 +592,35 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           )}
 
           {/* Layer 3: Electrical Devices (mounting tracks & utility boxes render beneath mounted breakers/switches) */}
-          <g id="devices-layer">
-            {[...devices]
-              .sort((a, b) => {
-                const getOrder = (t: string) => (t === 'din_rail_track' ? 0 : t.includes('box') ? 1 : 2);
-                return getOrder(a.type) - getOrder(b.type);
-              })
-              .map((device) => (
-              <DeviceRenderer
-                key={device.id}
-                device={device}
-                isSelected={selectedDeviceId === device.id}
-                isGroupMember={selectedDeviceIds.length > 1 && selectedDeviceIds.includes(device.id) && selectedDeviceId !== device.id}
-                dragLocked={isSimulating || !!device.state.locked}
-                selectedTerminalId={wiringStart ? `${wiringStart.dev.id}:${wiringStart.term.id}` : null}
-                hoveredTerminalId={hoveredTerminalId}
-                onDeviceMouseDown={handleDeviceMouseDown}
-                onTerminalMouseDown={handleTerminalMouseDown}
-                setHoveredTerminalId={setHoveredTerminalId}
-                onToggleState={onToggleDeviceState}
-                onPatchState={onPatchDeviceState}
-                isHighlighted={highlightDeviceIds.includes(device.id)}
-                onRotate={onRotateDevice}
-                onDuplicate={onDuplicateDevice}
-                onDelete={onDeleteDevice}
-              />
-            ))}
-          </g>
+          <TerminalHighlightContext.Provider value={terminalHighlightValue}>
+            <g id="devices-layer">
+              {[...devices]
+                .sort((a, b) => {
+                  const getOrder = (t: string) => (t === 'din_rail_track' ? 0 : t.includes('box') ? 1 : 2);
+                  return getOrder(a.type) - getOrder(b.type);
+                })
+                .map((device) => (
+                <DeviceRenderer
+                  key={device.id}
+                  device={device}
+                  isSelected={selectedDeviceId === device.id}
+                  isGroupMember={selectedDeviceIds.length > 1 && selectedDeviceIds.includes(device.id) && selectedDeviceId !== device.id}
+                  dragLocked={isSimulating || !!device.state.locked}
+                  selectedTerminalId={wiringStart ? `${wiringStart.dev.id}:${wiringStart.term.id}` : null}
+                  hoveredTerminalId={hoveredTerminalId}
+                  onDeviceMouseDown={handleDeviceMouseDown}
+                  onTerminalMouseDown={handleTerminalMouseDown}
+                  setHoveredTerminalId={setHoveredTerminalId}
+                  onToggleState={onToggleDeviceState}
+                  onPatchState={onPatchDeviceState}
+                  isHighlighted={highlightDeviceIds.includes(device.id)}
+                  onRotate={onRotateDevice}
+                  onDuplicate={onDuplicateDevice}
+                  onDelete={onDeleteDevice}
+                />
+              ))}
+            </g>
+          </TerminalHighlightContext.Provider>
 
           {/* Layer 4: Sparks & Arc Flash Effects */}
           <g id="sparks-layer" className="pointer-events-none">

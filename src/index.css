@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --voltlab-canvas-bg: #faf8f5;
+  --voltlab-panel-bg: #0f172a;
+  --voltlab-panel-header: #162033;
+  --voltlab-panel-surface: #172235;
+  --voltlab-panel-elevated: #1e293b;
+  --voltlab-panel-border: #334155;
+  --voltlab-panel-border-strong: #475569;
+  --voltlab-panel-text: #f8fafc;
+  --voltlab-panel-text-muted: #94a3b8;
+  --voltlab-accent-primary: #f43f5e;
+  --voltlab-accent-sky: #38bdf8;
+}
+
 @keyframes dash {
   from {
     stroke-dashoffset: 100;
@@ -26,7 +40,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #faf8f5;
+  background-color: var(--voltlab-canvas-bg);
   color: #1c1917;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
@@ -48,4 +62,30 @@ html, body, #root {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #b8aea3;
+}
+
+/* High-contrast dark slate panel console */
+.voltlab-panel {
+  background-color: var(--voltlab-panel-bg);
+  color: var(--voltlab-panel-text);
+  border-color: var(--voltlab-panel-border-strong);
+}
+
+.voltlab-scroll-dark::-webkit-scrollbar-track {
+  background: #0b1120;
+}
+
+.voltlab-scroll-dark::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.55);
+}
+
+.voltlab-scroll-dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.85);
+}
+
+@media (forced-colors: active) {
+  .voltlab-panel {
+    border: 2px solid CanvasText;
+    box-shadow: none;
+  }
 }
