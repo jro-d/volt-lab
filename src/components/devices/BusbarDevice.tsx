@@ -1,135 +1,110 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
 import { TerminalPoint } from './TerminalPoint';
 
-interface BusbarProps {
+interface BusbarDeviceProps {
   device: ElectricalDevice;
+  isSelected?: boolean;
   selectedTerminalId?: string | null;
-  onTerminalMouseDown: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
   hoveredTerminalId?: string | null;
-  setHoveredTerminalId: (id: string | null) => void;
+  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
+  setHoveredTerminalId?: (id: string | null) => void;
 }
 
-export const BusbarDevice: React.FC<BusbarProps> = ({
+export const BusbarDevice: React.FC<BusbarDeviceProps> = ({
   device,
   selectedTerminalId,
-  onTerminalMouseDown,
   hoveredTerminalId,
+  onTerminalMouseDown,
   setHoveredTerminalId,
 }) => {
-  const { width, height } = device;
-  const isNeutral = device.type === 'neutral_busbar' || device.state.isNeutral;
-
-  // Standoff insulator colors: Blue for Neutral, Green for Earth
-  const bracketColor = isNeutral ? '#2563eb' : '#16a34a';
-  const bracketBorder = isNeutral ? '#1d4ed8' : '#15803d';
+  const uid = useId().replace(/:/g, '');
+  const { width, height, terminals } = device;
+  const isNeutral = device.type === 'neutral_busbar' || !!device.state.isNeutral;
 
   return (
     <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
       <defs>
-        {/* Polished Brushed Brass Busbar Gradient */}
-        <linearGradient id={`busbarBrass_${device.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#b45309" />
-          <stop offset="25%" stopColor="#d97706" />
-          <stop offset="50%" stopColor="#fef08a" />
-          <stop offset="75%" stopColor="#eab308" />
-          <stop offset="100%" stopColor="#854d0e" />
-        </linearGradient>
-
-        {/* Insulator Foot 3D Bevel */}
-        <linearGradient id={`bracketGrad_${device.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.2" />
+        <linearGradient id={`busMetal-${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={isNeutral ? '#f1f5f9' : '#fbbf24'} />
+          <stop offset="45%" stopColor={isNeutral ? '#cbd5e1' : '#d97706'} />
+          <stop offset="100%" stopColor={isNeutral ? '#94a3b8' : '#92400e'} />
         </linearGradient>
       </defs>
 
-      {/* Insulated Mounting Foot (Top) */}
+      {/* Polyamide Insulated DIN-Mount Base Feet */}
+      <rect x={2} y={2} width={width - 4} height={height - 2} rx={6} fill="rgba(15, 23, 42, 0.16)" />
       <rect
-        x={width / 2 - 15}
+        x={0}
         y={4}
-        width={30}
-        height={20}
+        width={18}
+        height={height - 8}
         rx={3}
-        fill={bracketColor}
-        stroke={bracketBorder}
-        strokeWidth={1.5}
+        fill={isNeutral ? '#1d4ed8' : '#15803d'}
+        stroke={isNeutral ? '#1e3a8a' : '#14532d'}
+        strokeWidth={1.2}
       />
-      <rect x={width / 2 - 15} y={4} width={30} height={20} rx={3} fill={`url(#bracketGrad_${device.id})`} />
-      {/* Wall Mounting Screw Hole */}
-      <circle cx={width / 2} cy={14} r={3} fill="#0f172a" stroke="#cbd5e1" strokeWidth={0.5} />
-
-      {/* Insulated Mounting Foot (Bottom) */}
       <rect
-        x={width / 2 - 15}
-        y={height - 24}
-        width={30}
-        height={20}
+        x={width - 18}
+        y={4}
+        width={18}
+        height={height - 8}
         rx={3}
-        fill={bracketColor}
-        stroke={bracketBorder}
-        strokeWidth={1.5}
+        fill={isNeutral ? '#1d4ed8' : '#15803d'}
+        stroke={isNeutral ? '#1e3a8a' : '#14532d'}
+        strokeWidth={1.2}
       />
-      <rect x={width / 2 - 15} y={height - 24} width={30} height={20} rx={3} fill={`url(#bracketGrad_${device.id})`} />
-      <circle cx={width / 2} cy={height - 14} r={3} fill="#0f172a" stroke="#cbd5e1" strokeWidth={0.5} />
+      <circle cx={9} cy={height / 2} r={2.5} fill="#0f172a" />
+      <circle cx={width - 9} cy={height / 2} r={2.5} fill="#0f172a" />
 
-      {/* Solid Brass Bar with Longitudinal Shading */}
+      {/* Solid Machined Electrolytic Copper / Tinned Brass Bus Bar */}
       <rect
-        x={width / 2 - 8}
-        y={14}
-        width={16}
-        height={height - 28}
-        rx={2}
-        fill={`url(#busbarBrass_${device.id})`}
-        stroke="#78350f"
-        strokeWidth={1}
+        x={12}
+        y={8}
+        width={width - 24}
+        height={height - 16}
+        rx={2.5}
+        fill={`url(#busMetal-${uid})`}
+        stroke={isNeutral ? '#475569' : '#78350f'}
+        strokeWidth={1.2}
       />
-      {/* Brass Specular Reflection Stripe */}
-      <line
-        x1={width / 2 - 2}
-        y1={16}
-        x2={width / 2 - 2}
-        y2={height - 16}
-        stroke="#ffffff"
-        strokeWidth={1}
-        opacity={0.6}
-      />
+      {/* Specular brushed bar highlight */}
+      <line x1={14} y1={10} x2={width - 14} y2={10} stroke="rgba(255,255,255,0.55)" strokeWidth={1.2} />
 
-      {/* Screws / Terminals */}
-      {device.terminals.map((t) => {
+      {/* Identification Plate */}
+      <text
+        x={width / 2}
+        y={height - 2}
+        textAnchor="middle"
+        fontSize={6.2}
+        fontWeight="900"
+        fontFamily="monospace"
+        fill={isNeutral ? '#1d4ed8' : '#15803d'}
+      >
+        {isNeutral ? 'NEUTRAL BUS (N) 63A' : 'EARTH / PE BUS (E) Cu'}
+      </text>
+
+      {terminals.map((t) => {
         const tx = width * t.relX;
         const ty = height * t.relY;
-        const isHovered = hoveredTerminalId === `${device.id}:${t.id}`;
-        const isSelected = selectedTerminalId === `${device.id}:${t.id}`;
-
+        const termId = `${device.id}:${t.id}`;
         return (
           <TerminalPoint
             key={t.id}
             terminal={t}
             x={tx}
             y={ty}
-            isHovered={isHovered}
-            isSelected={isSelected}
-            onMouseDown={(e) => onTerminalMouseDown(device, t, e)}
-            onMouseEnter={() => setHoveredTerminalId(`${device.id}:${t.id}`)}
-            onMouseLeave={() => setHoveredTerminalId(null)}
+            isSelected={selectedTerminalId === termId}
+            isHovered={hoveredTerminalId === termId}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onTerminalMouseDown?.(device, t, e);
+            }}
+            onMouseEnter={() => setHoveredTerminalId?.(termId)}
+            onMouseLeave={() => setHoveredTerminalId?.(null)}
           />
         );
       })}
-
-      {/* Identification Badge */}
-      <text
-        x={width / 2}
-        y={height / 2}
-        transform={`rotate(-90, ${width / 2}, ${height / 2})`}
-        textAnchor="middle"
-        fontSize={8}
-        fontWeight="bold"
-        fill="#582900"
-        fontFamily="monospace"
-        letterSpacing="1"
-      >
-        {isNeutral ? 'NEUTRAL LINK (N)' : 'EARTH BAR (PE)'}
-      </text>
     </g>
   );
 };

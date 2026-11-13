@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { DeviceComponentProps, DeviceTerminals } from './DeviceTerminals';
 
 /**
@@ -7,6 +7,7 @@ import { DeviceComponentProps, DeviceTerminals } from './DeviceTerminals';
  */
 export const IndustrialMotorDevice: React.FC<DeviceComponentProps> = (props) => {
   const { device } = props;
+  const uid = useId().replace(/:/g, '');
   const { x, y, width, height } = device;
   const isRunning = !!(device.state.motorRunning || device.state.running);
   const dir: 'CW' | 'CCW' | null = device.state.motorDirection || (isRunning ? 'CW' : null);
@@ -30,18 +31,18 @@ export const IndustrialMotorDevice: React.FC<DeviceComponentProps> = (props) => 
   return (
     <g id={`device-${device.id}`}>
       <defs>
-        <linearGradient id="mot-frame" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`mot-frame-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#38bdf8" />
           <stop offset="18%" stopColor="#0284c7" />
           <stop offset="60%" stopColor="#075985" />
           <stop offset="100%" stopColor="#0c4a6e" />
         </linearGradient>
-        <linearGradient id="mot-shaft" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`mot-shaft-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#94a3b8" />
           <stop offset="45%" stopColor="#f8fafc" />
           <stop offset="100%" stopColor="#475569" />
         </linearGradient>
-        <pattern id="mot-grille" width="3" height="3" patternUnits="userSpaceOnUse">
+        <pattern id={`mot-grille-${uid}`} width="3" height="3" patternUnits="userSpaceOnUse">
           <rect width="3" height="3" fill="#0c4a6e" />
           <circle cx="1.5" cy="1.5" r="0.8" fill="#082f49" />
         </pattern>
@@ -55,7 +56,7 @@ export const IndustrialMotorDevice: React.FC<DeviceComponentProps> = (props) => 
       {/* Fan cowl (non-drive end) */}
       <path
         d={`M ${bodyX + bodyW - 2} ${bodyY + 3} L ${x + width - 8} ${bodyY + 8} Q ${x + width - 2} ${shaftCy} ${x + width - 8} ${bodyY + bodyH - 8} L ${bodyX + bodyW - 2} ${bodyY + bodyH - 3} Z`}
-        fill="url(#mot-grille)"
+        fill={`url(#mot-grille-${uid})`}
         stroke="#082f49"
         strokeWidth={1}
       />
@@ -67,7 +68,7 @@ export const IndustrialMotorDevice: React.FC<DeviceComponentProps> = (props) => 
         width={bodyW}
         height={bodyH}
         rx={7}
-        fill="url(#mot-frame)"
+        fill={`url(#mot-frame-${uid})`}
         stroke="#0c4a6e"
         strokeWidth={1.4}
         filter="drop-shadow(0 8px 16px rgba(2,6,23,0.25))"
@@ -89,7 +90,7 @@ export const IndustrialMotorDevice: React.FC<DeviceComponentProps> = (props) => 
       <rect x={bodyX - 5} y={bodyY + 6} width={7} height={bodyH - 12} rx={2} fill="#075985" stroke="#082f49" strokeWidth={0.8} />
 
       {/* Keyed output shaft */}
-      <rect x={x - 6} y={shaftCy - 5} width={18} height={10} rx={1.5} fill="url(#mot-shaft)" stroke="#334155" strokeWidth={0.8} />
+      <rect x={x - 6} y={shaftCy - 5} width={18} height={10} rx={1.5} fill={`url(#mot-shaft-${uid})`} stroke="#334155" strokeWidth={0.8} />
       <rect x={x - 4} y={shaftCy - 1.5} width={9} height={3} fill="#1e293b" />
 
       {/* Shaft end-view rotor disc (spins in the solver-reported direction) */}

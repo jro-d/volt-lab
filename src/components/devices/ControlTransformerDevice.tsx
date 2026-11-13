@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { DeviceComponentProps, DeviceTerminals } from './DeviceTerminals';
 
 /**
@@ -7,6 +7,7 @@ import { DeviceComponentProps, DeviceTerminals } from './DeviceTerminals';
  */
 export const ControlTransformerDevice: React.FC<DeviceComponentProps> = (props) => {
   const { device } = props;
+  const uid = useId().replace(/:/g, '');
   const { x, y, width, height } = device;
   const live = !!device.state.secondaryLive;
   const pri = device.state.primaryVolts || 440;
@@ -21,18 +22,18 @@ export const ControlTransformerDevice: React.FC<DeviceComponentProps> = (props) 
   return (
     <g id={`device-${device.id}`}>
       <defs>
-        <pattern id="tc-lam" width="4" height="4" patternUnits="userSpaceOnUse">
+        <pattern id={`tc-lam-${uid}`} width="4" height="4" patternUnits="userSpaceOnUse">
           <rect width="4" height="4" fill="#4b5563" />
           <line x1="0" y1="0.5" x2="4" y2="0.5" stroke="#374151" strokeWidth="1" />
         </pattern>
-        <linearGradient id="tc-coil" x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id={`tc-coil-${uid}`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#7c2d12" />
           <stop offset="30%" stopColor="#c2410c" />
           <stop offset="55%" stopColor="#fb923c" />
           <stop offset="80%" stopColor="#c2410c" />
           <stop offset="100%" stopColor="#7c2d12" />
         </linearGradient>
-        <linearGradient id="tc-board" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`tc-board-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#1f2937" />
           <stop offset="100%" stopColor="#111827" />
         </linearGradient>
@@ -55,7 +56,7 @@ export const ControlTransformerDevice: React.FC<DeviceComponentProps> = (props) 
         width={coreW}
         height={coreH}
         rx={2}
-        fill="url(#tc-lam)"
+        fill={`url(#tc-lam-${uid})`}
         stroke="#1f2937"
         strokeWidth={1.2}
         filter="drop-shadow(0 6px 12px rgba(15,23,42,0.25))"
@@ -69,7 +70,7 @@ export const ControlTransformerDevice: React.FC<DeviceComponentProps> = (props) 
       ))}
 
       {/* Copper winding bobbin (primary outer, secondary inner) */}
-      <rect x={coreX + 14} y={coreY + 8} width={coreW - 28} height={coreH - 16} rx={5} fill="url(#tc-coil)" stroke="#431407" strokeWidth={1} />
+      <rect x={coreX + 14} y={coreY + 8} width={coreW - 28} height={coreH - 16} rx={5} fill={`url(#tc-coil-${uid})`} stroke="#431407" strokeWidth={1} />
       {Array.from({ length: 13 }).map((_, k) => (
         <line
           key={k}
@@ -104,12 +105,12 @@ export const ControlTransformerDevice: React.FC<DeviceComponentProps> = (props) 
       )}
 
       {/* Primary terminal board (H1-H2) */}
-      <rect x={x + 10} y={y} width={width - 20} height={24} rx={3} fill="url(#tc-board)" stroke="#000" strokeWidth={0.6} />
+      <rect x={x + 10} y={y} width={width - 20} height={24} rx={3} fill={`url(#tc-board-${uid})`} stroke="#000" strokeWidth={0.6} />
       <text x={x + width / 2} y={y + 15} textAnchor="middle" fontSize="5" fontWeight="900" fill="#fca5a5" fontFamily="ui-monospace, monospace">
         PRI {pri}V
       </text>
       {/* Secondary terminal board (X1-X2) */}
-      <rect x={x + 10} y={y + height - 24} width={width - 20} height={24} rx={3} fill="url(#tc-board)" stroke="#000" strokeWidth={0.6} />
+      <rect x={x + 10} y={y + height - 24} width={width - 20} height={24} rx={3} fill={`url(#tc-board-${uid})`} stroke="#000" strokeWidth={0.6} />
       <text x={x + width / 2} y={y + height - 10} textAnchor="middle" fontSize="5" fontWeight="900" fill={live ? '#86efac' : '#93c5fd'} fontFamily="ui-monospace, monospace">
         {live ? `SEC ${sec}V ●` : `SEC ${sec}V`}
       </text>

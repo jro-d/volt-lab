@@ -138,21 +138,23 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
       className={`group flex items-center gap-2.5 p-1.5 rounded-xl border transition ${
         isLocked
           ? 'opacity-50 cursor-not-allowed border-transparent'
-          : 'cursor-grab active:cursor-grabbing border-transparent hover:bg-white hover:border-rose-300 hover:shadow-md'
+          : 'cursor-grab active:cursor-grabbing border-slate-800 bg-[#152033]/90 hover:bg-slate-800 hover:border-sky-400/70 hover:shadow-[0_4px_14px_rgba(56,189,248,0.18)]'
       }`}
       title={isLocked ? 'Stop simulation (■) to modify wiring' : 'Click or drag onto workbench canvas'}
     >
-      <DeviceThumbnail type={item.type} className="w-12 h-12 shrink-0" />
+      <div className="w-12 h-12 shrink-0 rounded-xl bg-slate-100 border border-slate-500/80 shadow-inner flex items-center justify-center overflow-hidden p-0.5">
+        <DeviceThumbnail type={item.type} className="w-11 h-11" />
+      </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-bold text-stone-900 group-hover:text-rose-600 transition-colors truncate">
+        <div className="text-xs font-bold text-slate-100 group-hover:text-sky-300 transition-colors truncate">
           {item.name}
         </div>
-        <div className="text-[10px] text-stone-500 truncate">{item.description}</div>
-        <span className="text-[9px] font-mono font-bold px-1.5 rounded bg-stone-200/80 text-stone-700">
+        <div className="text-[10px] text-slate-400 truncate">{item.description}</div>
+        <span className="inline-block mt-0.5 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200">
           {item.terminals.length} terminals
         </span>
       </div>
-      <div className="w-5 h-5 rounded-md bg-stone-100 group-hover:bg-rose-600 text-stone-500 group-hover:text-white flex items-center justify-center transition shrink-0">
+      <div className="w-5 h-5 rounded-md bg-slate-800 border border-slate-600 group-hover:bg-sky-500 group-hover:border-sky-400 text-slate-300 group-hover:text-slate-950 flex items-center justify-center transition shrink-0">
         <Plus className="w-3 h-3" />
       </div>
     </div>
@@ -170,24 +172,24 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
       <div key={node.id}>
         <button
           onClick={() => toggleFolder(node.id)}
-          className={`w-full flex items-center justify-between gap-2 py-1.5 pr-2 rounded-lg hover:bg-stone-100/80 text-left transition ${
-            depth === 0 ? 'pl-1.5 text-xs font-bold text-stone-800' : 'pl-1.5 text-[11px] font-semibold text-stone-700'
+          className={`w-full flex items-center justify-between gap-2 py-1.5 pr-2 rounded-lg hover:bg-slate-800/80 text-left transition ${
+            depth === 0 ? 'pl-1.5 text-xs font-bold text-slate-100' : 'pl-1.5 text-[11px] font-semibold text-slate-200'
           }`}
         >
           <span className="flex items-center gap-1.5 min-w-0">
             {isCollapsed ? (
-              <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             )}
-            <FolderIcon className={`w-4 h-4 shrink-0 ${depth === 0 ? 'text-amber-500' : 'text-amber-400'}`} />
+            <FolderIcon className={`w-4 h-4 shrink-0 ${depth === 0 ? 'text-amber-400' : 'text-amber-300'}`} />
             <span className="truncate">{node.label}</span>
           </span>
-          <span className="text-[10px] font-mono text-stone-400 font-semibold shrink-0">{count}</span>
+          <span className="text-[10px] font-mono text-slate-300 bg-slate-800 border border-slate-700 px-1.5 rounded font-semibold shrink-0">{count}</span>
         </button>
 
         {!isCollapsed && (
-          <div className="ml-3 pl-2 border-l border-stone-200 space-y-0.5">
+          <div className="ml-3 pl-2 border-l border-slate-700/80 space-y-1">
             {(node.children || []).map((child) => renderFolder(child, depth + 1))}
             {itemsFor(node.types).map(renderItem)}
           </div>
@@ -201,17 +203,18 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
   const total = tree.reduce((n, f) => n + countIn(f), 0);
 
   return (
-    <aside className="absolute top-3 left-3 z-30 w-80 max-h-[calc(100%-36px)] rounded-2xl bg-white/95 backdrop-blur-md shadow-xl border border-stone-200 flex flex-col overflow-hidden select-none text-stone-800">
+    <aside className="voltlab-panel voltlab-scroll-dark absolute top-3 left-3 z-30 w-80 max-h-[calc(100%-36px)] rounded-2xl bg-[#0f172a]/[0.97] backdrop-blur-md shadow-[0_20px_50px_rgba(15,23,42,0.45)] border-2 border-slate-600/90 ring-1 ring-white/10 flex flex-col overflow-hidden select-none text-slate-100">
       {/* Floating window title bar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-stone-200 bg-[#faf8f5]/90">
-        <span className="flex items-center gap-1.5 text-[11px] font-bold text-stone-900 uppercase tracking-wider font-mono">
-          <Library className="w-3.5 h-3.5 text-rose-600" />
+      <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-700 bg-[#162033]">
+        <span className="flex items-center gap-2 text-[11px] font-bold text-slate-100 uppercase tracking-wider font-mono">
+          <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]" />
+          <Library className="w-3.5 h-3.5 text-rose-400" />
           Component Library
-          <span className="text-stone-400 font-semibold normal-case">({total})</span>
+          <span className="text-slate-200 bg-slate-800 border border-slate-600 px-1.5 py-0.5 rounded text-[10px] font-semibold normal-case">{total}</span>
         </span>
         <button
           onClick={onClose}
-          className="p-1 rounded-md text-stone-400 hover:text-stone-800 hover:bg-stone-200/70 transition"
+          className="p-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition"
           title="Hide library"
         >
           <X className="w-3.5 h-3.5" />
@@ -219,30 +222,30 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
       </div>
 
       {/* Search */}
-      <div className="px-3 pt-2.5 pb-2">
+      <div className="px-3 pt-2.5 pb-2 border-b border-slate-800 bg-[#0f172a]">
         <div className="relative">
-          <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search library..."
+            placeholder="Search library (MCB, ROYU, PLC...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-white border border-[#ece6de] rounded-lg text-xs placeholder:text-stone-400 focus:outline-none focus:border-rose-500 shadow-sm"
+            className="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-sky-400 shadow-inner"
           />
         </div>
       </div>
 
       {isLocked && (
-        <div className="mx-3 mb-2 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-[10px] font-semibold text-amber-800">
+        <div className="mx-3 mt-2 mb-1 px-2.5 py-1.5 rounded-lg bg-amber-950/80 border border-amber-500/60 text-[10px] font-semibold text-amber-200">
           🔒 Grid energized — stop simulation (■) to add devices.
         </div>
       )}
 
       {/* Folder tree */}
-      <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
+      <div className="voltlab-scroll-dark flex-1 overflow-y-auto px-2 py-2 pb-3 space-y-1">
         {tree.map((folder) => renderFolder(folder))}
         {total === 0 && (
-          <div className="text-center text-xs text-stone-400 py-6">No devices match “{searchQuery}”.</div>
+          <div className="text-center text-xs text-slate-400 py-6">No devices match “{searchQuery}”.</div>
         )}
       </div>
     </aside>

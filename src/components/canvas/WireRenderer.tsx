@@ -113,7 +113,16 @@ export const WireRenderer: React.FC<WireRendererProps> = ({
 
   return (
     <g
-      onClick={(e) => onSelectWire && onSelectWire(wire, e)}
+      data-wire-id={wire.id}
+      onMouseDown={(e) => {
+        if (e.button === 0 && !e.altKey && onSelectWire) {
+          onSelectWire(wire, e);
+        }
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelectWire?.(wire, e);
+      }}
       className="cursor-pointer group"
     >
       {/* Invisible wider hit target for easy clicking */}

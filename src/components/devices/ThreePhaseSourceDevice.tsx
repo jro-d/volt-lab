@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
 const PHASE_COLORS = {
@@ -13,6 +13,7 @@ const PHASE_COLORS = {
  */
 export const ThreePhaseSourceDevice: React.FC<DeviceComponentProps> = (props) => {
   const { device, onPatchState, onToggleState } = props;
+  const uid = useId().replace(/:/g, '');
   const { x, y, width, height } = device;
   const on = device.state.closed !== false;
   const lv = device.state.lineVoltage || 440;
@@ -27,7 +28,7 @@ export const ThreePhaseSourceDevice: React.FC<DeviceComponentProps> = (props) =>
   return (
     <g id={`device-${device.id}`}>
       <defs>
-        <linearGradient id="src3-body" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`src3-body-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#e5e7eb" />
           <stop offset="100%" stopColor="#9ca3af" />
         </linearGradient>
@@ -39,7 +40,7 @@ export const ThreePhaseSourceDevice: React.FC<DeviceComponentProps> = (props) =>
         width={width}
         height={height}
         rx={6}
-        fill="url(#src3-body)"
+        fill={`url(#src3-body-${uid})`}
         stroke="#6b7280"
         strokeWidth={1.4}
         filter="drop-shadow(0 6px 14px rgba(15,23,42,0.22))"

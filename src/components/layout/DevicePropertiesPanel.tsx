@@ -67,25 +67,25 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   const rcdSensitivities = [10, 30, 100, 300];
 
   return (
-    <div className={`absolute top-4 ${isLibraryOpen ? 'left-[340px]' : 'left-4'} z-20 w-80 bg-white/95 border border-stone-200 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-md p-4 text-stone-800 select-none animate-in fade-in slide-in-from-top-2 duration-150`}>
+    <div className={`absolute top-4 ${isLibraryOpen ? 'left-[340px]' : 'left-4'} z-20 w-80 voltlab-panel voltlab-scroll-dark bg-[#0f172a]/[0.97] border-2 border-slate-600/90 ring-1 ring-white/10 rounded-2xl shadow-[0_20px_50px_rgba(15,23,42,0.45)] backdrop-blur-md p-4 text-slate-100 max-h-[calc(100%-36px)] overflow-y-auto select-none animate-in fade-in slide-in-from-top-2 duration-150`}>
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 mb-3 border-b border-stone-100">
+      <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-700/80">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200/80 flex items-center justify-center text-rose-600">
+          <div className="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-300">
             {device ? <Sliders className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
           </div>
           <div>
-            <span className="text-[9px] font-mono font-bold text-rose-600 uppercase tracking-widest block">
+            <span className="text-[9px] font-mono font-bold text-rose-400 uppercase tracking-widest block">
               {device ? 'DEVICE INSPECTOR' : 'CONDUCTOR INSPECTOR'}
             </span>
-            <div className="text-xs font-bold text-stone-900 truncate max-w-[170px]">
+            <div className="text-xs font-bold text-slate-100 truncate max-w-[170px]">
               {device ? device.name : `Wire: ${wire?.wireGauge}`}
             </div>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition"
+          className="p-1 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition"
         >
           <X className="w-4 h-4" />
         </button>
@@ -93,24 +93,24 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* ── MANUFACTURER DATASHEET CARD ── */}
       {device && (
-        <div className="mb-3.5 p-2.5 rounded-xl bg-gradient-to-br from-stone-50 to-stone-100/70 border border-stone-200/90 text-stone-800 shadow-sm">
-          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-stone-200/60">
+        <div className="mb-3.5 p-2.5 rounded-xl bg-[#172235] border border-slate-700 text-slate-100 shadow-sm">
+          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-700">
             <div className="flex items-center gap-1.5">
               <span className={`text-[10px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded ${
                 device.brand === 'ROYU'
                   ? 'bg-blue-600 text-white'
                   : device.brand === 'Schneider'
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-stone-600 text-white'
+                  : 'bg-slate-600 text-white'
               }`}>
                 {device.brand || 'ROYU'}
               </span>
-              <span className="text-[11px] font-bold font-mono text-stone-900">
+              <span className="text-[11px] font-bold font-mono text-slate-100">
                 {device.modelNumber || (device.type.includes('mcb') ? 'ROYU RCB220' : device.type.includes('combo') ? 'ROYU RWS103' : 'GENERIC-SPEC')}
               </span>
             </div>
             {device.kaRating && (
-              <span className="text-[10px] font-mono font-black text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-black text-rose-200 bg-rose-950/90 border border-rose-500/60 px-1.5 py-0.5 rounded">
                 {device.kaRating} kAIC
               </span>
             )}
@@ -118,14 +118,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
           <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
             <div>
-              <span className="text-stone-400 block font-medium">Mounting:</span>
-              <span className="font-semibold text-stone-700 capitalize">
+              <span className="text-slate-400 block font-medium">Mounting:</span>
+              <span className="font-semibold text-slate-200 capitalize">
                 {device.mountingType ? device.mountingType.replace('_', ' ') : 'Flush Utility Box'}
               </span>
             </div>
             <div>
-              <span className="text-stone-400 block font-medium">Reference Code:</span>
-              <span className="font-mono font-semibold text-stone-700">
+              <span className="text-slate-400 block font-medium">Reference Code:</span>
+              <span className="font-mono font-semibold text-slate-200">
                 {device.pecReference || 'PEC 2017'}
               </span>
             </div>
@@ -138,7 +138,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         <div className="space-y-3">
           {/* ROYU / IEC Breaker Profile Form Factor */}
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Breaker Profile & Mounting
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -173,11 +173,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                     className={`py-1 px-1 text-center rounded-lg border transition ${
                       active
                         ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                        : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                        : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                     }`}
                   >
                     <div className="text-[10px] font-bold leading-tight">{prof.label}</div>
-                    <div className={`text-[8px] ${active ? 'text-rose-100' : 'text-stone-400'}`}>{prof.sub}</div>
+                    <div className={`text-[8px] ${active ? 'text-rose-100' : 'text-slate-400'}`}>{prof.sub}</div>
                   </button>
                 );
               })}
@@ -186,11 +186,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           {/* Ampere Rating Selector */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-rose-600" />
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-rose-400" />
                 Rated Ampere Capacity (In)
               </label>
-              <span className="text-xs font-mono font-black text-rose-600 px-2 py-0.5 rounded bg-rose-50 border border-rose-200">
+              <span className="text-xs font-mono font-black text-rose-200 px-2 py-0.5 rounded bg-rose-950/90 border border-rose-500/60">
                 {device.state.ratedAmps || 16} A
               </span>
             </div>
@@ -204,7 +204,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     device.state.ratedAmps === amps
                       ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200 hover:border-stone-300'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700 hover:border-slate-500'
                   }`}
                 >
                   {amps}A
@@ -221,39 +221,39 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     device.state.ratedAmps === amps
                       ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200 hover:border-stone-300'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700 hover:border-slate-500'
                   }`}
                 >
                   {amps}A
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-stone-400 mt-1 block">
+            <span className="text-[9px] text-slate-400 mt-1 block">
               PEC 240.4 & IEC 60898 standard DIN breaker frame ratings.
             </span>
           </div>
 
           {/* Trip Curve Selector (Type B, C, D) */}
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Magnetic Trip Characteristic Curve
             </label>
-            <div className="grid grid-cols-3 gap-1 bg-[#f4f0eb] p-1 rounded-lg text-xs font-bold font-mono">
+            <div className="grid grid-cols-3 gap-1 bg-slate-900 border border-slate-700 p-1 rounded-lg text-xs font-bold font-mono">
               {(['B', 'C', 'D'] as const).map((curve) => (
                 <button
                   key={curve}
                   onClick={() => onUpdateDeviceProperty(device.id, 'tripCurve', curve)}
                   className={`py-1 rounded-md transition ${
                     (device.state.tripCurve || 'C') === curve
-                      ? 'bg-white text-stone-900 shadow-sm'
-                      : 'text-stone-600 hover:text-stone-900'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'text-slate-300 hover:text-slate-100'
                   }`}
                 >
                   Type {curve}
                 </button>
               ))}
             </div>
-            <div className="text-[9px] text-stone-500 mt-1">
+            <div className="text-[9px] text-slate-400 mt-1">
               {(device.state.tripCurve || 'C') === 'B' && 'Type B: 3–5x In (Lighting & non-inductive resistive loads)'}
               {(device.state.tripCurve || 'C') === 'C' && 'Type C: 5–10x In (General socket outlets, appliances & small motors)'}
               {(device.state.tripCurve || 'C') === 'D' && 'Type D: 10–20x In (High inrush motors & industrial transformers)'}
@@ -266,7 +266,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'rcd_2p' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Rated Frame Ampacity
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -277,7 +277,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.ratedAmps || 40) === amps
                       ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {amps}A
@@ -287,7 +287,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Earth Leakage Sensitivity (IΔn)
             </label>
             <div className="grid grid-cols-4 gap-1">
@@ -298,14 +298,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.sensitivityMa || 30) === sens
                       ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {sens}mA
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-stone-500 mt-1 block">
+            <span className="text-[9px] text-slate-400 mt-1 block">
               30mA is mandatory for personnel shock protection (PEC 2.10.1.8 / IEC 60364-4-41).
             </span>
           </div>
@@ -317,7 +317,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         <div className="space-y-3">
           {/* Front Enclosure Cover Toggle */}
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               NEMA 1 Enclosure Cover
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -326,7 +326,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   !device.state.enclosureCoverOpen
                     ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 🔒 Closed (Front Face)
@@ -336,7 +336,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.enclosureCoverOpen
                     ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 🔓 Open (Inspect Lugs)
@@ -347,10 +347,10 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           {/* Ampere Rating */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Safety Breaker Rating (In)
               </label>
-              <span className="text-xs font-mono font-bold text-rose-600">{device.state.ratedAmps || 30}A</span>
+              <span className="text-xs font-mono font-bold text-rose-400">{device.state.ratedAmps || 30}A</span>
             </div>
             <div className="grid grid-cols-4 gap-1">
               {[15, 20, 30, 40].map((amps) => (
@@ -360,14 +360,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.ratedAmps || 30) === amps
                       ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {amps}A
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-stone-400 mt-1 block">
+            <span className="text-[9px] text-slate-400 mt-1 block">
               PEC 4.40.2.1: Disconnecting means must be within sight from air-conditioning equipment.
             </span>
           </div>
@@ -379,7 +379,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         <div className="space-y-3">
           {/* Front / Rear View Toggle */}
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Plate View Mode
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -388,7 +388,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.viewMode !== 'rear'
                     ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 Front Faceplate
@@ -398,20 +398,20 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.viewMode === 'rear'
                     ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 🔄 Rear Wiring Strap
               </button>
             </div>
-            <span className="text-[9px] text-stone-400 mt-1 block">
+            <span className="text-[9px] text-slate-400 mt-1 block">
               Flip to Rear View to wire common jumpers between SW, Pilot, and Outlet!
             </span>
           </div>
 
           {/* Slot 2 Module Option */}
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Slot 2 Modular Insert
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -420,7 +420,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.comboSlot2 !== 'switch2'
                     ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 🔴 Neon Pilot Lamp
@@ -430,7 +430,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.comboSlot2 === 'switch2'
                     ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 ⚡ 2nd 1-Way Switch
@@ -444,7 +444,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'utility_box_surface_pvc' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Box Material & Finish
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -453,7 +453,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.boxMaterial !== 'galvanized_steel'
                     ? 'bg-orange-600 text-white border-orange-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 🟧 PVC Safety Orange
@@ -462,14 +462,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'boxMaterial', 'galvanized_steel')}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.boxMaterial === 'galvanized_steel'
-                    ? 'bg-stone-700 text-white border-stone-800 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    ? 'bg-slate-600 text-white border-slate-500 shadow-sm'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 ⬜ Galvanized Steel (GI)
               </button>
             </div>
-            <span className="text-[9px] text-stone-400 mt-1 block">
+            <span className="text-[9px] text-slate-400 mt-1 block">
               PEC 3.14.2.2: Standard 2"×4" utility box volume 230 cm³ (14.0 in³). Max 7× 2.0mm² conductors.
             </span>
           </div>
@@ -480,7 +480,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'din_rail_track' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               DIN Rail Length
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -498,14 +498,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                     (device.state.trackWidth || device.width) === opt.w
                       ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-stone-400 mt-1 block">
+            <span className="text-[9px] text-slate-400 mt-1 block">
               Mounts standard 35mm modular MCBs, RCDs, and industrial terminals per IEC 60715.
             </span>
           </div>
@@ -515,7 +515,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {/* --- LIGHT FIXTURE PROPERTIES --- */}
       {device && device.type === 'light_bulb' && (
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Lamp Wattage
           </label>
           <div className="grid grid-cols-4 gap-1">
@@ -526,7 +526,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                   (device.state.wattage || 60) === w
                     ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm'
-                    : 'bg-[#faf8f5] text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 text-slate-200 border-slate-700'
                 }`}
               >
                 {w}W
@@ -539,7 +539,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {/* --- WATER HEATER PROPERTIES --- */}
       {device && device.type === 'appliance_water_heater' && (
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Heating Element Wattage
           </label>
           <div className="grid grid-cols-3 gap-1">
@@ -550,7 +550,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                   (device.state.wattage || 3500) === w
                     ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
-                    : 'bg-[#faf8f5] text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 text-slate-200 border-slate-700'
                 }`}
               >
                 {(w / 1000).toFixed(1)} kW
@@ -564,7 +564,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'appliance_fan' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Fan Speed & Power Level
             </label>
             <div className="grid grid-cols-3 gap-1.5">
@@ -582,7 +582,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1.5 px-1 text-xs font-mono font-bold rounded-lg border transition text-center ${
                     (device.state.speed || 2) === sp.speed
                       ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {sp.label}
@@ -590,7 +590,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               ))}
             </div>
           </div>
-          <div className="text-[10px] text-stone-500 bg-sky-50/70 p-2 rounded-lg border border-sky-100">
+          <div className="text-[10px] text-slate-400 bg-sky-950/80 p-2 rounded-lg border border-sky-500/50 text-sky-200">
             🌀 Aerodynamic blades spin automatically when circuit loop is closed and powered.
           </div>
         </div>
@@ -600,7 +600,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'appliance_ac' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Set Temperature Display
             </label>
             <div className="grid grid-cols-5 gap-1">
@@ -611,7 +611,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.setTemp || 16) === deg
                       ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {deg}°C
@@ -621,7 +621,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Inverter Compressor Capacity
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -636,7 +636,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-[11px] font-mono font-bold rounded-lg border transition ${
                     (device.state.wattage || 1200) === hp.watts
                       ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {hp.label}
@@ -651,7 +651,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && (device.type === 'socket_duplex' || device.type === 'socket_schuko') && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Perspective Inspection View
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -660,7 +660,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition flex items-center justify-center gap-1.5 ${
                   device.state.viewMode !== 'rear'
                     ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 <span>👁️ Front Plate</span>
@@ -670,7 +670,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition flex items-center justify-center gap-1.5 ${
                   device.state.viewMode === 'rear'
                     ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 <span>🔧 Rear Modules</span>
@@ -679,11 +679,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
 
           {/* Educational Callout on Terminal Polarity */}
-          <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/90 text-amber-950 text-[11px] space-y-1">
-            <div className="font-bold text-amber-900 flex items-center gap-1">
+          <div className="p-2.5 rounded-xl bg-amber-950/75 border border-amber-500/60 text-amber-100 text-[11px] space-y-1">
+            <div className="font-bold text-amber-200 flex items-center gap-1">
               <span>🇵🇭 PEC Terminal Polarity:</span>
             </div>
-            <p className="text-[10px] text-amber-800 leading-tight">
+            <p className="text-[10px] text-amber-200 leading-tight">
               • <strong>Brass Screws (Bottom)</strong>: Line 1 & Line 2 (Hot)<br/>
               • <strong>Silver Screws (Top)</strong>: Neutral 1 & Neutral 2<br/>
               • <strong>Green Screw (Center)</strong>: Equipment Ground (PE)<br/>
@@ -697,7 +697,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && (device.type.includes('junction_box')) && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Enclosure Material & Standard
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -706,7 +706,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition flex items-center justify-center gap-1.5 ${
                   device.type === 'junction_box_octagonal_orange' || device.state.boxMaterial === 'orange_pvc'
                     ? 'bg-orange-600 text-white border-orange-700 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 <span>🟠 Orange PVC</span>
@@ -715,14 +715,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'boxMaterial', 'galvanized_steel')}
                 className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition flex items-center justify-center gap-1.5 ${
                   device.state.boxMaterial === 'galvanized_steel' && device.type !== 'junction_box_octagonal_orange'
-                    ? 'bg-stone-700 text-white border-stone-800 shadow-sm'
-                    : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    ? 'bg-slate-600 text-white border-slate-500 shadow-sm'
+                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                 }`}
               >
                 <span>⚙️ Metal Steel</span>
               </button>
             </div>
-            <span className="text-[9px] text-stone-500 mt-1 block">
+            <span className="text-[9px] text-slate-400 mt-1 block">
               Philippine residential installations widely use 4" orange PVC octagonal boxes for conduit drops.
             </span>
           </div>
@@ -731,8 +731,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- 2P BREAKER HOUSING STYLE --- */}
       {device && device.type === 'mcb_2p' && (
-        <div className="space-y-2 mt-2 pt-2 border-t border-stone-100">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+        <div className="space-y-2 mt-2 pt-2 border-t border-slate-700/80">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
             Breaker Housing Form Factor
           </label>
           <div className="grid grid-cols-2 gap-1.5">
@@ -740,8 +740,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               onClick={() => onUpdateDeviceProperty(device.id, 'mccbStyle', 'industrial_black')}
               className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
                 device.state.mccbStyle === 'industrial_black'
-                  ? 'bg-stone-900 text-white border-black shadow-sm'
-                  : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                  ? 'bg-slate-700 text-white border-sky-400 shadow-sm'
+                  : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
               }`}
             >
               <span>⚡ Industrial Black</span>
@@ -751,7 +751,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
                 device.state.mccbStyle !== 'industrial_black'
                   ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
-                  : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                  : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
               }`}
             >
               <span>⚪ DIN-Rail Module</span>
@@ -762,8 +762,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- PUSH BUTTON STATION CONTROLS --- */}
       {device && device.type === 'push_button_station' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Station Actuators (Click or Press)
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -773,7 +773,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               className={`py-2 px-3 text-xs font-bold rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
                 device.state.startPressed
                   ? 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-300'
-                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                  : 'bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-200 border-emerald-500/60'
               }`}
             >
               <span className="text-base font-black">I</span>
@@ -785,14 +785,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               className={`py-2 px-3 text-xs font-bold rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
                 device.state.stopPressed
                   ? 'bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-300'
-                  : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200'
+                  : 'bg-rose-950/80 hover:bg-rose-900/90 text-rose-200 border-rose-500/60'
               }`}
             >
               <span className="text-base font-black">O</span>
               <span className="text-[10px] uppercase">{device.state.stopPressed ? 'Depressed (NC Open)' : 'Stop (NC Closed)'}</span>
             </button>
           </div>
-          <span className="text-[9px] text-stone-400 block">
+          <span className="text-[9px] text-slate-400 block">
             Hold to press — both are momentary (spring return). START 3-4 is NO, STOP 1-2 is NC.
           </span>
         </div>
@@ -800,8 +800,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- EMERGENCY STOP CONTROLS --- */}
       {device && device.type === 'push_button_estop' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Safety Mushroom Actuator
           </label>
           <button
@@ -809,12 +809,12 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             className={`w-full py-2.5 px-3 text-xs font-bold rounded-xl border flex items-center justify-center gap-2 transition ${
               device.state.latched
                 ? 'bg-rose-600 text-white border-rose-700 shadow-md animate-pulse'
-                : 'bg-yellow-50 hover:bg-yellow-100 text-yellow-900 border-yellow-300'
+                : 'bg-amber-950/80 hover:bg-amber-900/90 text-amber-200 border-amber-500/60'
             }`}
           >
             <span>{device.state.latched ? '🛑 E-STOP LATCHED (Contacts Open)' : '✅ E-STOP ARMED (Contacts Closed)'}</span>
           </button>
-          <span className="text-[9px] text-stone-400 block">
+          <span className="text-[9px] text-slate-400 block">
             Click to slam or twist-to-release. Latched state forcefully opens NC safety contacts.
           </span>
         </div>
@@ -822,12 +822,12 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- PILOT LIGHT INDICATOR CONTROLS --- */}
       {device && device.type === 'pilot_light_indicator' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Lens Color
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${device.state.lit ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${device.state.lit ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
               {device.state.lit ? '● ILLUMINATED' : '○ OFF'}
             </span>
           </div>
@@ -843,8 +843,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'pilotColor', col.id)}
                 className={`py-1.5 px-1 text-xs font-bold rounded-lg border flex items-center justify-center gap-1 transition ${
                   (device.state.pilotColor || 'green') === col.id
-                    ? 'ring-2 ring-stone-800 border-stone-800 shadow-sm'
-                    : 'border-stone-200 hover:border-stone-300'
+                    ? 'ring-2 ring-sky-400 border-sky-400 shadow-sm'
+                    : 'border-slate-700 hover:border-slate-600'
                 }`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full ${col.bg}`}></span>
@@ -857,17 +857,17 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- 3-POLE MOTOR CONTACTOR CONTROLS --- */}
       {device && device.type === 'contactor_3p' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Coil Status (A1-A2)
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.coilEnergized ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.coilEnergized ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
               {device.state.coilEnergized ? '⚡ ENERGIZED (PULLED IN)' : '○ DE-ENERGIZED'}
             </span>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Rated Motor Current (AC-3)
             </label>
             <div className="grid grid-cols-4 gap-1">
@@ -878,7 +878,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.ratedAmps || 18) === amps
                       ? 'bg-slate-800 text-white border-slate-900 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {amps}A
@@ -893,7 +893,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               { k: 'Aux NC 21-22', on: !(device.state.coilEnergized || device.state.manualOverride), no: false },
               { k: 'Line current', on: (device.state.measuredAmps || 0) > 0, no: true, val: `${(device.state.measuredAmps || 0).toFixed(2)} A` },
             ].map((c) => (
-              <div key={c.k} className={`rounded-lg border px-2 py-1 ${c.on ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-stone-50 border-stone-200 text-stone-500'}`}>
+              <div key={c.k} className={`rounded-lg border px-2 py-1 ${c.on ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-200' : 'bg-slate-900/80 border-slate-700 text-slate-400'}`}>
                 <div className="font-bold">{c.k}</div>
                 <div>{c.val ?? (c.on ? 'CLOSED' : 'OPEN')}</div>
               </div>
@@ -901,19 +901,19 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <div>
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Tag</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tag</label>
               <input
                 value={device.state.tag || ''}
                 onChange={(e) => onUpdateDeviceProperty(device.id, 'tag', e.target.value.toUpperCase().slice(0, 6))}
-                className="w-full h-7 px-2 text-xs font-mono font-bold rounded-lg border border-stone-200 bg-[#faf8f5]"
+                className="w-full h-7 px-2 text-xs font-mono font-bold rounded-lg border border-slate-700 bg-slate-900 text-slate-100"
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Role</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Role</label>
               <select
                 value={device.state.role || ''}
                 onChange={(e) => onUpdateDeviceProperty(device.id, 'role', e.target.value || undefined)}
-                className="w-full h-7 px-1.5 text-xs font-mono font-bold rounded-lg border border-stone-200 bg-[#faf8f5]"
+                className="w-full h-7 px-1.5 text-xs font-mono font-bold rounded-lg border border-slate-700 bg-slate-900 text-slate-100"
               >
                 <option value="">— (DOL)</option>
                 <option value="FOR">FOR (forward)</option>
@@ -928,7 +928,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
                 device.state.viewMode === 'cutaway'
                   ? 'bg-sky-600 text-white border-sky-700'
-                  : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-200'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600'
               }`}
               title="Reveal the coil, armature, return spring and moving contact bridges"
             >
@@ -939,13 +939,13 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
                 device.state.manualOverride
                   ? 'bg-amber-600 text-white border-amber-700'
-                  : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-200'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600'
               }`}
             >
               {device.state.manualOverride ? 'Plunger Forced IN' : 'Test Plunger'}
             </button>
           </div>
-          <span className="text-[9px] text-stone-400 block">
+          <span className="text-[9px] text-slate-400 block">
             Coil OFF: return spring holds NC 21-22 closed. Coil ON: armature pulls in — main poles &amp; NO 13-14 close and NC 21-22 opens.
           </span>
         </div>
@@ -953,15 +953,15 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- THERMAL OVERLOAD RELAY (TOR) --- */}
       {device && device.type === 'thermal_overload_relay' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Relay Status</label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.tripped ? 'bg-orange-100 text-orange-700 animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Relay Status</label>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.tripped ? 'bg-orange-950/90 text-orange-300 border border-orange-500/50 animate-pulse' : 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50'}`}>
               {device.state.tripped ? '⚠ TRIPPED (95-96 OPEN)' : '● READY (95-96 CLOSED)'}
             </span>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Ampere Dial Setting (Ir)
             </label>
             <div className="grid grid-cols-6 gap-1">
@@ -970,20 +970,20 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   key={a}
                   onClick={() => patchState('tripAmps', a)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
-                    (device.state.tripAmps || 6) === a ? 'bg-sky-700 text-white border-sky-800 shadow-sm' : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    (device.state.tripAmps || 6) === a ? 'bg-sky-700 text-white border-sky-800 shadow-sm' : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {a}A
                 </button>
               ))}
             </div>
-            <div className="mt-1.5 h-2 rounded-full bg-stone-100 overflow-hidden">
+            <div className="mt-1.5 h-2 rounded-full bg-slate-900 border border-slate-700 overflow-hidden">
               <div
                 className={`h-full transition-all ${((device.state.measuredAmps || 0) / (device.state.tripAmps || 6)) > 1 ? 'bg-rose-500' : 'bg-amber-400'}`}
                 style={{ width: `${Math.min(100, ((device.state.measuredAmps || 0) / (device.state.tripAmps || 6)) * 100)}%` }}
               />
             </div>
-            <span className="text-[9px] text-stone-400 mt-1 block font-mono">
+            <span className="text-[9px] text-slate-400 mt-1 block font-mono">
               Thermal image: {(device.state.measuredAmps || 0).toFixed(2)}A of {device.state.tripAmps || 6}A setting. Set Ir to the motor nameplate FLA.
             </span>
           </div>
@@ -991,7 +991,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             <button
               onClick={() => patchState('tripped', true)}
               disabled={!!device.state.tripped}
-              className="py-2 text-xs font-black rounded-xl border bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 disabled:opacity-50"
+              className="py-2 text-xs font-black rounded-xl border bg-rose-950/80 hover:bg-rose-900/90 text-rose-200 border-rose-500/60 disabled:opacity-50"
             >
               TEST (Trip)
             </button>
@@ -1003,7 +1003,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               R · RESET
             </button>
           </div>
-          <span className="text-[9px] text-stone-400 block">
+          <span className="text-[9px] text-slate-400 block">
             95-96 NC is wired in series with the coil circuit; 97-98 NO lights a fault pilot lamp when tripped.
           </span>
         </div>
@@ -1011,10 +1011,10 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- CONTROL TRANSFORMER --- */}
       {device && device.type === 'control_transformer' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Secondary (X1-X2)</label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.secondaryLive ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Secondary (X1-X2)</label>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.secondaryLive ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
               {device.state.secondaryLive ? `● ${device.state.secondaryVolts || 220}V LIVE` : '○ DE-ENERGIZED'}
             </span>
           </div>
@@ -1024,21 +1024,21 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               { k: 'Secondary', v: `${device.state.secondaryVolts || 220}V` },
               { k: 'Ratio', v: `${((device.state.primaryVolts || 440) / (device.state.secondaryVolts || 220)).toFixed(1)}:1` },
             ].map((c) => (
-              <div key={c.k} className="rounded-lg border border-stone-200 bg-[#faf8f5] py-1">
-                <div className="text-[9px] font-bold text-stone-400 uppercase">{c.k}</div>
-                <div className="text-xs font-mono font-black text-stone-800">{c.v}</div>
+              <div key={c.k} className="rounded-lg border border-slate-700 bg-slate-900 text-slate-100 py-1">
+                <div className="text-[9px] font-bold text-slate-400 uppercase">{c.k}</div>
+                <div className="text-xs font-mono font-black text-slate-100">{c.v}</div>
               </div>
             ))}
           </div>
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">VA Rating</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">VA Rating</label>
             <div className="grid grid-cols-4 gap-1">
               {[100, 250, 500, 1000].map((va) => (
                 <button
                   key={va}
                   onClick={() => onUpdateDeviceProperty(device.id, 'vaRating', va)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
-                    (device.state.vaRating || 250) === va ? 'bg-slate-800 text-white border-slate-900' : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                    (device.state.vaRating || 250) === va ? 'bg-slate-800 text-white border-slate-900' : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {va}
@@ -1046,7 +1046,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               ))}
             </div>
           </div>
-          <span className="text-[9px] text-stone-400 block">
+          <span className="text-[9px] text-slate-400 block">
             Connect H1-H2 across two phases (e.g. L1-L2 at 440V). X1 becomes the 220V control hot rail, X2 the control return.
           </span>
         </div>
@@ -1054,11 +1054,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- 3-PHASE 440V FEEDER --- */}
       {device && device.type === 'source_3phase_440v' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
           <button
             onClick={() => patchState('closed', device.state.closed === false)}
             className={`w-full py-2 text-xs font-black rounded-xl border transition ${
-              device.state.closed !== false ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-stone-100 text-stone-600 border-stone-200'
+              device.state.closed !== false ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-slate-800 text-slate-300 border-slate-700'
             }`}
           >
             {device.state.closed !== false ? '● MAIN ISOLATOR ON — L1 / L2 / L3 LIVE' : '○ MAIN ISOLATOR OFF'}
@@ -1069,14 +1069,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               { k: 'L2', c: 'bg-yellow-400' },
               { k: 'L3', c: 'bg-blue-600' },
             ].map((ph) => (
-              <div key={ph.k} className="rounded-lg border border-stone-200 bg-[#faf8f5] py-1 flex items-center justify-center gap-1.5">
+              <div key={ph.k} className="rounded-lg border border-slate-700 bg-slate-900 text-slate-100 py-1 flex items-center justify-center gap-1.5">
                 <span className={`w-2.5 h-2.5 rounded-full ${ph.c}`} />
                 <span className="text-xs font-mono font-black">{ph.k}</span>
-                <span className="text-[9px] font-mono text-stone-400">{Math.round((device.state.lineVoltage || 440) / Math.sqrt(3))}V</span>
+                <span className="text-[9px] font-mono text-slate-400">{Math.round((device.state.lineVoltage || 440) / Math.sqrt(3))}V</span>
               </div>
             ))}
           </div>
-          <span className="text-[9px] text-stone-400 block font-mono">
+          <span className="text-[9px] text-slate-400 block font-mono">
             {device.state.lineVoltage || 440}V line-to-line · {device.state.frequency || 60}Hz · sequence L1→L2→L3 (CW).
           </span>
         </div>
@@ -1084,15 +1084,15 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- FORWARD / REVERSE / STOP STATION --- */}
       {device && device.type === 'push_button_fwd_rev' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
-          <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Momentary Operators (hold to press)
           </label>
           <div className="grid grid-cols-3 gap-1.5">
             {[
-              { key: 'stopPressed', label: 'STOP', sub: 'NC 1-2', on: 'bg-rose-600 text-white border-rose-700', off: 'bg-rose-50 text-rose-800 border-rose-200' },
-              { key: 'fwdPressed', label: 'FWD ▶', sub: 'NO 3-4', on: 'bg-emerald-600 text-white border-emerald-700', off: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-              { key: 'revPressed', label: '◀ REV', sub: 'NO 5-6', on: 'bg-amber-500 text-white border-amber-600', off: 'bg-amber-50 text-amber-800 border-amber-200' },
+              { key: 'stopPressed', label: 'STOP', sub: 'NC 1-2', on: 'bg-rose-600 text-white border-rose-700', off: 'bg-rose-950/80 text-rose-200 border-rose-500/60' },
+              { key: 'fwdPressed', label: 'FWD ▶', sub: 'NO 3-4', on: 'bg-emerald-600 text-white border-emerald-700', off: 'bg-emerald-950/80 text-emerald-200 border-emerald-500/60' },
+              { key: 'revPressed', label: '◀ REV', sub: 'NO 5-6', on: 'bg-amber-500 text-white border-amber-600', off: 'bg-amber-950/80 text-amber-200 border-amber-500/60' },
             ].map((b) => (
               <button
                 key={b.key}
@@ -1110,12 +1110,12 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- INDUSTRIAL AC INDUCTION MOTOR CONTROLS --- */}
       {device && device.type === 'motor_ac_industrial' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Motor Status
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.motorFault ? 'bg-rose-100 text-rose-700 animate-pulse' : device.state.running ? 'bg-emerald-100 text-emerald-700 animate-pulse' : 'bg-stone-100 text-stone-500'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.motorFault ? 'bg-rose-950/90 text-rose-300 border border-rose-500/50 animate-pulse' : device.state.running ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 animate-pulse' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
               {device.state.motorFault
                 ? `⚠ ${device.state.motorFault}`
                 : device.state.running
@@ -1124,7 +1124,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             </span>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Nameplate Power Rating
             </label>
             <div className="grid grid-cols-4 gap-1">
@@ -1140,14 +1140,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.wattage || 2200) === m.w
                       ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-                      : 'bg-[#faf8f5] hover:bg-white text-stone-700 border-stone-200'
+                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
                 >
                   {m.label}
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-stone-400 mt-1 block font-mono">
+            <span className="text-[9px] text-slate-400 mt-1 block font-mono">
               Rated: {(device.state.wattage || 2200)} W · 440V 3-phase TEFC · line current {(device.state.measuredAmps || 0).toFixed(2)} A. Swap any two of U1/V1/W1 to reverse rotation.
             </span>
           </div>
@@ -1156,9 +1156,9 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- MICRO PLC CONTROLLER CONTROLS --- */}
       {device && device.type === 'plc_micro_controller' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               PLC CPU Mode
             </label>
             <button
@@ -1186,7 +1186,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               </span>
             </div>
           </div>
-          <span className="text-[9px] text-stone-400 block font-mono">
+          <span className="text-[9px] text-slate-400 block font-mono">
             Embedded Ladder: I1 → Coil Q1, I2 → Coil Q2.
           </span>
         </div>
@@ -1194,16 +1194,16 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- DPDT ICE-CUBE RELAY CONTROLS --- */}
       {device && device.type === 'industrial_relay_dpdt' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-stone-100">
+        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Relay Coil Status (A1-A2)
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.coilEnergized ? 'bg-purple-100 text-purple-700' : 'bg-stone-100 text-stone-500'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.coilEnergized ? 'bg-purple-950/90 text-purple-300 border border-purple-500/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
               {device.state.coilEnergized ? '● ENERGIZED' : '○ DE-ENERGIZED'}
             </span>
           </div>
-          <span className="text-[9px] text-stone-400 block">
+          <span className="text-[9px] text-slate-400 block">
             8-Pin DPDT Form-C Contacts (Common 11/21, NC 12/22, NO 14/24).
           </span>
         </div>
@@ -1214,13 +1214,13 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         <div className="space-y-3">
           {/* Gauge Selector */}
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Conductor Cross-Section / Gauge
             </label>
             <select
               value={wire.wireGauge}
               onChange={(e) => onUpdateWireProperty(wire.id, { wireGauge: e.target.value })}
-              className="w-full bg-[#faf8f5] border border-stone-200 rounded-lg px-2.5 py-1 text-xs text-stone-800 font-mono focus:outline-none focus:border-rose-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono focus:outline-none focus:border-rose-500"
             >
               {wireStandards.map((ws) => (
                 <option key={ws.id} value={ws.name}>
@@ -1232,7 +1232,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
           {/* Wire Color */}
           <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Insulation Color
             </label>
             <div className="grid grid-cols-6 gap-1.5">
@@ -1250,8 +1250,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   style={{ backgroundColor: swatch.color }}
                   className={`h-6 rounded border transition-transform ${
                     wire.color === swatch.color
-                      ? 'border-stone-900 scale-110 shadow-md ring-2 ring-stone-900/20'
-                      : 'border-stone-300 hover:scale-105'
+                      ? 'border-sky-400 scale-110 shadow-md ring-2 ring-sky-400/40'
+                      : 'border-slate-600 hover:scale-105'
                   }`}
                   title={swatch.name}
                 />
@@ -1261,9 +1261,9 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
           {/* Wire Run Length */}
           <div>
-            <div className="flex justify-between text-[10px] text-stone-500 mb-0.5">
+            <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
               <span className="font-bold uppercase tracking-wider">Conductor Length</span>
-              <span className="font-mono text-stone-900 font-bold">{wire.lengthMeters || 5} meters</span>
+              <span className="font-mono text-slate-100 font-bold">{wire.lengthMeters || 5} meters</span>
             </div>
             <input
               type="range"
@@ -1272,25 +1272,25 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               step={1}
               value={wire.lengthMeters || 5}
               onChange={(e) => onUpdateWireProperty(wire.id, { lengthMeters: Number(e.target.value) })}
-              className="w-full accent-rose-600 cursor-pointer h-1.5 bg-stone-200 rounded-lg"
+              className="w-full accent-rose-600 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
             />
           </div>
 
           {/* Electrical Metrics for this Wire */}
-          <div className="bg-[#faf8f5] p-2.5 rounded-xl border border-stone-100 flex items-center justify-between text-xs font-mono">
+          <div className="bg-[#172235] p-2.5 rounded-xl border border-slate-700 flex items-center justify-between text-xs font-mono">
             <div>
-              <span className="text-[9px] text-stone-400 block font-sans">CURRENT</span>
-              <span className="font-bold text-stone-900">{(wire.currentAmps || 0).toFixed(2)} A</span>
+              <span className="text-[9px] text-slate-400 block font-sans">CURRENT</span>
+              <span className="font-bold text-slate-100">{(wire.currentAmps || 0).toFixed(2)} A</span>
             </div>
             <div>
-              <span className="text-[9px] text-stone-400 block font-sans">VOLTAGE DROP</span>
-              <span className={`font-bold ${(wire.voltageDropPercent || 0) > 3 ? 'text-rose-600' : 'text-emerald-600'}`}>
+              <span className="text-[9px] text-slate-400 block font-sans">VOLTAGE DROP</span>
+              <span className={`font-bold ${(wire.voltageDropPercent || 0) > 3 ? 'text-rose-400' : 'text-emerald-400'}`}>
                 {(wire.voltageDropPercent || 0).toFixed(2)} %
               </span>
             </div>
             <div>
-              <span className="text-[9px] text-stone-400 block font-sans">LIMIT</span>
-              <span className="text-stone-500 font-bold">≤ 3.0%</span>
+              <span className="text-[9px] text-slate-400 block font-sans">LIMIT</span>
+              <span className="text-slate-400 font-bold">≤ 3.0%</span>
             </div>
           </div>
 
@@ -1298,10 +1298,10 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           {wire.waypoints && wire.waypoints.length > 0 && (
             <button
               onClick={() => onUpdateWireProperty(wire.id, { waypoints: undefined })}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-bold rounded-xl transition shadow-sm"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-bold rounded-xl transition shadow-sm"
               title="Reset manual orthogonal shifts back to automatic collision-free routing"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
+              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
               <span>Reset Wire Routing to Auto</span>
             </button>
           )}
@@ -1309,23 +1309,23 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       )}
 
       {/* Footer Action Buttons (Rotate, Duplicate, Delete) */}
-      <div className="pt-3 mt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+      <div className="pt-3 mt-3 border-t border-slate-700/80 flex items-center justify-between gap-2">
         {device && (
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => onRotateDevice && onRotateDevice(device)}
-              className="flex items-center gap-1 px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-lg transition"
+              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-bold rounded-lg transition"
               title="Rotate 90° clockwise (Shortcut: R)"
             >
-              <RotateCw className="w-3.5 h-3.5 text-stone-600" />
+              <RotateCw className="w-3.5 h-3.5 text-slate-300" />
               <span>Rotate</span>
             </button>
             <button
               onClick={() => onDuplicateDevice && onDuplicateDevice(device)}
-              className="flex items-center gap-1 px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-lg transition"
+              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-bold rounded-lg transition"
               title="Duplicate device (Shortcut: Ctrl+C, Ctrl+V)"
             >
-              <Copy className="w-3.5 h-3.5 text-stone-600" />
+              <Copy className="w-3.5 h-3.5 text-slate-300" />
               <span>Duplicate</span>
             </button>
           </div>
@@ -1333,7 +1333,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
         <button
           onClick={onDeleteSelected}
-          className="flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 transition ml-auto"
+          className="flex items-center gap-1 text-xs font-bold text-rose-400 hover:text-rose-700 transition ml-auto"
           title="Delete selected item (Shortcut: Del / Backspace)"
         >
           <Trash2 className="w-3.5 h-3.5" />

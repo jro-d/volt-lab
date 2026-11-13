@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { DeviceComponentProps, DeviceTerminals, SvgPill, stopCanvas } from './DeviceTerminals';
 
 /**
@@ -11,6 +11,7 @@ import { DeviceComponentProps, DeviceTerminals, SvgPill, stopCanvas } from './De
  */
 export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
   const { device, onToggleState, onPatchState } = props;
+  const uid = useId().replace(/:/g, '');
   const { x, y, width, height } = device;
   const isClosed = !!(device.state.coilEnergized || device.state.closed || device.state.manualOverride);
   const coilOn = !!device.state.coilEnergized;
@@ -41,29 +42,29 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
   return (
     <g id={`device-${device.id}`}>
       <defs>
-        <linearGradient id="km-housing" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`km-housing-${uid}`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#f8fafc" />
           <stop offset="55%" stopColor="#e2e8f0" />
           <stop offset="100%" stopColor="#cbd5e1" />
         </linearGradient>
-        <linearGradient id="km-aux" x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id={`km-aux-${uid}`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#d4d8de" />
           <stop offset="100%" stopColor="#aeb5bf" />
         </linearGradient>
-        <linearGradient id="km-copper" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`km-copper-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#fdba74" />
           <stop offset="50%" stopColor="#ea580c" />
           <stop offset="100%" stopColor="#9a3412" />
         </linearGradient>
-        <linearGradient id="km-steel" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`km-steel-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#94a3b8" />
           <stop offset="100%" stopColor="#475569" />
         </linearGradient>
-        <pattern id="km-lam" width="3" height="3" patternUnits="userSpaceOnUse">
+        <pattern id={`km-lam-${uid}`} width="3" height="3" patternUnits="userSpaceOnUse">
           <rect width="3" height="3" fill="#64748b" />
           <line x1="0" y1="0" x2="0" y2="3" stroke="#334155" strokeWidth="0.8" />
         </pattern>
-        <pattern id="km-xray" width="6" height="6" patternUnits="userSpaceOnUse">
+        <pattern id={`km-xray-${uid}`} width="6" height="6" patternUnits="userSpaceOnUse">
           <rect width="6" height="6" fill="#06101f" />
           <path d="M 6 0 L 0 0 0 6" fill="none" stroke="#0e2a47" strokeWidth="0.5" />
         </pattern>
@@ -79,7 +80,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
         width={mainW}
         height={height}
         rx={6}
-        fill="url(#km-housing)"
+        fill={`url(#km-housing-${uid})`}
         stroke="#94a3b8"
         strokeWidth={1.3}
         filter="drop-shadow(0 6px 12px rgba(15,23,42,0.18))"
@@ -143,7 +144,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
       ) : (
         <g>
           {/* ───── X-RAY CUTAWAY ───── */}
-          <rect x={x + 4} y={y + 23} width={mainW - 8} height={height - 46} rx={3} fill="url(#km-xray)" stroke="#0ea5e9" strokeWidth={0.8} />
+          <rect x={x + 4} y={y + 23} width={mainW - 8} height={height - 46} rx={3} fill={`url(#km-xray-${uid})`} stroke="#0ea5e9" strokeWidth={0.8} />
 
           {/* Load-side copper strips running down the housing walls (behind magnet) */}
           {poleX.map((px, i) => (
@@ -159,7 +160,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
           {/* Line-side fixed contacts */}
           {poleX.map((px, i) => (
             <g key={`ln${i}`}>
-              <path d={`M ${px} ${y + 12} L ${px} ${y + 30} L ${px - 6} ${y + 34} L ${px - 6} ${y + 52}`} fill="none" stroke="url(#km-copper)" strokeWidth={2.4} />
+              <path d={`M ${px} ${y + 12} L ${px} ${y + 30} L ${px - 6} ${y + 34} L ${px - 6} ${y + 52}`} fill="none" stroke={`url(#km-copper-${uid})`} strokeWidth={2.4} />
               {/* fixed silver contact pads */}
               <rect x={px - 9} y={y + 51} width={6} height={2.6} rx={0.8} fill="#e5e7eb" stroke="#475569" strokeWidth={0.4} />
               <rect x={px + 3} y={y + 51} width={6} height={2.6} rx={0.8} fill="#e5e7eb" stroke="#475569" strokeWidth={0.4} />
@@ -177,7 +178,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
             {/* Copper contact bridges with silver tips */}
             {poleX.map((px, i) => (
               <g key={`br${i}`}>
-                <rect x={px - 10} y={y + 46.5} width={20} height={2.6} rx={0.8} fill="url(#km-copper)" stroke="#7c2d12" strokeWidth={0.4} />
+                <rect x={px - 10} y={y + 46.5} width={20} height={2.6} rx={0.8} fill={`url(#km-copper-${uid})`} stroke="#7c2d12" strokeWidth={0.4} />
                 <rect x={px - 9} y={y + 48.4} width={5} height={1.3} fill="#f8fafc" />
                 <rect x={px + 4} y={y + 48.4} width={5} height={1.3} fill="#f8fafc" />
               </g>
@@ -185,7 +186,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
             {/* Carrier stem */}
             <rect x={x + mainW / 2 - 2} y={y + 46} width={4} height={14} fill="#cbd5e1" />
             {/* Laminated moving armature (I / E-core top) */}
-            <rect x={x + 16} y={y + 60} width={mainW - 32} height={7} rx={1} fill="url(#km-lam)" stroke="#94a3b8" strokeWidth={0.6} />
+            <rect x={x + 16} y={y + 60} width={mainW - 32} height={7} rx={1} fill={`url(#km-lam-${uid})`} stroke="#94a3b8" strokeWidth={0.6} />
           </g>
 
           {/* Contact touch glint */}
@@ -214,7 +215,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
           {/* Fixed laminated E-core */}
           <path
             d={`M ${x + 16} ${y + 78} h ${mainW - 32} v 24 h -${mainW - 32} Z`}
-            fill="url(#km-lam)"
+            fill={`url(#km-lam-${uid})`}
             stroke="#94a3b8"
             strokeWidth={0.6}
           />
@@ -269,7 +270,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
       )}
 
       {/* ───── Front auxiliary contact block (1NO + 1NC) ───── */}
-      <rect x={auxX} y={y + 6} width={auxW} height={height - 12} rx={4} fill="url(#km-aux)" stroke="#8b939e" strokeWidth={1} />
+      <rect x={auxX} y={y + 6} width={auxW} height={height - 12} rx={4} fill={`url(#km-aux-${uid})`} stroke="#8b939e" strokeWidth={1} />
       <rect x={auxX + 2} y={y + 8} width={auxW - 4} height={16} rx={2} fill="#334155" />
       <rect x={auxX + 2} y={y + height - 24} width={auxW - 4} height={16} rx={2} fill="#334155" />
       <text x={auxX + auxW / 2} y={y + 33} textAnchor="middle" fontSize="4.4" fontWeight="900" fill="#1e293b" fontFamily="ui-monospace, monospace">
