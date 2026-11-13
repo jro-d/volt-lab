@@ -1,123 +1,82 @@
-import React, { useId } from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import React from 'react';
+import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
-interface MotorStarterDeviceProps {
-  device: ElectricalDevice;
-  isSelected?: boolean;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId?: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const MotorStarterDevice: React.FC<MotorStarterDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
-  const uid = useId().replace(/:/g, '');
-  const { width, height, terminals } = device;
+/**
+ * EduVolt-style IP65 Direct-On-Line (DOL) Magnetic Motor Starter Enclosure.
+ * Embedded L1/L2/L3/PE top pocket band so terminals never collide with header.
+ */
+export const MotorStarterDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device, onToggleState, onPatchState } = props;
+  const { x, y, width, height } = device;
   const isRunning = !!device.state.running;
-  const cx = width / 2;
+  const cx = x + width / 2;
 
-  const handleStart = (e: React.MouseEvent) => {
+  const setRunning = (next: boolean, e: React.MouseEvent) => {
     e.stopPropagation();
-    device.state.running = true;
-    onToggleState?.(device);
-  };
-
-  const handleStop = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    device.state.running = false;
-    onToggleState?.(device);
+    if (onPatchState) onPatchState(device.id, { running: next });
+    else {
+      device.state.running = next;
+      onToggleState?.({ ...device, state: { ...device.state, running: next } });
+    }
   };
 
   return (
-    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`dolHousing-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#e2e8f0" />
-          <stop offset="55%" stopColor="#94a3b8" />
-          <stop offset="100%" stopColor="#475569" />
-        </linearGradient>
-        <radialGradient id={`dolStartBtn-${uid}`} cx="35%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#4ade80" />
-          <stop offset="100%" stopColor="#15803d" />
-        </radialGradient>
-        <radialGradient id={`dolStopBtn-${uid}`} cx="35%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#f87171" />
-          <stop offset="100%" stopColor="#991b1b" />
-        </radialGradient>
-      </defs>
+    <g id={`device-${device.id}`} className="select-none">
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="rgba(15, 23, 42, 0.16)" />
+      {/* Outer Enclosure */}
+      <rect x={x} y={y} width={width} height={height} rx={5} fill="#cbd5e1" stroke="#0f172a" strokeWidth={1.3} />
 
-      {/* Enclosed IP65 Cast DOL Magnetic Starter Box */}
-      <rect x={2} y={4} width={width} height={height} rx={9} fill="rgba(15, 23, 42, 0.25)" />
-      <rect x={0} y={0} width={width} height={height} rx={9} fill={`url(#dolHousing-${uid})`} stroke="#334155" strokeWidth={1.6} />
+      {/* Top Gland Terminal Bay + Embedded Silkscreen */}
+      <rect x={x + 3} y={y + 2} width={width - 6} height={22} rx={2} fill="#1f2937" />
+      <rect x={x + 3} y={y + 24} width={width - 6} height={8} fill="#0f172a" />
+      {[
+        { rel: 0.20, lbl: 'L1', col: '#f87171' },
+        { rel: 0.40, lbl: 'L2', col: '#fde047' },
+        { rel: 0.60, lbl: 'L3', col: '#60a5fa' },
+        { rel: 0.80, lbl: 'PE', col: '#4ade80' },
+      ].map((t) => (
+        <text key={t.lbl} x={x + width * t.rel} y={y + 29.8} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill={t.col}>
+          {t.lbl}
+        </text>
+      ))}
 
-      {/* Top/Bottom Gland Conduits */}
-      <rect x={cx - 12} y={-4} width={24} height={6} rx={1.5} fill="#334155" />
-      <rect x={cx - 12} y={height - 2} width={24} height={6} rx={1.5} fill="#334155" />
-
-      {/* Front Escutcheon Plate */}
-      <rect x={7} y={12} width={width - 14} height={height - 24} rx={6} fill="#1e293b" stroke="#0f172a" strokeWidth={1.2} />
-      <rect x={10} y={15} width={width - 20} height={15} rx={3} fill="#0f172a" />
-      <text x={cx} y={24.5} textAnchor="middle" fontSize={6.5} fontWeight="900" fontFamily="monospace" fill="#f8fafc" letterSpacing="0.5">
-        DOL STARTER
+      {/* Front Operator Escutcheon */}
+      <rect x={x + 6} y={y + 34} width={width - 12} height={height - 40} rx={3} fill="#1e293b" stroke="#0f172a" strokeWidth={1} />
+      <rect x={x + 9} y={y + 37} width={width - 18} height={13} rx={1.5} fill="#0f172a" />
+      <text x={cx} y={y + 45.8} textAnchor="middle" fontSize="5.8" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#f8fafc" letterSpacing="0.4">
+        DOL MOTOR STARTER
       </text>
 
-      {/* Status LED */}
-      <circle cx={18} cy={38} r={3.5} fill={isRunning ? '#22c55e' : '#ef4444'} stroke="#0f172a" strokeWidth={0.8} />
-      <text x={25} y={40.5} fontSize={5.8} fontWeight="bold" fontFamily="monospace" fill={isRunning ? '#4ade80' : '#fca5a5'}>
+      {/* Run / Stop Status Indicator */}
+      <circle cx={x + 20} cy={y + 59} r={3.2} fill={isRunning ? '#22c55e' : '#ef4444'} stroke="#0f172a" strokeWidth={0.7} />
+      <text x={x + 27} y={y + 61.2} fontSize="5.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill={isRunning ? '#4ade80' : '#fca5a5'}>
         {isRunning ? 'MOTOR RUN' : 'STOPPED'}
       </text>
 
-      {/* Recessed Shrouded START / STOP Mechanical Buttons */}
-      <g onClick={handleStart} className="cursor-pointer">
-        <circle cx={cx - 18} cy={62} r={13} fill="#0f172a" stroke="#64748b" strokeWidth={1} />
-        <circle cx={cx - 18} cy={62} r={10} fill={`url(#dolStartBtn-${uid})`} stroke="#14532d" strokeWidth={0.8} />
-        <text x={cx - 18} y={64.5} textAnchor="middle" fontSize={6} fontWeight="900" fill="#ffffff">
+      {/* Recessed Shrouded START / STOP Buttons */}
+      <g onMouseDown={stopCanvas} onClick={(e) => setRunning(true, e)} className="cursor-pointer">
+        <title>START Motor (I)</title>
+        <circle cx={cx - 22} cy={y + 88} r={14} fill="#0f172a" stroke="#64748b" strokeWidth={1} />
+        <circle cx={cx - 22} cy={y + 88} r={11} fill="#22c55e" stroke="#14532d" strokeWidth={0.9} />
+        <text x={cx - 22} y={y + 91.5} textAnchor="middle" fontSize="9" fontWeight="900" fill="#ffffff">
           I
         </text>
       </g>
 
-      <g onClick={handleStop} className="cursor-pointer">
-        <circle cx={cx + 18} cy={62} r={13} fill="#0f172a" stroke="#64748b" strokeWidth={1} />
-        <circle cx={cx + 18} cy={62} r={10} fill={`url(#dolStopBtn-${uid})`} stroke="#7f1d1d" strokeWidth={0.8} />
-        <text x={cx + 18} y={64.5} textAnchor="middle" fontSize={6} fontWeight="900" fill="#ffffff">
+      <g onMouseDown={stopCanvas} onClick={(e) => setRunning(false, e)} className="cursor-pointer">
+        <title>STOP Motor (O)</title>
+        <circle cx={cx + 22} cy={y + 88} r={14} fill="#0f172a" stroke="#64748b" strokeWidth={1} />
+        <circle cx={cx + 22} cy={y + 88} r={11} fill="#ef4444" stroke="#7f1d1d" strokeWidth={0.9} />
+        <text x={cx + 22} y={y + 91.5} textAnchor="middle" fontSize="9" fontWeight="900" fill="#ffffff">
           O
         </text>
       </g>
 
-      <text x={cx} y={height - 17} textAnchor="middle" fontSize={5.4} fontWeight="bold" fontFamily="monospace" fill="#94a3b8">
-        THERMAL O/L INTEGRATED
+      <text x={cx} y={y + height - 13} textAnchor="middle" fontSize="4.6" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#94a3b8">
+        INTEGRATED THERMAL O/L
       </text>
 
-      {terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const termId = `${device.id}:${t.id}`;
-        return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isSelected={selectedTerminalId === termId}
-            isHovered={hoveredTerminalId === termId}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onTerminalMouseDown?.(device, t, e);
-            }}
-            onMouseEnter={() => setHoveredTerminalId?.(termId)}
-            onMouseLeave={() => setHoveredTerminalId?.(null)}
-          />
-        );
-      })}
+      <DeviceTerminals {...props} hideLabel={() => true} />
     </g>
   );
 };

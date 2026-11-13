@@ -43,3 +43,5 @@ docs/
 scratch/
 .vite/
 *.tsbuildinfo
+.claude/
+

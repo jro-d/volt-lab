@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React from 'react';
 import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
 import { TerminalPoint } from './TerminalPoint';
 
@@ -20,7 +20,6 @@ export const RcdDevice: React.FC<RcdDeviceProps> = ({
   setHoveredTerminalId,
   onToggleState,
 }) => {
-  const uid = useId().replace(/:/g, '');
   const { width, height, terminals } = device;
   const isClosed = !!device.state.closed && !device.state.tripped;
   const isTripped = !!device.state.tripped;
@@ -48,143 +47,126 @@ export const RcdDevice: React.FC<RcdDeviceProps> = ({
 
   const cx = width / 2;
   const cy = height / 2;
+  const padX = 3;
+  const innerW = width - padX * 2;
+  const topBayH = Math.round(height * 0.22);
+  const botBayY = Math.round(height * 0.78);
+  const botBayH = height - botBayY;
+  const faceY = topBayH + 1;
+  const faceH = botBayY - faceY - 1;
 
   return (
     <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`rcdBody-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="65%" stopColor="#eef2f6" />
-          <stop offset="100%" stopColor="#cbd5e1" />
-        </linearGradient>
-        <linearGradient id={`rcdRail-${uid}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#94a3b8" />
-          <stop offset="50%" stopColor="#f1f5f9" />
-          <stop offset="100%" stopColor="#64748b" />
-        </linearGradient>
-        <radialGradient id={`testBtn-${uid}`} cx="35%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#60a5fa" />
-          <stop offset="60%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#1e3a8a" />
-        </radialGradient>
-      </defs>
+      {/* DIN Clips */}
+      <rect x={-3} y={cy - 11} width={4} height={22} rx={1} fill="#94a3b8" stroke="#334155" strokeWidth={0.9} />
+      <rect x={width - 1} y={cy - 11} width={4} height={22} rx={1} fill="#94a3b8" stroke="#334155" strokeWidth={0.9} />
 
-      {/* Drop shadow & DIN Rail Rear Clips */}
-      <rect x={2} y={3} width={width} height={height} rx={8} fill="rgba(15, 23, 42, 0.22)" />
-      <rect x={-6} y={cy - 14} width={8} height={28} rx={2} fill={`url(#rcdRail-${uid})`} stroke="#475569" strokeWidth={0.9} />
-      <rect x={width - 2} y={cy - 14} width={8} height={28} rx={2} fill={`url(#rcdRail-${uid})`} stroke="#475569" strokeWidth={0.9} />
+      {/* Outer Flat CAD Body */}
+      <rect x={0} y={0} width={width} height={height} rx={4} fill="#f1f5f9" stroke="#1e293b" strokeWidth={1.4} />
 
-      {/* Outer Molded Polycarbonate Body */}
-      <rect
-        x={0}
-        y={0}
-        width={width}
-        height={height}
-        rx={8}
-        fill={`url(#rcdBody-${uid})`}
-        stroke="#94a3b8"
-        strokeWidth={1.6}
-      />
-      <rect x={2} y={2} width={width - 4} height={height - 4} rx={6.5} fill="none" stroke="#ffffff" strokeWidth={1} />
+      {/* Dark Charcoal Terminal Shroud Bays (Signature EduVolt Style) */}
+      <rect x={padX} y={2} width={innerW} height={topBayH - 2} rx={2} fill="#1f2937" stroke="#0f172a" strokeWidth={0.9} />
+      <rect x={padX} y={botBayY} width={innerW} height={botBayH - 2} rx={2} fill="#1f2937" stroke="#0f172a" strokeWidth={0.9} />
+      <line x1={cx} y1={2} x2={cx} y2={topBayH} stroke="#475569" strokeWidth={0.9} />
+      <line x1={cx} y1={botBayY} x2={cx} y2={height - 2} stroke="#475569" strokeWidth={0.9} />
 
-      {/* Finger-Safe Input / Output Cage Shrouds */}
-      {[12, width - 38].map((bx, i) => (
-        <g key={`cage-${i}`}>
-          <rect x={bx} y={4} width={26} height={22} rx={3} fill="#dce3ec" stroke="#b8c4d4" strokeWidth={0.8} />
-          <rect x={bx} y={height - 26} width={26} height={22} rx={3} fill="#dce3ec" stroke="#b8c4d4" strokeWidth={0.8} />
-        </g>
-      ))}
-      <line x1={cx} y1={4} x2={cx} y2={height - 4} stroke="#cbd5e1" strokeWidth={1.2} />
+      {/* Crisp Terminal Pocket Labels in Dedicated Dark Strip Rows */}
+      <text x={width * 0.35} y={topBayH - 1.5} textAnchor="middle" fontSize={5.4} fontWeight="800" fontFamily="ui-monospace, monospace" fill="#f8fafc">
+        1/2
+      </text>
+      <text x={width * 0.65} y={topBayH - 1.5} textAnchor="middle" fontSize={5.4} fontWeight="800" fontFamily="ui-monospace, monospace" fill="#93c5fd">
+        3/4 (N)
+      </text>
+      <text x={width * 0.35} y={botBayY + 6.8} textAnchor="middle" fontSize={5.4} fontWeight="800" fontFamily="ui-monospace, monospace" fill="#f8fafc">
+        2/1
+      </text>
+      <text x={width * 0.65} y={botBayY + 6.8} textAnchor="middle" fontSize={5.4} fontWeight="800" fontFamily="ui-monospace, monospace" fill="#93c5fd">
+        4/3 (N)
+      </text>
 
-      {/* Raised Front Fascia Panel */}
-      <rect x={6} y={28} width={width - 12} height={height - 56} rx={4} fill="#f8fafc" stroke="#cbd5e1" strokeWidth={1} />
+      {/* Center White Faceplate Escutcheon */}
+      <rect x={padX} y={faceY} width={innerW} height={faceH} rx={2} fill="#ffffff" stroke="#1e293b" strokeWidth={1} />
 
-      {/* Accent Header Strip */}
-      <rect x={6} y={28} width={width - 12} height={15} rx={3.5} fill="#0369a1" />
-      <text x={11} y={37.8} fontSize={7.5} fontWeight="900" fill="#ffffff" letterSpacing="0.5">
+      {/* Header Band: Left = RCCB 30mA, Right = Rating Pill (never overlaps!) */}
+      <rect x={padX} y={faceY} width={innerW} height={11} rx={1.5} fill="#0369a1" />
+      <text x={padX + 4} y={faceY + 7.7} fontSize={5.8} fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#ffffff">
         RCCB {sensitivityMa}mA
       </text>
-      <rect x={width - 26} y={30.5} width={16} height={10} rx={2} fill="#e0f2fe" />
-      <text x={width - 18} y={37.5} textAnchor="middle" fontSize={6.2} fontWeight="900" fontFamily="monospace" fill="#0369a1">
+      <rect x={width - padX - 21} y={faceY + 1.8} width={18} height={7.4} rx={1.5} fill="#e0f2fe" />
+      <text x={width - padX - 12} y={faceY + 7.4} textAnchor="middle" fontSize={5.2} fontWeight="900" fontFamily="ui-monospace, monospace" fill="#0369a1">
         {ratedAmps}A
       </text>
 
-      {/* Toroidal Core Transformer Schematic Etching */}
-      <g transform={`translate(18, ${cy - 10})`} opacity={0.85}>
-        <ellipse cx={0} cy={0} rx={6} ry={3.5} fill="none" stroke="#475569" strokeWidth={1.1} />
-        <line x1={-3} y1={-6} x2={-3} y2={6} stroke="#dc2626" strokeWidth={1} />
-        <line x1={3} y1={-6} x2={3} y2={6} stroke="#2563eb" strokeWidth={1} />
+      {/* Upper Control Band: Left = Toroid + Status Shutter, Right = TEST Button */}
+      <g transform={`translate(${padX + 10}, ${faceY + 21})`}>
+        <ellipse cx={0} cy={0} rx={5.5} ry={3} fill="none" stroke="#334155" strokeWidth={1} />
+        <line x1={-2.5} y1={-5.5} x2={-2.5} y2={5.5} stroke="#dc2626" strokeWidth={1} />
+        <line x1={2.5} y1={-5.5} x2={2.5} y2={5.5} stroke="#2563eb" strokeWidth={1} />
       </g>
 
-      {/* Mechanical Fault / Status Shutter */}
       <rect
-        x={cx - 12}
-        y={46}
+        x={padX + 20}
+        y={faceY + 16}
         width={24}
         height={10}
-        rx={2.5}
-        fill={isTripped ? '#f59e0b' : isClosed ? '#dc2626' : '#16a34a'}
+        rx={1.5}
+        fill={isTripped ? '#f59e0b' : isClosed ? '#dc2626' : '#22c55e'}
         stroke="#0f172a"
         strokeWidth={0.8}
       />
       <text
-        x={cx}
-        y={53}
+        x={padX + 32}
+        y={faceY + 22.8}
         textAnchor="middle"
-        fontSize={6.2}
-        fontWeight="bold"
-        fontFamily="monospace"
+        fontSize={5.2}
+        fontWeight="900"
+        fontFamily="ui-monospace, monospace"
         fill={isTripped ? '#0f172a' : '#ffffff'}
       >
         {isTripped ? 'FAULT' : isClosed ? 'I-ON' : 'O-OFF'}
       </text>
 
-      {/* 3D Push-To-Test "T" Button */}
-      <g onClick={handleTestTrip} className="cursor-pointer group">
-        <circle cx={width - 22} cy={cy - 8} r={10.5} fill="#cbd5e1" stroke="#64748b" strokeWidth={0.9} />
-        <circle cx={width - 22} cy={cy - 8} r={8.5} fill={`url(#testBtn-${uid})`} stroke="#1e3a8a" strokeWidth={0.9} />
-        <text x={width - 22} y={cy - 5.5} textAnchor="middle" fontSize={8.5} fontWeight="900" fill="#ffffff">
+      {/* Isolated Right-Column Push-To-Test "T" Button */}
+      <g onClick={handleTestTrip} className="cursor-pointer">
+        <title>Push to simulate earth leakage trip ({sensitivityMa}mA)</title>
+        <circle cx={width - padX - 12} cy={faceY + 20.5} r={7.5} fill="#2563eb" stroke="#0f172a" strokeWidth={0.9} />
+        <text x={width - padX - 12} y={faceY + 22.8} textAnchor="middle" fontSize={7.2} fontWeight="900" fill="#ffffff">
           T
         </text>
-        <text x={width - 22} y={cy + 6.5} textAnchor="middle" fontSize={4.8} fontWeight="bold" fill="#334155">
+        <text x={width - padX - 12} y={faceY + 33} textAnchor="middle" fontSize={4.2} fontWeight="800" fill="#334155">
           TEST
         </text>
       </g>
 
-      {/* Breaker Rocker Toggle */}
+      {/* Lower Control Band: Left = Toggle Handle, Right = Rating Text (separated!) */}
       <g onClick={handleToggle} className="cursor-pointer">
-        <rect x={12} y={cy + 2} width={34} height={24} rx={3.5} fill="#0b1120" stroke="#475569" strokeWidth={1} />
+        <title>Click handle to toggle RCCB {isClosed ? 'OFF' : 'ON'}</title>
+        <rect x={padX + 4} y={faceY + 31} width={38} height={17} rx={2} fill="#e2e8f0" stroke="#0f172a" strokeWidth={0.8} />
         <rect
-          x={15}
-          y={isTripped ? cy + 10 : isClosed ? cy + 4 : cy + 15}
-          width={28}
-          height={9}
-          rx={2}
-          fill="#334155"
-          stroke="#0f172a"
+          x={padX + 6}
+          y={isTripped ? faceY + 35.5 : isClosed ? faceY + 32.5 : faceY + 39.5}
+          width={34}
+          height={7}
+          rx={1.5}
+          fill="#111827"
+          stroke="#020617"
           strokeWidth={0.8}
-        />
-        <line
-          x1={18}
-          y1={(isTripped ? cy + 10 : isClosed ? cy + 4 : cy + 15) + 3}
-          x2={40}
-          y2={(isTripped ? cy + 10 : isClosed ? cy + 4 : cy + 15) + 3}
-          stroke="#94a3b8"
-          strokeWidth={1}
         />
       </g>
 
-      {/* Bottom IEC Specs & N Neutral Markings */}
-      <text x={25} y={height - 30} textAnchor="middle" fontSize={6.5} fontWeight="900" fontFamily="monospace" fill="#dc2626">
-        L1
+      <text x={width - padX - 13} y={faceY + 42} textAnchor="middle" fontSize={4.5} fontWeight="800" fontFamily="ui-monospace, monospace" fill="#334155">
+        240V~
       </text>
-      <text x={width - 25} y={height - 30} textAnchor="middle" fontSize={6.5} fontWeight="900" fontFamily="monospace" fill="#2563eb">
-        N
-      </text>
-      <text x={cx + 15} y={cy + 22} textAnchor="middle" fontSize={5.5} fontWeight="bold" fill="#475569">
-        IEC 61008 · 240V~
+      <text x={width - padX - 13} y={faceY + 48.5} textAnchor="middle" fontSize={4.2} fontWeight="700" fontFamily="ui-monospace, monospace" fill="#64748b">
+        IEC 61008
       </text>
 
+      {/* Embedded Bottom Standard Label inside Faceplate */}
+      <text x={cx} y={faceY + faceH - 3} textAnchor="middle" fontSize={4.4} fontWeight="800" fontFamily="ui-monospace, monospace" fill="#475569">
+        {ratedAmps}A · Δn {sensitivityMa}mA · 6kA
+      </text>
+
+      {/* Terminations */}
       {terminals.map((t) => {
         const tx = width * t.relX;
         const ty = height * t.relY;

@@ -49,6 +49,7 @@ export const App: React.FC = () => {
   // Edit Mode (de-energized, safe wiring) vs Simulation Mode (grid energized)
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [dmmMode, setDmmMode] = useState<boolean>(false);
+  const [rewiringTarget, setRewiringTarget] = useState<{ wireId: string; moveEnd: 'from' | 'to' } | null>(null);
   const [dmmProbeA, setDmmProbeA] = useState<{ deviceId: string; terminalId: string } | null>(null);
   const [dmmReadout, setDmmReadout] = useState<{
     mode: 'voltage' | 'clamp' | 'idle';
@@ -676,6 +677,46 @@ export const App: React.FC = () => {
     }));
   };
 
+  // Rewire one endpoint of an existing wire to another terminal without deleting/recreating it
+  const handleRewireWire = (wireId: string, moveEnd: 'from' | 'to', newDeviceId: string, newTerminalId: string) => {
+    if (isEditBlocked()) return;
+    const wire = project.wires.find(w => w.id === wireId);
+    if (!wire) return;
+    const fixedDev = moveEnd === 'from' ? wire.toDeviceId : wire.fromDeviceId;
+    const fixedTerm = moveEnd === 'from' ? wire.toTerminalId : wire.fromTerminalId;
+    if (newDeviceId === fixedDev && newTerminalId === fixedTerm) return;
+    pushUndoSnapshot();
+    sound.playSwitchClick();
+    setProject(prev => ({
+      ...prev,
+      wires: prev.wires.map(w =>
+        w.id === wireId
+          ? {
+              ...w,
+              ...(moveEnd === 'from'
+                ? { fromDeviceId: newDeviceId, fromTerminalId: newTerminalId }
+                : { toDeviceId: newDeviceId, toTerminalId: newTerminalId }),
+              waypoints: undefined,
+            }
+          : w
+      ),
+    }));
+    setRewiringTarget(null);
+    showNotice('Wire endpoint moved to new port');
+  };
+
+  const handleDeleteWire = (wireId: string) => {
+    if (isEditBlocked()) return;
+    pushUndoSnapshot();
+    setProject(prev => ({
+      ...prev,
+      wires: prev.wires.filter(w => w.id !== wireId),
+    }));
+    if (selectedWireId === wireId) setSelectedWireId(null);
+    setRewiringTarget(null);
+    showNotice('Wire disconnected');
+  };
+
   // Update wire path waypoints from interactive segment dragging
   const handleUpdateWireWaypoints = (wireId: string, waypoints: { x: number; y: number }[]) => {
     if (isSimulating) return;
@@ -1007,6 +1048,7 @@ export const App: React.FC = () => {
           <DevicePropertiesPanel
             device={selectedDevice}
             wire={project.wires.find(w => w.id === selectedWireId) || null}
+            devices={project.devices}
             standard={standard}
             onUpdateDeviceProperty={handleUpdateDeviceProperty}
             onUpdateWireProperty={handleUpdateWireProperty}
@@ -1014,6 +1056,10 @@ export const App: React.FC = () => {
             onRotateDevice={handleRotateDevice}
             onDuplicateDevice={handleDuplicateDevice}
             onPatchDeviceState={handlePatchDeviceState}
+            onRequestRewire={(wireId, moveEnd) => {
+              if (!isEditBlocked()) setRewiringTarget({ wireId, moveEnd });
+            }}
+            onDisconnectWire={handleDeleteWire}
             onClose={() => {
               setSelectedDeviceId(null);
               setSelectedGroupIds([]);
@@ -1052,6 +1098,10 @@ export const App: React.FC = () => {
               onDmmClampWire={handleDmmClampWire}
               onDmmProbeTerminal={handleDmmProbeTerminal}
               onConnectWire={handleConnectWire}
+              rewiringTarget={rewiringTarget}
+              onSetRewiringTarget={setRewiringTarget}
+              onRewireWire={handleRewireWire}
+              onDeleteWire={handleDeleteWire}
               onToggleDeviceState={handleToggleDeviceState}
               onPatchDeviceState={handlePatchDeviceState}
               highlightDeviceIds={[hoverDeviceId, flashDeviceId].filter((x): x is string => !!x)}
@@ -1121,6 +1171,10 @@ export const App: React.FC = () => {
               onDmmClampWire={handleDmmClampWire}
               onDmmProbeTerminal={handleDmmProbeTerminal}
                   onConnectWire={handleConnectWire}
+                  rewiringTarget={rewiringTarget}
+                  onSetRewiringTarget={setRewiringTarget}
+                  onRewireWire={handleRewireWire}
+                  onDeleteWire={handleDeleteWire}
                   onToggleDeviceState={handleToggleDeviceState}
                   onPatchDeviceState={handlePatchDeviceState}
                   highlightDeviceIds={[hoverDeviceId, flashDeviceId].filter((x): x is string => !!x)}

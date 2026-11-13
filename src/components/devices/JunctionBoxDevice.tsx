@@ -1,157 +1,108 @@
-import React, { useId } from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import React from 'react';
+import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
-interface JunctionBoxDeviceProps {
-  device: ElectricalDevice;
-  isSelected?: boolean;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId?: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const JunctionBoxDevice: React.FC<JunctionBoxDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
-  const uid = useId().replace(/:/g, '');
-  const { width, height, terminals } = device;
+/**
+ * EduVolt-style 4" Octagonal Utility / Junction Box (Orange PVC or GI Steel).
+ * Embedded material toggle button & spaced terminal legend inside cavity (zero floating external pills).
+ */
+export const JunctionBoxDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device, onToggleState, onPatchState } = props;
+  const { x, y, width, height, terminals } = device;
   const isOrangePvc = device.type === 'junction_box_octagonal_orange' || device.state.boxMaterial === 'orange_pvc';
-  const cx = width / 2;
-  const cy = height / 2;
+  const cx = x + width / 2;
+  const cy = y + height / 2;
 
   const handleToggleMaterial = (e: React.MouseEvent) => {
     e.stopPropagation();
-    device.state.boxMaterial = isOrangePvc ? 'galvanized_steel' : 'orange_pvc';
-    onToggleState?.(device);
+    const next = isOrangePvc ? 'galvanized_steel' : 'orange_pvc';
+    if (onPatchState) onPatchState(device.id, { boxMaterial: next });
+    else {
+      device.state.boxMaterial = next;
+      onToggleState?.({ ...device, state: { ...device.state, boxMaterial: next } });
+    }
   };
 
-  // Octagonal polygon helper
   const pts = (inset: number) => {
     const w = width - inset * 2;
     const h = height - inset * 2;
     const c = Math.min(w, h) * 0.27;
     return [
-      `${inset + c},${inset}`,
-      `${inset + w - c},${inset}`,
-      `${inset + w},${inset + c}`,
-      `${inset + w},${inset + h - c}`,
-      `${inset + w - c},${inset + h}`,
-      `${inset + c},${inset + h}`,
-      `${inset},${inset + h - c}`,
-      `${inset},${inset + c}`,
+      `${x + inset + c},${y + inset}`,
+      `${x + inset + w - c},${y + inset}`,
+      `${x + inset + w},${y + inset + c}`,
+      `${x + inset + w},${y + inset + h - c}`,
+      `${x + inset + w - c},${y + inset + h}`,
+      `${x + inset + c},${y + inset + h}`,
+      `${x + inset},${y + inset + h - c}`,
+      `${x + inset},${y + inset + c}`,
     ].join(' ');
   };
 
   return (
-    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`jbOrange-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#fb923c" />
-          <stop offset="55%" stopColor="#ea580c" />
-          <stop offset="100%" stopColor="#9a3412" />
-        </linearGradient>
-        <linearGradient id={`jbSteel-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#e2e8f0" />
-          <stop offset="50%" stopColor="#94a3b8" />
-          <stop offset="100%" stopColor="#475569" />
-        </linearGradient>
-      </defs>
+    <g className="select-none">
+      {/* Subtle CAD Shadow */}
+      <polygon points={pts(-1)} transform="translate(2, 3)" fill="rgba(15, 23, 42, 0.14)" />
 
-      {/* Drop shadow */}
-      <polygon points={pts(-1)} transform="translate(2, 3)" fill="rgba(15, 23, 42, 0.22)" />
-
-      {/* Outer Octagonal Enclosure */}
+      {/* Outer Octagonal Flange */}
       <polygon
         points={pts(0)}
-        fill={isOrangePvc ? `url(#jbOrange-${uid})` : `url(#jbSteel-${uid})`}
-        stroke={isOrangePvc ? '#7c2d12' : '#334155'}
-        strokeWidth={1.8}
+        fill={isOrangePvc ? '#ea580c' : '#cbd5e1'}
+        stroke="#0f172a"
+        strokeWidth={1.3}
       />
 
-      {/* Deep Interior Basin */}
+      {/* Recessed Box Basin */}
       <polygon
         points={pts(9)}
-        fill={isOrangePvc ? '#c2410c' : '#64748b'}
-        stroke={isOrangePvc ? '#7c2d12' : '#334155'}
-        strokeWidth={1.1}
-      />
-      <polygon
-        points={pts(14)}
         fill={isOrangePvc ? '#9a3412' : '#475569'}
-        stroke="rgba(0,0,0,0.2)"
-        strokeWidth={0.8}
+        stroke="#1e293b"
+        strokeWidth={1}
       />
 
-      {/* Side Conduit Knockouts (KO Circles) */}
+      {/* Side Conduit Knockouts */}
       {[
-        [cx, 4.5],
-        [cx, height - 4.5],
-        [4.5, cy],
-        [width - 4.5, cy],
+        [cx, y + 4.5],
+        [cx, y + height - 4.5],
+        [x + 4.5, cy],
+        [x + width - 4.5, cy],
       ].map(([kx, ky], i) => (
-        <circle
-          key={`ko-${i}`}
-          cx={kx}
-          cy={ky}
-          r={4.2}
-          fill="none"
-          stroke={isOrangePvc ? '#fed7aa' : '#e2e8f0'}
-          strokeWidth={0.9}
-          strokeDasharray="2 1"
-          opacity={0.75}
-        />
+        <circle key={`ko-${i}`} cx={kx} cy={ky} r={3.6} fill="none" stroke={isOrangePvc ? '#fed7aa' : '#e2e8f0'} strokeWidth={0.8} strokeDasharray="1.8 1" />
       ))}
 
-      {/* Mounting Cover Ears (#8-32 Screws) */}
-      {[12, height - 12].map((ey, i) => (
-        <g key={`ear-${i}`}>
-          <rect x={cx - 8} y={ey - 3.5} width={16} height={7} rx={2} fill={isOrangePvc ? '#ea580c' : '#cbd5e1'} stroke="#1e293b" strokeWidth={0.8} />
-          <circle cx={cx} cy={ey} r={2} fill="#1e293b" />
-        </g>
-      ))}
+      {/* Internal Wire-Nut Terminal Bridge Block */}
+      <rect x={x + 15} y={y + 13} width={width - 30} height={height - 26} rx={3.5} fill="#0f172a" stroke="#334155" strokeWidth={0.9} opacity={0.92} />
 
-      {/* Ground Boss & Internal Terminal Splicing Block */}
-      <rect x={16} y={cy - 18} width={width - 32} height={36} rx={5} fill="#0f172a" stroke="#475569" strokeWidth={1.1} opacity={0.92} />
-      <text x={cx} y={cy - 19} textAnchor="middle" fontSize={5.5} fontWeight="900" fontFamily="monospace" fill="#f8fafc">
-        {isOrangePvc ? '4" PVC OCTAGONAL' : '4" GI OCTAGONAL'}
-      </text>
-
-      {/* Top Quick Material Toggle */}
-      <g onClick={handleToggleMaterial} transform={`translate(${cx}, -8)`} className="cursor-pointer">
-        <rect x={-26} y={-5.5} width={52} height={10} rx={5} fill="#0f172a" stroke="#f59e0b" strokeWidth={0.7} />
-        <text x={0} y={0.5} textAnchor="middle" dominantBaseline="middle" fontSize={5.5} fontWeight="bold" fill="#fef08a">
-          {isOrangePvc ? 'Orange PVC' : 'GI Steel'}
+      {/* Embedded Material Switch Pill centered cleanly between left & right columns */}
+      <g onMouseDown={stopCanvas} onClick={handleToggleMaterial} className="cursor-pointer">
+        <title>Click to switch between Orange uPVC Box and GI Galvanized Steel Box</title>
+        <rect x={cx - 19} y={cy - 6} width={38} height={12} rx={2.5} fill="#1e293b" stroke="#f59e0b" strokeWidth={0.7} />
+        <text x={cx} y={cy + 2} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#fef08a">
+          {isOrangePvc ? '4" PVC' : '4" GI'}
         </text>
       </g>
 
+      {/* Non-overlapping compact edge labels next to each screw */}
       {terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const termId = `${device.id}:${t.id}`;
+        const tx = x + t.relX * width;
+        const ty = y + t.relY * height;
+        const isLeft = t.relX < 0.5;
         return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isSelected={selectedTerminalId === termId}
-            isHovered={hoveredTerminalId === termId}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onTerminalMouseDown?.(device, t, e);
-            }}
-            onMouseEnter={() => setHoveredTerminalId?.(termId)}
-            onMouseLeave={() => setHoveredTerminalId?.(null)}
-          />
+          <text
+            key={`jbl-${t.id}`}
+            x={isLeft ? tx - 8.5 : tx + 8.5}
+            y={ty + 1.5}
+            textAnchor={isLeft ? 'end' : 'start'}
+            fontSize="3.8"
+            fontWeight="900"
+            fontFamily="ui-monospace, monospace"
+            fill={t.type === 'phase' ? '#fca5a5' : t.type === 'neutral' ? '#93c5fd' : t.type === 'earth' ? '#4ade80' : '#fdba74'}
+          >
+            {t.label}
+          </text>
         );
       })}
+
+      <DeviceTerminals {...props} hideLabel={() => true} />
     </g>
   );
 };

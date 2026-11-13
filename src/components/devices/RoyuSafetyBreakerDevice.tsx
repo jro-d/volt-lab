@@ -1,222 +1,152 @@
-import React, { useId } from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import React from 'react';
+import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
-interface RoyuSafetyBreakerDeviceProps {
-  device: ElectricalDevice;
-  isSelected?: boolean;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId?: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const RoyuSafetyBreakerDevice: React.FC<RoyuSafetyBreakerDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
-  const uid = useId().replace(/:/g, '');
-  const { width, height, terminals } = device;
-  const isClosed = !!device.state.closed && !device.state.tripped;
+/**
+ * EduVolt-style ROYU 2P Enclosed Safety Breaker (ACU Disconnect, NEMA 1).
+ * Embedded toggle for Inspect Lugs / Front Cover inside header — no floating external pills.
+ */
+export const RoyuSafetyBreakerDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device, onToggleState, onPatchState } = props;
+  const { x, y, width, height } = device;
   const isTripped = !!device.state.tripped;
+  const isClosed = !!device.state.closed && !isTripped;
   const ratedAmps = device.state.ratedAmps || 30;
   const isCoverOpen = !!device.state.enclosureCoverOpen;
-  const cx = width / 2;
-  const cy = height / 2;
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+
+  const patch = (p: Record<string, any>) => {
+    if (onPatchState) onPatchState(device.id, p);
+    else {
+      Object.assign(device.state, p);
+      onToggleState?.({ ...device, state: { ...device.state, ...p } });
+    }
+  };
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isTripped) {
-      device.state.tripped = false;
-      device.state.closed = true;
-    } else {
-      device.state.closed = !device.state.closed;
-    }
-    onToggleState?.(device);
+    if (isTripped) patch({ tripped: false, closed: true });
+    else patch({ closed: !device.state.closed });
   };
 
   const handleToggleCover = (e: React.MouseEvent) => {
     e.stopPropagation();
-    device.state.enclosureCoverOpen = !device.state.enclosureCoverOpen;
-    onToggleState?.(device);
+    patch({ enclosureCoverOpen: !isCoverOpen });
   };
 
   return (
-    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`rsbShell-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#e2e8f0" />
-          <stop offset="100%" stopColor="#cbd5e1" />
-        </linearGradient>
-        <linearGradient id={`rsbPan-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#94a3b8" />
-          <stop offset="50%" stopColor="#cbd5e1" />
-          <stop offset="100%" stopColor="#64748b" />
-        </linearGradient>
-        <linearGradient id={`rsbPhenolic-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#2c3545" />
-          <stop offset="100%" stopColor="#0f172a" />
-        </linearGradient>
-      </defs>
+    <g className="select-none">
+      {/* Subtle CAD shadow */}
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="rgba(15, 23, 42, 0.16)" />
 
-      {/* Enclosure Drop Shadow */}
-      <rect x={3} y={4} width={width} height={height} rx={10} fill="rgba(15, 23, 42, 0.25)" />
+      {/* Outer NEMA 1 Surface Enclosure */}
+      <rect x={x} y={y} width={width} height={height} rx={5} fill="#cbd5e1" stroke="#0f172a" strokeWidth={1.4} />
 
-      {/* Top & Bottom Surface Conduit Knockouts / Glands */}
-      <rect x={cx - 14} y={-5} width={28} height={8} rx={2} fill="#64748b" stroke="#334155" strokeWidth={0.9} />
-      <rect x={cx - 14} y={height - 3} width={28} height={8} rx={2} fill="#64748b" stroke="#334155" strokeWidth={0.9} />
+      {/* Top Conduit Entry & Line Terminal Bay (L1, L2) */}
+      <rect x={x + 2} y={y + 2} width={width - 4} height={20} rx={3} fill="#1f2937" />
+      <rect x={x + 2} y={y + 22} width={width - 4} height={8} fill="#111827" />
+      <text x={x + width * 0.28} y={y + 27.6} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#f87171">
+        L1 IN
+      </text>
+      <text x={x + width * 0.72} y={y + 27.6} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#60a5fa">
+        L2 IN
+      </text>
 
-      {/* NEMA 1 Thermoplastic Surface Box */}
-      <rect x={0} y={0} width={width} height={height} rx={10} fill={`url(#rsbShell-${uid})`} stroke="#64748b" strokeWidth={1.8} />
-      <rect x={3} y={3} width={width - 6} height={height - 6} rx={8} fill="none" stroke="#ffffff" strokeWidth={1} />
-
-      {/* 4 Corner Stainless Lid Screws */}
-      {[
-        [10, 10],
-        [width - 10, 10],
-        [10, height - 10],
-        [width - 10, height - 10],
-      ].map(([sx, sy], i) => (
-        <g key={`scr-${i}`}>
-          <circle cx={sx} cy={sy} r={3.2} fill="#94a3b8" stroke="#475569" strokeWidth={0.8} />
-          <line x1={sx - 1.8} y1={sy - 1.2} x2={sx + 1.8} y2={sy + 1.2} stroke="#1e293b" strokeWidth={0.9} />
-        </g>
-      ))}
+      {/* Embedded ROYU Header + Cover Inspection Toggle (No floating external pill) */}
+      <rect x={x + 3} y={y + 31} width={width - 6} height={14} rx={2} fill="#0f172a" />
+      <text x={x + 7} y={y + 40} fontSize="5.6" fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#ef4444">
+        ROYU
+      </text>
+      <g onMouseDown={stopCanvas} onClick={handleToggleCover} className="cursor-pointer">
+        <title>{isCoverOpen ? 'Close front cover' : 'Open cover to inspect internal bolt-on breaker & lugs'}</title>
+        <rect x={x + width - 38} y={y + 33} width={33} height={10} rx={2} fill={isCoverOpen ? '#0284c7' : '#334155'} stroke="#38bdf8" strokeWidth={0.6} />
+        <text x={x + width - 21.5} y={y + 39.8} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#f8fafc">
+          {isCoverOpen ? 'COVER' : 'LUGS'}
+        </text>
+      </g>
 
       {!isCoverOpen ? (
         <g>
-          {/* Contoured Hinged Front Door */}
-          <rect x={8} y={14} width={width - 16} height={height - 28} rx={7} fill="#f8fafc" stroke="#94a3b8" strokeWidth={1.2} />
-
-          {/* ROYU Brand Escutcheon */}
-          <rect x={14} y={20} width={width - 28} height={16} rx={3} fill="#0f4c81" />
-          <text x={20} y={31} fontSize={8.5} fontWeight="900" fill="#ffffff" letterSpacing="0.8">
-            ROYU
-          </text>
-          <text x={width - 20} y={30.5} textAnchor="end" fontSize={6} fontWeight="bold" fontFamily="monospace" fill="#bae6fd">
-            SAFETY BREAKER
+          {/* Molded Front Cover Panel */}
+          <rect x={x + 4} y={y + 47} width={width - 8} height={height - 77} rx={3} fill="#e5e7eb" stroke="#64748b" strokeWidth={1} />
+          <text x={cx} y={y + 57} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#1e293b">
+            SAFETY BREAKER {ratedAmps}A
           </text>
 
-          {/* Smoked Window Around Handle Cutout */}
-          <rect x={18} y={42} width={width - 36} height={height - 74} rx={5} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={1} />
-
-          {/* Phenolic Breaker Escutcheon Insert */}
-          <rect x={cx - 26} y={cy - 26} width={52} height={52} rx={4} fill={`url(#rsbPhenolic-${uid})`} stroke="#090d16" strokeWidth={1.2} />
-
-          {/* Handle Status Strip */}
-          <rect
-            x={cx - 14}
-            y={cy - 22}
-            width={28}
-            height={8}
-            rx={2}
-            fill={isTripped ? '#f59e0b' : isClosed ? '#dc2626' : '#16a34a'}
-            stroke="#020617"
-            strokeWidth={0.8}
-          />
-          <text x={cx} y={cy - 16} textAnchor="middle" fontSize={5.8} fontWeight="bold" fontFamily="monospace" fill={isTripped ? '#0f172a' : '#ffffff'}>
-            {isTripped ? 'TRIP' : isClosed ? 'I ON' : 'O OFF'}
+          {/* Breaker Window Housing */}
+          <rect x={cx - 19} y={cy - 10} width={38} height={32} rx={3} fill="#334155" stroke="#0f172a" strokeWidth={1} />
+          {/* Flag Window */}
+          <rect x={cx - 14} y={cy - 7} width={28} height={6} rx={1} fill={isTripped ? '#f59e0b' : isClosed ? '#dc2626' : '#16a34a'} />
+          <text x={cx} y={cy - 2.3} textAnchor="middle" fontSize="4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#ffffff">
+            {isTripped ? 'TRIP' : isClosed ? 'I-ON' : 'O-OFF'}
           </text>
 
-          {/* Interactive Breaker Handle */}
-          <g onClick={handleToggle} className="cursor-pointer">
-            <rect x={cx - 17} y={cy - 11} width={34} height={24} rx={3} fill="#05080f" stroke="#475569" strokeWidth={0.9} />
+          {/* Tactile Switch Rocker */}
+          <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
+            <title>Click to toggle ROYU 2P Safety Breaker (or reset trip)</title>
             <rect
-              x={cx - 13}
-              y={isTripped ? cy - 2 : isClosed ? cy - 9 : cy + 3}
-              width={26}
+              x={cx - 12}
+              y={isTripped ? cy + 5 : isClosed ? cy + 1 : cy + 10}
+              width={24}
               height={10}
               rx={2}
-              fill={ratedAmps >= 30 ? '#16a34a' : '#dc2626'}
-              stroke="#020617"
+              fill="#111827"
+              stroke="#94a3b8"
               strokeWidth={0.8}
             />
-            <text
-              x={cx}
-              y={(isTripped ? cy - 2 : isClosed ? cy - 9 : cy + 3) + 7.2}
-              textAnchor="middle"
-              fontSize={5.8}
-              fontWeight="900"
-              fontFamily="monospace"
-              fill="#ffffff"
-            >
-              {ratedAmps}A
-            </text>
+            <line x1={cx - 7} y1={isTripped ? cy + 10 : isClosed ? cy + 6 : cy + 15} x2={cx + 7} y2={isTripped ? cy + 10 : isClosed ? cy + 6 : cy + 15} stroke="#f8fafc" strokeWidth={1.1} />
           </g>
 
-          <text x={cx} y={height - 22} textAnchor="middle" fontSize={6.2} fontWeight="bold" fontFamily="monospace" fill="#334155">
-            2P · {ratedAmps}A · 240V~ 10kA
+          <text x={cx} y={cy + 31} textAnchor="middle" fontSize="4.2" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#475569">
+            2P 240V~ · 10kAIC
           </text>
         </g>
       ) : (
         <g>
-          {/* Open Enclosure Galvanized Steel Interior Pan */}
-          <rect x={8} y={14} width={width - 16} height={height - 28} rx={5} fill={`url(#rsbPan-${uid})`} stroke="#475569" strokeWidth={1.2} />
+          {/* Open Enclosure Bay revealing Internal Busbars & Bolt-On Breaker */}
+          <rect x={x + 4} y={y + 47} width={width - 8} height={height - 77} rx={3} fill="#1e293b" stroke="#0f172a" strokeWidth={1} />
+          {/* Copper Feed Bus Straps */}
+          <rect x={x + 12} y={y + 49} width={5} height={height - 81} rx={1} fill="#d97706" />
+          <rect x={x + width - 17} y={y + 49} width={5} height={height - 81} rx={1} fill="#d97706" />
 
-          {/* Internal Copper Line/Load Stab Busbars */}
-          <rect x={24} y={18} width={10} height={height - 36} rx={1.5} fill="#d97706" stroke="#78350f" strokeWidth={0.8} />
-          <rect x={width - 34} y={18} width={10} height={height - 36} rx={1.5} fill="#d97706" stroke="#78350f" strokeWidth={0.8} />
-
-          {/* Exposed Internal ROYU Bolt-On 2P Breaker */}
-          <rect x={cx - 28} y={cy - 34} width={56} height={68} rx={4} fill={`url(#rsbPhenolic-${uid})`} stroke="#090d16" strokeWidth={1.4} />
-          <text x={cx} y={cy - 22} textAnchor="middle" fontSize={6.2} fontWeight="900" fill="#f8fafc">
-            ROYU 2P {ratedAmps}A
+          {/* Exposed Internal 2P Phenolic Breaker */}
+          <rect x={cx - 21} y={cy - 14} width={42} height={42} rx={3} fill="#111827" stroke="#64748b" strokeWidth={1} />
+          <text x={cx} y={cy - 5} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#f8fafc">
+            ROYU {ratedAmps}A
           </text>
-          <g onClick={handleToggle} className="cursor-pointer">
-            <rect x={cx - 15} y={cy - 12} width={30} height={24} rx={3} fill="#05080f" stroke="#475569" />
+          <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
+            <rect x={cx - 12} y={cy + 1} width={24} height={15} rx={2} fill="#0f172a" stroke="#475569" strokeWidth={0.8} />
             <rect
-              x={cx - 11}
-              y={isTripped ? cy - 3 : isClosed ? cy - 9 : cy + 3}
-              width={22}
-              height={9}
-              rx={2}
+              x={cx - 9}
+              y={isTripped ? cy + 5 : isClosed ? cy + 2.5 : cy + 8.5}
+              width={18}
+              height={6}
+              rx={1.5}
               fill={isTripped ? '#f59e0b' : isClosed ? '#dc2626' : '#16a34a'}
             />
           </g>
-          <text x={cx} y={cy + 24} textAnchor="middle" fontSize={5.5} fontFamily="monospace" fill="#94a3b8">
+          <text x={cx} y={cy + 24} textAnchor="middle" fontSize="3.9" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#94a3b8">
             BOLT-ON LUGS
           </text>
-
-          {/* Grounding Bar Strip inside Right Edge */}
-          <rect x={width - 17} y={cy - 14} width={7} height={28} rx={1.5} fill="#16a34a" stroke="#14532d" strokeWidth={0.8} />
         </g>
       )}
 
-      {/* Top Quick Cover Inspection Toggle Pill */}
-      <g onClick={handleToggleCover} transform={`translate(${cx}, -9)`} className="cursor-pointer">
-        <rect x={-34} y={-6} width={68} height={11} rx={5.5} fill="#0f172a" stroke="#38bdf8" strokeWidth={0.7} />
-        <text x={0} y={1} textAnchor="middle" dominantBaseline="middle" fontSize={5.8} fontWeight="bold" fill="#e2e8f0">
-          {isCoverOpen ? 'Close Cover' : 'Inspect Lugs'}
-        </text>
-      </g>
+      {/* Embedded Bottom Silkscreen Band (T1 / PE / T2) */}
+      <rect x={x + 2} y={y + height - 29} width={width - 4} height={8} fill="#111827" />
+      <text x={x + width * 0.28} y={y + height - 23.4} textAnchor="middle" fontSize="4.5" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#f8fafc">
+        T1
+      </text>
+      <text x={cx} y={y + height - 23.4} textAnchor="middle" fontSize="4.5" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#4ade80">
+        PE
+      </text>
+      <text x={x + width * 0.72} y={y + height - 23.4} textAnchor="middle" fontSize="4.5" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#93c5fd">
+        T2
+      </text>
 
-      {terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const termId = `${device.id}:${t.id}`;
-        return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isSelected={selectedTerminalId === termId}
-            isHovered={hoveredTerminalId === termId}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onTerminalMouseDown?.(device, t, e);
-            }}
-            onMouseEnter={() => setHoveredTerminalId?.(termId)}
-            onMouseLeave={() => setHoveredTerminalId?.(null)}
-          />
-        );
-      })}
+      {/* Bottom Terminal Bay */}
+      <rect x={x + 2} y={y + height - 21} width={width - 4} height={19} rx={3} fill="#1f2937" />
+
+      <DeviceTerminals {...props} hideLabel={() => true} />
     </g>
   );
 };
