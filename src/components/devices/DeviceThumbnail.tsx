@@ -529,7 +529,7 @@ export const DeviceThumbnail: React.FC<DeviceThumbnailProps> = ({ type, classNam
           </g>
         )}
 
-        {type === 'motor_ac_industrial' && (
+        {(type === 'motor_ac_industrial' || type === 'motor_6lead_star_delta') && (
           <g transform="translate(10, 10)">
             <rect x="10" y="18" width="40" height="34" rx="6" fill="#0284c7" stroke="#075985" strokeWidth="1.2" />
             {/* Fins */}
@@ -537,10 +537,22 @@ export const DeviceThumbnail: React.FC<DeviceThumbnailProps> = ({ type, classNam
             <line x1="14" y1="30" x2="46" y2="30" stroke="#38bdf8" strokeWidth="1" opacity="0.5" />
             <line x1="14" y1="36" x2="46" y2="36" stroke="#38bdf8" strokeWidth="1" opacity="0.5" />
             {/* Terminal Box */}
-            <rect x="20" y="8" width="20" height="12" rx="2" fill="#0f172a" />
+            <rect x="18" y={type === 'motor_6lead_star_delta' ? 3 : 8} width="24" height={type === 'motor_6lead_star_delta' ? 17 : 12} rx="2" fill="#0f172a" />
+            {type === 'motor_6lead_star_delta' && (
+              <g fill="#f59e0b">
+                <circle cx="23" cy="9" r="1.4" />
+                <circle cx="30" cy="9" r="1.4" />
+                <circle cx="37" cy="9" r="1.4" />
+                <circle cx="23" cy="15" r="1.4" />
+                <circle cx="30" cy="15" r="1.4" />
+                <circle cx="37" cy="15" r="1.4" />
+              </g>
+            )}
             {/* Shaft */}
             <rect x="2" y="30" width="10" height="8" rx="1" fill="#cbd5e1" stroke="#475569" strokeWidth="0.6" />
-            <text x="30" y="47" textAnchor="middle" fontSize="5" fontWeight="bold" fill="#ffffff">3P MOTOR</text>
+            <text x="30" y="47" textAnchor="middle" fontSize="5" fontWeight="bold" fill="#ffffff">
+              {type === 'motor_6lead_star_delta' ? 'Y-Δ 6-LEAD' : '3P MOTOR'}
+            </text>
           </g>
         )}
 

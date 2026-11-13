@@ -29,6 +29,12 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('measuredAmps' in state) state.measuredAmps = 0;
   if ('motorDirection' in state) state.motorDirection = null;
   if ('motorFault' in state) state.motorFault = null;
+  if ('starterMode' in state) state.starterMode = null;
+  if (device.type === 'timer_relay') {
+    state.energized = false;
+    state.elapsedSec = 0;
+    state.timedOut = false;
+  }
   // Momentary push buttons spring back when the grid is de-energized
   for (const k of ['startPressed', 'stopPressed', 'fwdPressed', 'revPressed']) {
     if (k in state) state[k] = false;

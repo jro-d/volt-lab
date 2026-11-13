@@ -1115,17 +1115,23 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       )}
 
       {/* --- INDUSTRIAL AC INDUCTION MOTOR CONTROLS --- */}
-      {device && device.type === 'motor_ac_industrial' && (
+      {device && (device.type === 'motor_ac_industrial' || device.type === 'motor_6lead_star_delta') && (
         <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Motor Status
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.motorFault ? 'bg-rose-950/90 text-rose-300 border border-rose-500/50 animate-pulse' : device.state.running ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 animate-pulse' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.motorFault ? 'bg-rose-950/90 text-rose-300 border border-rose-500/50 animate-pulse' : device.state.running ? (device.state.starterMode === 'wye' ? 'bg-amber-950/90 text-amber-300 border border-amber-500/50 animate-pulse' : 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 animate-pulse') : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
               {device.state.motorFault
                 ? `⚠ ${device.state.motorFault}`
                 : device.state.running
-                ? `⚡ ${device.state.motorDirection === 'CCW' ? '⟲ CCW REVERSE' : '⟳ CW FORWARD'}`
+                ? device.type === 'motor_6lead_star_delta'
+                  ? device.state.starterMode === 'wye'
+                    ? '★ WYE START (1/3 I)'
+                    : device.state.starterMode === 'delta'
+                    ? '▲ DELTA RUN (100%)'
+                    : `⚡ ${device.state.motorDirection === 'CCW' ? '⟲ CCW' : '⟳ CW'}`
+                  : `⚡ ${device.state.motorDirection === 'CCW' ? '⟲ CCW REVERSE' : '⟳ CW FORWARD'}`
                 : '○ STOPPED'}
             </span>
           </div>
@@ -1134,17 +1140,28 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               Nameplate Power Rating
             </label>
             <div className="grid grid-cols-4 gap-1">
-              {[
-                { hp: 1, w: 750, label: '1 HP' },
-                { hp: 2, w: 1500, label: '2 HP' },
-                { hp: 3, w: 2200, label: '3 HP' },
-                { hp: 5, w: 3700, label: '5 HP' },
-              ].map((m) => (
+              {(device.type === 'motor_6lead_star_delta'
+                ? [
+                    { hp: 5, w: 3700, label: '5 HP' },
+                    { hp: 7.5, w: 5500, label: '7.5 HP' },
+                    { hp: 10, w: 7500, label: '10 HP' },
+                    { hp: 15, w: 11000, label: '15 HP' },
+                  ]
+                : [
+                    { hp: 1, w: 750, label: '1 HP' },
+                    { hp: 2, w: 1500, label: '2 HP' },
+                    { hp: 3, w: 2200, label: '3 HP' },
+                    { hp: 5, w: 3700, label: '5 HP' },
+                  ]
+              ).map((m) => (
                 <button
                   key={m.hp}
-                  onClick={() => onUpdateDeviceProperty(device.id, 'wattage', m.w)}
+                  onClick={() => {
+                    onUpdateDeviceProperty(device.id, 'wattage', m.w);
+                    onUpdateDeviceProperty(device.id, 'motorHp', m.hp);
+                  }}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
-                    (device.state.wattage || 2200) === m.w
+                    (device.state.wattage || (device.type === 'motor_6lead_star_delta' ? 5500 : 2200)) === m.w
                       ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
                       : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
                   }`}
@@ -1154,7 +1171,9 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               ))}
             </div>
             <span className="text-[9px] text-slate-400 mt-1 block font-mono">
-              Rated: {(device.state.wattage || 2200)} W · 440V 3-phase TEFC · line current {(device.state.measuredAmps || 0).toFixed(2)} A. Swap any two of U1/V1/W1 to reverse rotation.
+              {device.type === 'motor_6lead_star_delta'
+                ? `Rated: ${(device.state.wattage || 5500)} W · 6-Lead Y/Δ · line current ${(device.state.measuredAmps || 0).toFixed(2)} A. Star reduces starting current to 33%.`
+                : `Rated: ${(device.state.wattage || 2200)} W · 440V 3-phase TEFC · line current ${(device.state.measuredAmps || 0).toFixed(2)} A. Swap any two of U1/V1/W1 to reverse rotation.`}
             </span>
           </div>
         </div>

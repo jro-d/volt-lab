@@ -790,6 +790,34 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     ]
   },
   {
+    type: 'motor_6lead_star_delta',
+    category: 'industrial',
+    name: '3-Phase Wye-Delta Motor (6-Lead, 7.5 HP)',
+    defaultLabel: 'MOTOR-YD',
+    width: 146,
+    height: 132,
+    pecReference: 'IEC 60034 / PEC Art. 4.30 (Reduced-Voltage Start)',
+    description: '6-lead 3-phase squirrel-cage induction motor with exposed stator coil ends U1-V1-W1 & W2-U2-V2 for Wye-Delta (Y-Δ) reduced-voltage starting (1/3 inrush current in Star, full torque in Delta).',
+    defaultProperties: {
+      motorRunning: false,
+      wattage: 5500,
+      motorHp: 7.5,
+      motorRpm: 1760,
+      motorDirection: null,
+      starterMode: null,
+      tag: 'M1',
+    },
+    terminals: [
+      { id: 'u1', name: 'Coil U1 Start', type: 'phase', relX: 0.22, relY: 0.14, label: 'U1', phaseLabel: 'L1' },
+      { id: 'v1', name: 'Coil V1 Start', type: 'phase2', relX: 0.41, relY: 0.14, label: 'V1', phaseLabel: 'L2' },
+      { id: 'w1', name: 'Coil W1 Start', type: 'phase3', relX: 0.60, relY: 0.14, label: 'W1', phaseLabel: 'L3' },
+      { id: 'pe', name: 'Chassis Earth (PE)', type: 'earth', relX: 0.80, relY: 0.14, label: 'PE', phaseLabel: 'PE' },
+      { id: 'w2', name: 'Coil W2 End', type: 'phase3', relX: 0.22, relY: 0.41, label: 'W2', phaseLabel: 'W2' },
+      { id: 'u2', name: 'Coil U2 End', type: 'phase', relX: 0.41, relY: 0.41, label: 'U2', phaseLabel: 'U2' },
+      { id: 'v2', name: 'Coil V2 End', type: 'phase2', relX: 0.60, relY: 0.41, label: 'V2', phaseLabel: 'V2' },
+    ]
+  },
+  {
     type: 'royu_safety_breaker_2p',
     category: 'protection',
     name: 'ROYU 2P Safety Breaker (ACU Disconnect)',

@@ -143,6 +143,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'plc_micro_controller':
         return <PlcDevice {...commonProps} />;
       case 'motor_ac_industrial':
+      case 'motor_6lead_star_delta':
         return <IndustrialMotorDevice {...commonProps} />;
       case 'royu_safety_breaker_2p':
         return <RoyuSafetyBreakerDevice {...commonProps} />;

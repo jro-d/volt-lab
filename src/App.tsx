@@ -26,10 +26,24 @@ const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
 export type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
 
+function loadEmbeddedProject(): ElectricalProject | null {
+  try {
+    const el = document.getElementById('voltlab-embedded-project');
+    if (!el?.textContent?.trim()) return null;
+    const parsed = JSON.parse(el.textContent);
+    if (parsed && Array.isArray(parsed.devices) && Array.isArray(parsed.wires)) {
+      return { ...parsed, devices: toEditModeDevices(parsed.devices) };
+    }
+  } catch {
+    // Fall back to blank canvas if embedded JSON is malformed
+  }
+  return null;
+}
+
 export const App: React.FC = () => {
-  // Start with clean blank canvas as requested by user
+  // Hydrate embedded student project if opened from a saved HTML export; otherwise open blank standalone canvas
   const [project, setProject] = useState<ElectricalProject>(() => {
-    return createBlankProject('PEC');
+    return loadEmbeddedProject() || createBlankProject('PEC');
   });
 
   const [standard, setStandard] = useState<CodeStandard>(project.codeStandard);
@@ -853,6 +867,95 @@ export const App: React.FC = () => {
     downloadAnchor.remove();
   };
 
+  // Export Self-Opening Standalone Offline HTML (embeds the student's current wiring)
+  const handleExportHtml = async () => {
+    const exportProject: ElectricalProject = {
+      ...project,
+      devices: toEditModeDevices(project.devices),
+    };
+    const safeJson = JSON.stringify(exportProject).replace(/</g, '\\u003c');
+    const fileBase = (exportProject.title || 'voltlab_wiring')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    const inlineScripts = Array.from(
+      document.querySelectorAll('script:not([src]):not(#voltlab-embedded-project)')
+    ).filter((s) => (s.textContent || '').trim().length > 200);
+
+    let htmlDoc: string | null = null;
+
+    const prepareClone = () => {
+      const clone = document.documentElement.cloneNode(true) as HTMLElement;
+      const root = clone.querySelector('#root');
+      if (root) root.innerHTML = '';
+      clone.querySelector('#voltlab-embedded-project')?.remove();
+      const titleEl = clone.querySelector('title');
+      if (titleEl) titleEl.textContent = `VoltLab - ${exportProject.title}`;
+      const head = clone.querySelector('head') || clone;
+      const dataScript = document.createElement('script');
+      dataScript.id = 'voltlab-embedded-project';
+      dataScript.type = 'application/json';
+      dataScript.textContent = safeJson;
+      head.appendChild(dataScript);
+      return clone;
+    };
+
+    if (inlineScripts.length > 0) {
+      const clone = prepareClone();
+      clone.querySelectorAll('script:not([src]):not(#voltlab-embedded-project)').forEach((s) => {
+        if (s.textContent) {
+          s.textContent = s.textContent.replace(/<\/(script)/gi, '<\\/$1');
+        }
+      });
+      htmlDoc = `<!doctype html>\n${clone.outerHTML}`;
+    } else {
+      const extScript = document.querySelector<HTMLScriptElement>('script[src*="assets/"]');
+      if (extScript?.src) {
+        try {
+          const clone = prepareClone();
+          const links = Array.from(clone.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
+          for (const link of links) {
+            const origHref = link.getAttribute('href');
+            if (!origHref) continue;
+            const cssText = await fetch(new URL(origHref, window.location.href).href).then((r) => r.text());
+            const styleEl = document.createElement('style');
+            styleEl.textContent = cssText;
+            link.replaceWith(styleEl);
+          }
+          const cloneScript = clone.querySelector<HTMLScriptElement>('script[src*="assets/"]');
+          const jsText = await fetch(extScript.src).then((r) => r.text());
+          if (cloneScript) {
+            const inlineBundle = document.createElement('script');
+            inlineBundle.textContent = jsText.replace(/<\/(script)/gi, '<\\/$1');
+            cloneScript.remove();
+            (clone.querySelector('body') || clone).appendChild(inlineBundle);
+          }
+          htmlDoc = `<!doctype html>\n${clone.outerHTML}`;
+        } catch {
+          htmlDoc = null;
+        }
+      }
+    }
+
+    if (!htmlDoc) {
+      alert(
+        'HTML export saves a standalone offline webpage when running from VoltLab-Standalone.html or the production build. Open VoltLab-Standalone.html directly in your browser to save projects as standalone .html files.'
+      );
+      return;
+    }
+
+    const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileBase || 'voltlab_wiring'}_${standard}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   // Trigger Import JSON
   const handleImportJson = () => {
     if (fileInputRef.current) {
@@ -991,6 +1094,7 @@ export const App: React.FC = () => {
         onResetSimulation={handleResetSimulation}
         onClearCanvas={handleClearCanvas}
         onExportJson={handleExportJson}
+        onExportHtml={handleExportHtml}
         onImportJson={handleImportJson}
         onFlipAllOutlets={handleFlipAllOutlets}
         isAllRearView={isAllRearView}
