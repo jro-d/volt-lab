@@ -25,6 +25,7 @@ import {
   PanelRight,
   Trash2,
   Rows3,
+  FileCode2,
 } from 'lucide-react';
 
 interface TopNavBarProps {
@@ -40,6 +41,7 @@ interface TopNavBarProps {
   onResetSimulation: () => void;
   onClearCanvas: () => void;
   onExportJson: () => void;
+  onExportHtml?: () => void;
   onImportJson: () => void;
   onFlipAllOutlets?: () => void;
   isAllRearView?: boolean;
@@ -111,6 +113,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   onResetSimulation,
   onClearCanvas,
   onExportJson,
+  onExportHtml,
   onImportJson,
   onFlipAllOutlets,
   isAllRearView = false,
@@ -170,6 +173,15 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         <RibbonButton onClick={onExportJson} title="Save project (Export JSON)" label="Export">
           <Download className="w-4 h-4" />
         </RibbonButton>
+        {onExportHtml && (
+          <RibbonButton
+            onClick={onExportHtml}
+            title="Save self-contained offline HTML (opens directly to your wiring)"
+            label="Save HTML"
+          >
+            <FileCode2 className="w-4 h-4 text-teal-600" />
+          </RibbonButton>
+        )}
         <RibbonButton
           onClick={onClearCanvas}
           disabled={isSimulating}

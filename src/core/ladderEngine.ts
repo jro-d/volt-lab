@@ -110,6 +110,14 @@ export function getControlElements(dev: ElectricalDevice): PhysicalElement[] {
     case 'switch_1gang':
       add('sw', 'NO', s.tag || 'SW', 'L-1', 'l_in', 'sw_out', !!s.closed);
       break;
+    case 'timer_relay': {
+      const timedOut = !!s.timedOut;
+      const tag = s.tag || 'KT1';
+      add('timer_nc', 'NC', tag, '15-16', 'com_15', 'nc_16', !timedOut);
+      add('timer_no', 'NO', tag, '15-18', 'com_15', 'no_18', timedOut);
+      add('coil', 'COIL', `${tag} (${s.delaySec ?? 5}s)`, 'A1-A2', 'a1', 'a2', !!s.energized);
+      break;
+    }
     case 'pilot_light_indicator': {
       const colour = (s.pilotColor || 'green').toUpperCase();
       add('lamp', 'LAMP', s.tag || `PL_${colour === 'RED' ? 'FAULT' : colour === 'GREEN' ? 'RUN' : colour}`, colour, 'x1', 'x2', !!s.lit);
@@ -420,7 +428,8 @@ export interface VerifyMessage {
 export function verifyLadderAgainstPhysical(
   studentRungs: LadderRung[],
   phys: PhysicalLadder,
-  devices: ElectricalDevice[]
+  devices: ElectricalDevice[],
+  wires: ElectricalWire[] = []
 ): VerifyMessage[] {
   const msgs: VerifyMessage[] = [];
   const devById = new Map(devices.map(d => [d.id, d]));
@@ -531,18 +540,36 @@ export function verifyLadderAgainstPhysical(
     }
   }
 
-  // Safety lint: reversing contactor pairs must be cross-interlocked
+  // Safety lint: conflicting contactor pairs (sharing load terminals or FOR/REV/STAR/DELTA roles) must be cross-interlocked
+  const loadTargets = (devId: string) => {
+    const keys = new Set<string>();
+    for (const w of wires) {
+      if (w.fromDeviceId === devId && ['t1', 't2', 't3'].includes(w.fromTerminalId)) keys.add(`${w.toDeviceId}:${w.toTerminalId}`);
+      if (w.toDeviceId === devId && ['t1', 't2', 't3'].includes(w.toTerminalId)) keys.add(`${w.fromDeviceId}:${w.fromTerminalId}`);
+    }
+    return keys;
+  };
   const contactorRungs = phys.rungs.filter(r => r.load.kind === 'COIL' && devById.get(r.load.deviceId)?.type === 'contactor_3p');
   if (contactorRungs.length >= 2) {
     for (const r of contactorRungs) {
-      const others = contactorRungs.filter(o => o !== r);
+      const rDev = devById.get(r.load.deviceId);
+      const rTargets = wires.length > 0 ? loadTargets(r.load.deviceId) : null;
+      const conflicts = contactorRungs.filter(o => {
+        if (o === r) return false;
+        if (rTargets && rTargets.size > 0) {
+          const oTargets = loadTargets(o.load.deviceId);
+          return [...oTargets].some(k => rTargets.has(k));
+        }
+        return rDev?.state.role !== 'MAIN' && devById.get(o.load.deviceId)?.state.role !== 'MAIN';
+      });
+      if (conflicts.length === 0) continue;
       const hasInterlock = r.prePaths
         .map((pre, k) => [...pre, ...(r.postPaths[k] || [])])
-        .every(p => p.some(e => e.contactKey === 'aux_nc' && others.some(o => o.load.deviceId === e.deviceId)));
+        .every(p => p.some(e => e.contactKey === 'aux_nc' && conflicts.some(o => o.load.deviceId === e.deviceId)));
       if (!hasInterlock) {
         msgs.push({
           level: 'warn',
-          text: `Safety: physical ${r.load.tag} coil circuit has no NC 21-22 interlock from the other contactor.`,
+          text: `Safety: physical ${r.load.tag} coil circuit has no NC 21-22 interlock from the conflicting contactor (${conflicts.map(c => c.load.tag).join('/')}).`,
         });
       }
     }

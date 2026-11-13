@@ -38,7 +38,7 @@ export const LabSelectorModal: React.FC<LabSelectorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4 select-none">
       <div className="bg-[#faf8f5] border border-stone-200 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden text-stone-800">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-white">
+        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-rose-600" />
@@ -61,30 +61,32 @@ export const LabSelectorModal: React.FC<LabSelectorModalProps> = ({
         </div>
 
         {/* Category Filter Pills */}
-        <div className="px-6 py-2.5 bg-[#f5f1eb] border-b border-stone-200 flex items-center gap-2 overflow-x-auto text-xs">
-          <Filter className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1 rounded-lg font-medium whitespace-nowrap transition flex items-center gap-1.5 ${
-                selectedCategory === cat.id
-                  ? 'bg-stone-900 text-white shadow-sm font-bold'
-                  : 'bg-white hover:bg-stone-100 text-stone-600 border border-stone-200/80'
-              }`}
-            >
-              <span>{cat.label}</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                selectedCategory === cat.id ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500'
-              }`}>
-                {cat.count}
-              </span>
-            </button>
-          ))}
+        <div className="px-6 pt-4 pb-2 bg-[#f5f1eb] border-b border-stone-200 shrink-0">
+          <div className="flex items-center gap-2.5 overflow-x-auto pb-2 text-xs">
+            <Filter className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap shrink-0 transition flex items-center gap-1.5 ${
+                  selectedCategory === cat.id
+                    ? 'bg-stone-900 text-white shadow-sm font-bold'
+                    : 'bg-white hover:bg-stone-100 text-stone-600 border border-stone-200/80'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  selectedCategory === cat.id ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500'
+                }`}>
+                  {cat.count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Lab Grid */}
-        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredLabs.map((lab) => {
             const diffColor =
               lab.difficulty === 'Beginner'
@@ -140,7 +142,7 @@ export const LabSelectorModal: React.FC<LabSelectorModalProps> = ({
         </div>
 
         {/* Footer: Blank Sandbox option */}
-        <div className="px-6 py-3.5 border-t border-stone-200 bg-white flex items-center justify-between">
+        <div className="px-6 py-3.5 border-t border-stone-200 bg-white flex items-center justify-between shrink-0">
           <div className="text-xs text-stone-500">
             Want to start from a completely clean, empty canvas?
           </div>

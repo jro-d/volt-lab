@@ -619,7 +619,7 @@ export function solveCircuit(
       while (curr && !seen.has(curr)) {
         seen.add(curr);
         const d = deviceById.get(devOfNode(curr));
-        if (d && (d.type === 'contactor_3p' || d.type === 'thermal_overload_relay' || d.type === 'motor_ac_industrial')) {
+        if (d && (d.type === 'contactor_3p' || d.type === 'thermal_overload_relay' || d.type === 'motor_ac_industrial' || d.type === 'motor_6lead_star_delta')) {
           arcNode = curr;
           break;
         }
@@ -778,6 +778,80 @@ export function solveCircuit(
         : 0;
       if (isRunning) {
         totalWatts += dev.state.wattage || 2200;
+      }
+    } else if (dev.type === 'motor_6lead_star_delta') {
+      const tk1 = ['u1', 'v1', 'w1'].map(t => terminalKey(dev.id, t));
+      const tk2 = ['w2', 'u2', 'v2'].map(t => terminalKey(dev.id, t));
+      const pots1 = tk1.map(k => nodePotentials[k]);
+      const phases1 = tk1.map(k => nodePhases[k]);
+      const phases2 = tk2.map(k => nodePhases[k]);
+      const distinct1 = new Set(phases1.filter(Boolean));
+      const distinct2 = new Set(phases2.filter(Boolean));
+
+      const areAdjConnected = (start: string, targets: string[]) => {
+        const seen = new Set<string>([start]);
+        const q = [start];
+        while (q.length) {
+          const curr = q.shift()!;
+          for (const nxt of adj[curr] || []) {
+            if (!seen.has(nxt)) {
+              seen.add(nxt);
+              q.push(nxt);
+            }
+          }
+        }
+        return targets.every(t => seen.has(t));
+      };
+
+      let isRunning = false;
+      let direction: 'CW' | 'CCW' | null = null;
+      let starterMode: 'wye' | 'delta' | null = null;
+      let fault: string | null = null;
+
+      if (phases1.every(Boolean) && distinct1.size === 3) {
+        direction = CW_SEQUENCES.includes(phases1.join(',')) ? 'CW' : 'CCW';
+        if (phases2.every(Boolean) && distinct2.size === 3) {
+          // Delta mode requires phase displacement across each stator winding: U1!=U2, V1!=V2, W1!=W2
+          const uDiff = phases1[0] !== nodePhases[terminalKey(dev.id, 'u2')];
+          const vDiff = phases1[1] !== nodePhases[terminalKey(dev.id, 'v2')];
+          const wDiff = phases1[2] !== nodePhases[terminalKey(dev.id, 'w2')];
+          if (uDiff && vDiff && wDiff) {
+            isRunning = true;
+            starterMode = 'delta';
+          } else {
+            direction = null;
+            fault = 'NO WINDING VOLTAGE (Delta U1=U2)';
+          }
+        } else if (phases2.every(p => !p) && areAdjConnected(tk2[0], [tk2[1], tk2[2]])) {
+          isRunning = true;
+          starterMode = 'wye';
+        } else if (phases2.some(Boolean)) {
+          direction = null;
+          fault = 'SINGLE PHASING (Delta leg open)';
+        } else {
+          direction = null;
+          fault = 'OPEN STAR POINT (Close KMY ★ or KMD Δ)';
+        }
+      } else if (phases2.every(Boolean) && distinct2.size === 3 && phases1.every(p => !p)) {
+        fault = 'OPEN LINE CONTACTOR (Close KM1)';
+      } else if (distinct1.size >= 1 && pots1.filter(p => p === 'live').length >= 2) {
+        fault = distinct1.size === 2 ? 'SINGLE PHASING (one line open)' : 'SAME PHASE ON ALL LEADS';
+      }
+
+      const ratedWatts = dev.state.wattage || 5500;
+      const fullAmps = motorLineAmps(ratedWatts, lineVolts);
+      const runAmps = !isRunning ? 0 : starterMode === 'wye' ? fullAmps / 3 : fullAmps;
+      const activeWatts = !isRunning ? 0 : starterMode === 'wye' ? Math.round(ratedWatts / 3) : ratedWatts;
+
+      deviceEnergized[dev.id] = isRunning;
+      dev.state.running = isRunning;
+      dev.state.motorRunning = isRunning;
+      dev.state.starterMode = isRunning ? starterMode : null;
+      dev.state.motorDirection = isRunning ? direction : null;
+      dev.state.motorFault = fault;
+      dev.state.measuredAmps = runAmps;
+      if (isRunning) {
+        totalWatts += activeWatts;
       }
     } else if (dev.type === 'pilot_light_indicator') {
       const p1 = nodePotentials[terminalKey(dev.id, 'x1')];
@@ -950,6 +1024,56 @@ export function solveCircuit(
       } else {
         traceLoadCurrent(terminalKey(dev.id, 'u1'), terminalKey(dev.id, 'v1'), w / gridVoltage);
       }
+    } else if (dev.type === 'motor_6lead_star_delta') {
+      const amps = dev.state.measuredAmps || 0;
+      const mode = dev.state.starterMode;
+      const updateUpstream = (startTerm: string, branchAmps: number) => {
+        let curr: string | undefined = terminalKey(dev.id, startTerm);
+        const seen = new Set<string>();
+        while (curr && !seen.has(curr)) {
+          seen.add(curr);
+          const up = deviceById.get(devOfNode(curr));
+          if (up && (up.type === 'thermal_overload_relay' || up.type === 'contactor_3p')) {
+            up.state.measuredAmps = Math.max(up.state.measuredAmps || 0, branchAmps);
+          }
+          curr = liveParent[curr]?.prevNode;
+        }
+      };
+
+      if (mode === 'delta') {
+        const branchAmps = amps / 2;
+        for (const t of ['u1', 'v1', 'w1']) traceLoadCurrent(terminalKey(dev.id, t), undefined, branchAmps);
+        for (const t of ['w2', 'u2', 'v2']) traceLoadCurrent(terminalKey(dev.id, t), undefined, branchAmps);
+        updateUpstream('u1', branchAmps);
+        updateUpstream('w2', branchAmps);
+      } else if (mode === 'wye') {
+        for (const t of ['u1', 'v1', 'w1']) traceLoadCurrent(terminalKey(dev.id, t), undefined, amps);
+        updateUpstream('u1', amps);
+        const starContactors = new Set<string>();
+        const w2Terms = new Set(['w2', 'u2', 'v2']);
+        for (const wire of wires) {
+          const toMotor = wire.toDeviceId === dev.id && w2Terms.has(wire.toTerminalId);
+          const fromMotor = wire.fromDeviceId === dev.id && w2Terms.has(wire.fromTerminalId);
+          if (toMotor || fromMotor) {
+            wireCurrents[wire.id] = (wireCurrents[wire.id] || 0) + amps;
+            const otherId = toMotor ? wire.fromDeviceId : wire.toDeviceId;
+            const otherDev = deviceById.get(otherId);
+            if (otherDev?.type === 'contactor_3p') {
+              otherDev.state.measuredAmps = amps;
+              starContactors.add(otherId);
+            }
+          }
+        }
+        for (const wire of wires) {
+          if (
+            starContactors.has(wire.fromDeviceId) &&
+            starContactors.has(wire.toDeviceId) &&
+            ['l1', 'l2', 'l3'].includes(wire.fromTerminalId)
+          ) {
+            wireCurrents[wire.id] = (wireCurrents[wire.id] || 0) + amps;
+          }
+        }
+      }
     } else if (dev.type === 'pilot_light_indicator') {
       const p1 = nodePotentials[terminalKey(dev.id, 'x1')];
       const liveT = p1 === 'live' ? 'x1' : 'x2';
@@ -1041,10 +1165,14 @@ export function solveCircuit(
 
   const motorInrushByBreaker: Record<string, number> = {};
   for (const dev of devices) {
-    if ((dev.type === 'motor_ac_industrial' || dev.type === 'motor_3phase_dol') && deviceEnergized[dev.id]) {
-      const startKey = terminalKey(dev.id, dev.type === 'motor_ac_industrial' ? 'u1' : 'l1');
+    if ((dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'motor_3phase_dol') && deviceEnergized[dev.id]) {
+      const startKey = terminalKey(dev.id, dev.type === 'motor_3phase_dol' ? 'l1' : 'u1');
       const runAmps = dev.state.measuredAmps || (dev.state.wattage || 2200) / gridVoltage;
-      const inrushMult = hasVfdUpstream(startKey) ? 1.8 : 6.0;
+      const inrushMult = hasVfdUpstream(startKey)
+        ? 1.8
+        : dev.type === 'motor_6lead_star_delta'
+        ? (dev.state.starterMode === 'delta' ? 2.2 : 6.0)
+        : 6.0;
       const inrushAmps = runAmps * inrushMult;
       let curr: string | undefined = startKey;
       const seen = new Set<string>();

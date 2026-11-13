@@ -4,12 +4,23 @@ import { getWireStandards, CONDUIT_FILL_STANDARDS } from '../data/standardsData'
 import { SolvedCircuit } from './circuitSolver';
 import { parsePhysicalLadder } from './ladderEngine';
 
-/** Devices that live inside a motor control panel (panel wiring is not run in branch conduit) */
+/** Devices that live inside a distribution board or motor control enclosure (internal panel jumpers, not branch conduit runs) */
 const PANEL_DEVICE_TYPES = new Set([
   'source_3phase_440v',
+  'kwh_meter_1p',
+  'service_disconnect_2p',
+  'rcd_2p',
+  'spd_surge',
+  'mcb_1p',
+  'mcb_2p',
   'mcb_3p',
+  'earth_busbar',
+  'neutral_busbar',
   'contactor_3p',
   'thermal_overload_relay',
+  'timer_relay',
+  'selector_hoa',
+  'limit_switch',
   'control_transformer',
   'push_button_station',
   'push_button_fwd_rev',
@@ -120,7 +131,7 @@ export function analyzeCodeCompliance(
           recommendation: 'Consider System A (Pigtail Splice with wire nuts in an orange octagonal box) so downstream continuity does not depend on this receptacle body.'
         });
       }
-    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_3phase_dol' || dev.type === 'motor_ac_industrial' || dev.type === 'royu_safety_breaker_2p') {
+    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_3phase_dol' || dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'royu_safety_breaker_2p') {
       const gndWire = wires.find(w => 
         (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ground' || w.fromTerminalId === 'pe')) || 
         (w.toDeviceId === dev.id && (w.toTerminalId === 'ground' || w.toTerminalId === 'pe'))
@@ -214,7 +225,7 @@ export function analyzeCodeCompliance(
   }
 
   // 4b. Motor control: overload protection & reversing interlocks (PEC 4.30 / IEC 60204-1)
-  const motors = devices.filter(d => d.type === 'motor_ac_industrial');
+  const motors = devices.filter(d => d.type === 'motor_ac_industrial' || d.type === 'motor_6lead_star_delta');
   const contactors = devices.filter(d => d.type === 'contactor_3p');
   const hasTor = devices.some(d => d.type === 'thermal_overload_relay');
   if (motors.length > 0 && contactors.length > 0 && !hasTor) {
@@ -251,14 +262,19 @@ export function analyzeCodeCompliance(
     }
   }
 
-  // Reversing pairs: two contactors whose load terminals land on the same downstream device
+  // Conflicting contactor pairs: two contactors whose load terminals land on the exact same downstream terminals
+  // (e.g. FOR vs REV on U1/V1/W1, or STAR vs DELTA on W2/U2/V2 — NOT Main KM1 vs KMY/KMD on separate winding ends)
   const loadSide = (c: ElectricalDevice) => {
-    const ids = new Set<string>();
+    const keys = new Set<string>();
     for (const w of wires) {
-      if (w.fromDeviceId === c.id && ['t1', 't2', 't3'].includes(w.fromTerminalId)) ids.add(w.toDeviceId);
-      if (w.toDeviceId === c.id && ['t1', 't2', 't3'].includes(w.toTerminalId)) ids.add(w.fromDeviceId);
+      if (w.fromDeviceId === c.id && ['t1', 't2', 't3'].includes(w.fromTerminalId)) {
+        keys.add(`${w.toDeviceId}:${w.toTerminalId}`);
+      }
+      if (w.toDeviceId === c.id && ['t1', 't2', 't3'].includes(w.toTerminalId)) {
+        keys.add(`${w.fromDeviceId}:${w.fromTerminalId}`);
+      }
     }
-    return ids;
+    return keys;
   };
   if (contactors.length >= 2) {
     const phys = parsePhysicalLadder(devices, wires);
@@ -267,7 +283,7 @@ export function analyzeCodeCompliance(
         const a = contactors[i];
         const b = contactors[j];
         const la = loadSide(a);
-        const shared = [...loadSide(b)].some(id => la.has(id));
+        const shared = [...loadSide(b)].some(k => la.has(k));
         if (!shared) continue;
         const interlocked = (coil: ElectricalDevice, other: ElectricalDevice) => {
           const rung = phys.rungs.find(r => r.load.deviceId === coil.id && r.load.kind === 'COIL');
@@ -284,10 +300,10 @@ export function analyzeCodeCompliance(
             category: 'shock_hazard',
             hazardLevel: 'fire_risk',
             articleRef: standard === 'PEC' ? 'PEC 2017 Art. 4.30.7 / IEC 60204-1 Cl. 9.3.4' : 'IEC 60204-1 Cl. 9.3.4',
-            title: '⚠ Reversing Starter Without Electrical Interlock',
-            message: `${a.state.tag || a.name} and ${b.state.tag || b.name} feed the same motor circuit, but their coils are not cross-interlocked through each other's 21-22 NC contacts. Pressing FWD and REV together bolts two phases together.`,
+            title: '⚠ Contactor Pair Without Electrical Interlock',
+            message: `${a.state.tag || a.name} and ${b.state.tag || b.name} share the same motor terminal circuit, but their coils are not cross-interlocked through each other's 21-22 NC contacts. Closing both simultaneously creates a phase-to-phase short.`,
             affectedDeviceId: !interlocked(a, b) ? a.id : b.id,
-            recommendation: `Wire ${b.state.tag || 'KM2'} 21-22 in series before ${a.state.tag || 'KM1'} A1, and ${a.state.tag || 'KM1'} 21-22 in series before ${b.state.tag || 'KM2'} A1.`
+            recommendation: `Wire ${b.state.tag || 'K2'} 21-22 in series before ${a.state.tag || 'K1'} A1, and ${a.state.tag || 'K1'} 21-22 in series before ${b.state.tag || 'K2'} A1.`
           });
         }
       }
@@ -311,12 +327,22 @@ export function analyzeCodeCompliance(
     });
   }
 
-  // 5. Conduit Fill Calculation (field wiring only — conductors between panel devices run in wireways)
+  // 5. Conduit Fill Calculation (field wiring per branch conduit — excludes internal panelboard jumpers & flexible plug cords)
   const panelIds = new Set(devices.filter(d => PANEL_DEVICE_TYPES.has(d.type)).map(d => d.id));
-  const totalConductors = wires.filter(w => !(panelIds.has(w.fromDeviceId) && panelIds.has(w.toDeviceId))).length;
+  const cordDeviceIds = new Set(devices.filter(d => d.type === 'appliance_tv').map(d => d.id));
+  const totalConductors = wires.filter(
+    w =>
+      !(panelIds.has(w.fromDeviceId) && panelIds.has(w.toDeviceId)) &&
+      !cordDeviceIds.has(w.fromDeviceId) &&
+      !cordDeviceIds.has(w.toDeviceId)
+  ).length;
+  const branchConduitCount = Math.max(
+    1,
+    devices.filter(d => (d.type === 'mcb_1p' || d.type === 'mcb_2p') && d.state.closed && !d.state.tripped).length
+  );
   const sampleConduit = CONDUIT_FILL_STANDARDS[1]; // 3/4" (25mm)
   const approxWireArea = wireStandards[0].crossSectionMm2 * 3.5; // with insulation
-  const totalWireArea = totalConductors * approxWireArea;
+  const totalWireArea = (totalConductors / branchConduitCount) * approxWireArea;
   const conduitFillPercent = totalWireArea > 0 ? (totalWireArea / sampleConduit.internalAreaMm2) * 100 : 0;
 
   if (conduitFillPercent > 40.0 && totalConductors >= 3) {

@@ -482,7 +482,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
     commit(JSON.parse(JSON.stringify(targetLadder)));
     setMode('builder');
   };
-  const runVerify = () => setVerify(verifyLadderAgainstPhysical(builderRungs, phys, devices));
+  const runVerify = () => setVerify(verifyLadderAgainstPhysical(builderRungs, phys, devices, wires));
 
   // ── Element interaction ──
   const ACTUATE: Record<string, string> = { start: 'startPressed', stop: 'stopPressed', fwd: 'fwdPressed', rev: 'revPressed' };

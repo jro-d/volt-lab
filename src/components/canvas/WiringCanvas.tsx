@@ -1031,6 +1031,27 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           </div>
         </div>
       )}
+
+      {/* Translucent Project & Institution Watermark */}
+      <div
+        className={`pointer-events-none select-none absolute ${
+          dmmMode ? 'bottom-3 left-4' : 'bottom-3 right-4'
+        } z-20 rounded-lg border border-stone-300/60 border-l-[3px] border-l-teal-700/75 bg-[#fcfaf5]/65 backdrop-blur-[1px] px-3 py-2 opacity-45`}
+      >
+        <div className="font-mono text-[9.5px] font-semibold tracking-wider text-teal-800 border-b border-stone-300/70 pb-1 mb-1">
+          MARINE HV DIGITAL TWIN · STCW A-III/6
+        </div>
+        <div className="font-mono text-[9.5px] leading-[1.45] grid grid-cols-[78px_auto] gap-x-2 text-stone-700">
+          <span className="text-stone-500">DEVELOPED BY</span>
+          <span className="font-medium text-stone-800">: John Ray O. Dalida</span>
+          <span className="text-stone-500">STUDENT ID</span>
+          <span className="font-medium text-stone-800">: EE - 2022102981</span>
+          <span className="text-stone-500">INSTRUCTOR</span>
+          <span className="font-medium text-stone-800">: Engr. Nathaniel Sedilla</span>
+          <span className="text-stone-500">INSTITUTION</span>
+          <span className="font-medium text-stone-800">: Mapúa University</span>
+        </div>
+      </div>
     </div>
   );
 };

@@ -223,6 +223,119 @@ const frTarget: LadderRung[] = [
   },
 ];
 
+// ────────────────────────────────────────────────────────────────────────────────────────────
+// LAB C — Wye-Delta (Y-Δ) Reduced-Voltage Motor Starter (6-lead 7.5 HP motor + On-Delay Timer)
+// ────────────────────────────────────────────────────────────────────────────────────────────
+const ydDevices: ElectricalDevice[] = [
+  dev('source_3phase_440v', 90, 20, 'wyd_src', { name: '440V 3Φ 60Hz Supply' }),
+  dev('mcb_3p', 118, 165, 'wyd_q1', { name: 'Q1 Main 3P MCB 20A', state: { ratedAmps: 20, tripCurve: 'C' } }),
+  dev('contactor_3p', 25, 320, 'wyd_km1', { name: 'KM1 Main Line Contactor', state: { tag: 'KM1', role: 'MAIN' } }),
+  dev('contactor_3p', 160, 320, 'wyd_kmy', { name: 'KMY Star (Wye) Contactor', state: { tag: 'KMY', role: 'STAR' } }),
+  dev('contactor_3p', 295, 320, 'wyd_kmd', { name: 'KMD Delta Run Contactor', state: { tag: 'KMD', role: 'DELTA' } }),
+  dev('thermal_overload_relay', 25, 525, 'wyd_f2', { name: 'F2 Thermal Overload Relay', state: { tag: 'F2', tripAmps: 10 } }),
+  dev('motor_6lead_star_delta', 110, 710, 'wyd_m1', { name: 'M1 6-Lead Y-Δ Motor 7.5HP 440V', state: { tag: 'M1', wattage: 5500, motorHp: 7.5 } }),
+  dev('earth_busbar', 325, 695, 'wyd_pe', { name: 'PE Earth Bar' }),
+  dev('mcb_2p', 455, 165, 'wyd_q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
+  dev('control_transformer', 435, 320, 'wyd_tc1', { name: 'TC1 Control Transformer 440/220V', state: { tag: 'TC1' } }),
+  dev('push_button_station', 615, 320, 'wyd_s1', { name: 'S1 Start / Stop Station', state: { tag: 'S1' } }),
+  dev('timer_relay', 785, 320, 'wyd_kt1', { name: 'KT1 Star-Delta Timer (5s)', state: { tag: 'KT1', delaySec: 5 } }),
+  dev('pilot_light_indicator', 485, 540, 'wyd_pl_star', { name: 'PL_STAR Wye Start', state: { pilotColor: 'amber', tag: 'PL_STAR' } }),
+  dev('pilot_light_indicator', 580, 540, 'wyd_pl_delta', { name: 'PL_DELTA Delta Run', state: { pilotColor: 'green', tag: 'PL_DELTA' } }),
+  dev('pilot_light_indicator', 675, 540, 'wyd_pl_flt', { name: 'PL_FAULT Overload Trip', state: { pilotColor: 'red', tag: 'PL_FAULT' } }),
+];
+
+const ydWires: ElectricalWire[] = [
+  // ── Power: Feeder -> Q1 -> KM1 (main line) & KMD (delta)
+  w('yp', 'wyd_src', 'l1', 'wyd_q1', 'in_l1', L1),
+  w('yp', 'wyd_src', 'l2', 'wyd_q1', 'in_l2', L2),
+  w('yp', 'wyd_src', 'l3', 'wyd_q1', 'in_l3', L3),
+  w('yp', 'wyd_q1', 'out_l1', 'wyd_km1', 'l1', L1),
+  w('yp', 'wyd_q1', 'out_l2', 'wyd_km1', 'l2', L2),
+  w('yp', 'wyd_q1', 'out_l3', 'wyd_km1', 'l3', L3),
+  w('yp', 'wyd_q1', 'out_l1', 'wyd_kmd', 'l1', L1),
+  w('yp', 'wyd_q1', 'out_l2', 'wyd_kmd', 'l2', L2),
+  w('yp', 'wyd_q1', 'out_l3', 'wyd_kmd', 'l3', L3),
+  // ── KM1 -> F2 -> U1/V1/W1
+  w('yp', 'wyd_km1', 't1', 'wyd_f2', 'l1', L1, { lengthMeters: 0.3 }),
+  w('yp', 'wyd_km1', 't2', 'wyd_f2', 'l2', L2, { lengthMeters: 0.3 }),
+  w('yp', 'wyd_km1', 't3', 'wyd_f2', 'l3', L3, { lengthMeters: 0.3 }),
+  w('yp', 'wyd_f2', 't1', 'wyd_m1', 'u1', L1, { lengthMeters: 8 }),
+  w('yp', 'wyd_f2', 't2', 'wyd_m1', 'v1', L2, { lengthMeters: 8 }),
+  w('yp', 'wyd_f2', 't3', 'wyd_m1', 'w1', L3, { lengthMeters: 8 }),
+  // ── KMD Delta Run: T1(L1)->W2, T2(L2)->U2, T3(L3)->V2 (120-deg displacement across each coil)
+  w('yp', 'wyd_kmd', 't1', 'wyd_m1', 'w2', L1, { lengthMeters: 8 }),
+  w('yp', 'wyd_kmd', 't2', 'wyd_m1', 'u2', L2, { lengthMeters: 8 }),
+  w('yp', 'wyd_kmd', 't3', 'wyd_m1', 'v2', L3, { lengthMeters: 8 }),
+  // ── KMY Star Point: top poles bridged L1-L2-L3, bottom poles -> W2/U2/V2
+  w('yp', 'wyd_kmy', 'l1', 'wyd_kmy', 'l2', RET, { lengthMeters: 0.2 }),
+  w('yp', 'wyd_kmy', 'l2', 'wyd_kmy', 'l3', RET, { lengthMeters: 0.2 }),
+  w('yp', 'wyd_kmy', 't1', 'wyd_m1', 'w2', RET, { lengthMeters: 8 }),
+  w('yp', 'wyd_kmy', 't2', 'wyd_m1', 'u2', RET, { lengthMeters: 8 }),
+  w('yp', 'wyd_kmy', 't3', 'wyd_m1', 'v2', RET, { lengthMeters: 8 }),
+  // ── Grounding
+  w('ype', 'wyd_src', 'pe', 'wyd_pe', 'pe_main', PE),
+  w('ype', 'wyd_pe', 'pe_1', 'wyd_m1', 'pe', PE, { lengthMeters: 8 }),
+  // ── Control Supply: Q1 -> Q2 -> TC1 (440/220V)
+  w('yc', 'wyd_q1', 'out_l1', 'wyd_q2', 'in_1', L1),
+  w('yc', 'wyd_q1', 'out_l2', 'wyd_q2', 'in_2', L2),
+  w('yc', 'wyd_q2', 'out_1', 'wyd_tc1', 'h1', L1, { wireGauge: CTRL_GAUGE }),
+  w('yc', 'wyd_q2', 'out_2', 'wyd_tc1', 'h2', L2, { wireGauge: CTRL_GAUGE }),
+  // ── Rung 1: X1 -> OLR 95-96 -> STOP 1-2 -> (START 3-4 || KM1 13-14) -> KM1 A1 -> X2
+  w('yk', 'wyd_tc1', 'x1', 'wyd_f2', 'nc_95', CTRL),
+  w('yk', 'wyd_f2', 'nc_96', 'wyd_s1', 'stop_1', CTRL),
+  w('yk', 'wyd_s1', 'stop_2', 'wyd_s1', 'start_3', CTRL, { lengthMeters: 0.2 }),
+  w('yk', 'wyd_s1', 'stop_2', 'wyd_km1', 'no_13', CTRL),
+  w('yk', 'wyd_s1', 'start_4', 'wyd_km1', 'a1', CTRL),
+  w('yk', 'wyd_km1', 'no_14', 'wyd_km1', 'a1', CTRL, { lengthMeters: 0.2 }),
+  w('yk', 'wyd_km1', 'a2', 'wyd_tc1', 'x2', RET),
+  // ── Rung 2: Latched KM1:A1 -> KT1 A1 -> X2, plus KT1 COM 15
+  w('yk', 'wyd_km1', 'a1', 'wyd_kt1', 'a1', CTRL),
+  w('yk', 'wyd_kt1', 'a2', 'wyd_tc1', 'x2', RET),
+  w('yk', 'wyd_km1', 'a1', 'wyd_kt1', 'com_15', CTRL),
+  // ── Rung 3: Star KMY: KT1 15-16 NC -> KMD 21-22 NC -> KMY A1 -> X2
+  w('yk', 'wyd_kt1', 'nc_16', 'wyd_kmd', 'nc_21', CTRL),
+  w('yk', 'wyd_kmd', 'nc_22', 'wyd_kmy', 'a1', CTRL),
+  w('yk', 'wyd_kmy', 'a2', 'wyd_tc1', 'x2', RET),
+  // ── Rung 4: Delta KMD: KT1 15-18 NO -> KMY 21-22 NC -> KMD A1 -> X2
+  w('yk', 'wyd_kt1', 'no_18', 'wyd_kmy', 'nc_21', CTRL),
+  w('yk', 'wyd_kmy', 'nc_22', 'wyd_kmd', 'a1', CTRL),
+  w('yk', 'wyd_kmd', 'a2', 'wyd_tc1', 'x2', RET),
+  // ── Pilot Lights: PL_STAR (parallel w/ KMY), PL_DELTA (parallel w/ KMD), PL_FAULT (OLR 97-98)
+  w('yl', 'wyd_kmy', 'a1', 'wyd_pl_star', 'x1', CTRL),
+  w('yl', 'wyd_pl_star', 'x2', 'wyd_tc1', 'x2', RET),
+  w('yl', 'wyd_kmd', 'a1', 'wyd_pl_delta', 'x1', CTRL),
+  w('yl', 'wyd_pl_delta', 'x2', 'wyd_tc1', 'x2', RET),
+  w('yl', 'wyd_tc1', 'x1', 'wyd_f2', 'no_97', CTRL),
+  w('yl', 'wyd_f2', 'no_98', 'wyd_pl_flt', 'x1', CTRL),
+  w('yl', 'wyd_pl_flt', 'x2', 'wyd_tc1', 'x2', RET),
+];
+
+const ydLatchBase = () => [
+  ...series(el('NC', 'OLR', '95-96', 'wyd_f2', 'trip_nc'), el('NC', 'STOP', '1-2', 'wyd_s1', 'stop')),
+  parallel(el('NO', 'START', '3-4', 'wyd_s1', 'start'), el('NO', 'KM1', '13-14', 'wyd_km1', 'aux_no')),
+];
+const ydStarPath = () => [
+  ...ydLatchBase(),
+  ...series(el('NC', 'KT1', '15-16', 'wyd_kt1', 'timer_nc'), el('NC', 'KMD', '21-22', 'wyd_kmd', 'aux_nc')),
+];
+const ydDeltaPath = () => [
+  ...ydLatchBase(),
+  ...series(el('NO', 'KT1', '15-18', 'wyd_kt1', 'timer_no'), el('NC', 'KMY', '21-22', 'wyd_kmy', 'aux_nc')),
+];
+const ydTarget: LadderRung[] = [
+  { id: 'tgt_yd_1', blocks: ydLatchBase(), output: el('COIL', 'KM1/MAIN', 'A1-A2', 'wyd_km1', 'coil') },
+  { id: 'tgt_yd_2', blocks: ydLatchBase(), output: el('COIL', 'KT1 (5s)', 'A1-A2', 'wyd_kt1', 'coil') },
+  { id: 'tgt_yd_3', blocks: ydStarPath(), output: el('COIL', 'KMY/STAR', 'A1-A2', 'wyd_kmy', 'coil') },
+  { id: 'tgt_yd_4', blocks: ydDeltaPath(), output: el('COIL', 'KMD/DELTA', 'A1-A2', 'wyd_kmd', 'coil') },
+  { id: 'tgt_yd_5', blocks: ydStarPath(), output: el('LAMP', 'PL_STAR', 'AMBER', 'wyd_pl_star', 'lamp') },
+  { id: 'tgt_yd_6', blocks: ydDeltaPath(), output: el('LAMP', 'PL_DELTA', 'GREEN', 'wyd_pl_delta', 'lamp') },
+  {
+    id: 'tgt_yd_7',
+    blocks: series(el('NO', 'OLR', '97-98', 'wyd_f2', 'alarm_no')),
+    output: el('LAMP', 'PL_FAULT', 'RED', 'wyd_pl_flt', 'lamp'),
+  },
+];
+
 export const MOTOR_CONTROL_LABS: LabLesson[] = [
   {
     id: 'lab-marine-dol-440v',
@@ -280,6 +393,34 @@ export const MOTOR_CONTROL_LABS: LabLesson[] = [
       devices: frDevices,
       wires: frWires,
       targetLadder: frTarget,
+    },
+  },
+  {
+    id: 'lab-wye-delta-starter',
+    title: '★▲ Wye-Delta (Y-Δ) Reduced-Voltage Motor Starter (6-Lead 7.5 HP + Timer KT1)',
+    subtitle: 'Automated Y-Δ Starter — KM1 Line + KMY Star + KMD Delta + KT1 5s On-Delay Changeover + Interlocks',
+    category: 'industrial',
+    badge: '★▲ Wye-Delta Y-Δ',
+    difficulty: 'Advanced',
+    description:
+      'Industrial 440V Wye-Delta reduced-voltage starter for a 6-lead 7.5 HP induction motor (U1-V1-W1 & W2-U2-V2). Pressing START energizes KM1 (Main) and KMY (Star), shorting W2-U2-V2 to cut starting line current to 1/3 of DOL. After KT1 counts down 5 seconds, 15-16 opens KMY and 15-18 closes KMD (Delta) for full 440V phase-to-phase torque.',
+    objectives: [
+      'Press ▶ Simulate and click START on S1: observe KM1 + KMY pull in, PL_STAR glow amber, and M1 display ★ WYE 1/3 I at reduced current (~2.8A instead of 8.5A).',
+      'Watch KT1 count up to 5.0s: 15-16 drops KMY, 15-18 closes KMD, PL_DELTA turns green, and M1 shifts automatically into ▲ DELTA RUN (~8.5A).',
+      'Inspect KMY and KMD 21-22 NC cross-interlocks in Dual View (Ladder Logic): try forcing KMY test plunger while in Delta — the solver catches the bolted Star-Delta short!',
+      'Adjust KT1 delay in the Device Inspector (e.g. 3s vs 8s) and verify how star duration changes before Delta changeover.'
+    ],
+    project: {
+      id: 'proj_wye_delta_starter',
+      title: 'Wye-Delta (Y-Δ) Reduced-Voltage Starter (440V / 220V)',
+      description: '6-lead induction motor starter with KM1 Line, KMY Star, KMD Delta, KT1 on-delay timer, and 21-22 interlocks.',
+      codeStandard: 'PEC',
+      gridVoltage: 440,
+      gridFrequency: 60,
+      systemEarthing: 'TN-S',
+      devices: ydDevices,
+      wires: ydWires,
+      targetLadder: ydTarget,
     },
   },
 ];

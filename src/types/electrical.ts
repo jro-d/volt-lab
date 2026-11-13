@@ -28,7 +28,7 @@ export interface DeviceTerminal {
   relX: number; // percentage (0..1) or pixel relative to device width
   relY: number; // percentage (0..1) or pixel relative to device height
   label?: string;
-  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2';
+  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'W2' | 'U2' | 'V2' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2';
   spliceGroup?: string; // for junction boxes where terminals in the same group are shorted
 }
 
@@ -99,7 +99,8 @@ export type DeviceType =
   | 'timer_relay'
   | 'selector_hoa'
   | 'limit_switch'
-  | 'vfd_drive';
+  | 'vfd_drive'
+  | 'motor_6lead_star_delta';
 
 export interface ElectricalDevice {
   id: string;
@@ -152,6 +153,7 @@ export interface ElectricalDevice {
     tripAmps?: number; // thermal overload relay dial setting
     measuredAmps?: number; // solver-derived line current through a device
     motorDirection?: 'CW' | 'CCW' | null; // solver-derived rotation of 3-phase motor
+    starterMode?: 'wye' | 'delta' | null; // solver-derived Wye-Delta starting stage
     motorFault?: string | null; // solver-derived motor fault (single phasing etc.)
     secondaryLive?: boolean; // control transformer secondary energized
     [key: string]: any;
