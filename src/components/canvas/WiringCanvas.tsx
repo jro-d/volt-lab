@@ -28,6 +28,7 @@ interface WiringCanvasProps {
   onSelectDevice: (id: string | null, additive?: boolean) => void;
   onSelectWire: (wire: ElectricalWire | null) => void;
   onUpdateDevicePosition: (id: string, x: number, y: number) => void;
+  onUpdateMultipleDevicePositions?: (updates: { id: string; x: number; y: number }[]) => void;
   onConnectWire: (fromDevId: string, fromTermId: string, toDevId: string, toTermId: string, mode?: WiringMode) => void;
   onToggleDeviceState: (device: ElectricalDevice) => void;
   /** Merge a partial state patch into a device (momentary push buttons, dials, view toggles) */
@@ -43,6 +44,18 @@ interface WiringCanvasProps {
   fitKey?: string;
   /** Pixels on the left covered by floating panels (kept clear when fitting) */
   insetLeft?: number;
+  /** Digital Multimeter / Clamp Meter mode */
+  dmmMode?: boolean;
+  onDmmProbeTerminal?: (deviceId: string, terminalId: string) => void;
+  onDmmClampWire?: (wireId: string) => void;
+  dmmReadout?: {
+    mode: 'voltage' | 'clamp' | 'idle';
+    primary: string;
+    secondary?: string;
+    label?: string;
+    probeA?: { deviceId: string; terminalId: string };
+    probeB?: { deviceId: string; terminalId: string };
+  } | null;
 }
 
 export const WiringCanvas: React.FC<WiringCanvasProps> = ({
@@ -62,6 +75,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   onSelectDevice,
   onSelectWire,
   onUpdateDevicePosition,
+  onUpdateMultipleDevicePositions,
   onConnectWire,
   onToggleDeviceState,
   onPatchDeviceState,
@@ -73,6 +87,10 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   onDeleteDevice,
   fitKey,
   insetLeft = 0,
+  dmmMode = false,
+  onDmmProbeTerminal,
+  onDmmClampWire,
+  dmmReadout = null,
 }) => {
   const containerRef = useRef<SVGSVGElement | null>(null);
 
@@ -102,6 +120,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   // Dragging device state
   const [draggingDevId, setDraggingDevId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 });
+  const groupDragRef = useRef<{ anchorId: string; anchorStart: Point; members: { id: string; x: number; y: number }[] } | null>(null);
+  const [snapGuides, setSnapGuides] = useState<{ x?: number; y?: number; dinLabel?: boolean } | null>(null);
   // A drag gesture that is not allowed (energized grid / locked device): we only toast once it actually moves
   const blockedDragRef = useRef<{ x: number; y: number; reason: 'simulating' | 'locked-device'; notified: boolean } | null>(null);
 
@@ -243,14 +263,17 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   const handleDeviceMouseDown = (device: ElectricalDevice, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Shift+click builds a multi-selection (used by Align H / Align V)
+    // Shift+click builds a multi-selection (used by Align H / Align V / Group Drag)
     if (e.shiftKey) {
       onSelectDevice(device.id, true);
       onSelectWire(null);
       return;
     }
 
-    onSelectDevice(device.id);
+    const isInMultiGroup = selectedDeviceIds.length > 1 && selectedDeviceIds.includes(device.id);
+    if (!isInMultiGroup) {
+      onSelectDevice(device.id);
+    }
     onSelectWire(null);
 
     const coords = getSvgCoordinates(e);
@@ -267,6 +290,19 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       return;
     }
 
+    if (isInMultiGroup) {
+      const members = devices
+        .filter((d) => selectedDeviceIds.includes(d.id) && !d.state.locked)
+        .map((d) => ({ id: d.id, x: d.x, y: d.y }));
+      groupDragRef.current = {
+        anchorId: device.id,
+        anchorStart: { x: device.x, y: device.y },
+        members,
+      };
+    } else {
+      groupDragRef.current = null;
+    }
+
     setDraggingDevId(device.id);
     setDragOffset({
       x: coords.x - device.x,
@@ -276,6 +312,10 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   const handleTerminalMouseDown = (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (dmmMode) {
+      onDmmProbeTerminal?.(device.id, terminal.id);
+      return;
+    }
     if (isSimulating) {
       // Wire creation is locked while the grid is energized
       onBlockedEdit?.('simulating');
@@ -331,9 +371,68 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     }
 
     if (draggingDevId) {
-      const newX = snapValue(coords.x - dragOffset.x);
-      const newY = snapValue(coords.y - dragOffset.y);
-      onUpdateDevicePosition(draggingDevId, Math.max(10, newX), Math.max(10, newY));
+      let newX = Math.max(10, snapValue(coords.x - dragOffset.x));
+      let newY = Math.max(10, snapValue(coords.y - dragOffset.y));
+
+      const grp = groupDragRef.current;
+      if (grp && grp.members.length > 1 && onUpdateMultipleDevicePositions) {
+        const dx = newX - grp.anchorStart.x;
+        const dy = newY - grp.anchorStart.y;
+        setSnapGuides(null);
+        onUpdateMultipleDevicePositions(
+          grp.members.map((m) => ({
+            id: m.id,
+            x: Math.max(10, m.x + dx),
+            y: Math.max(10, m.y + dy),
+          }))
+        );
+        return;
+      }
+
+      // Snap-to-DIN-Rail & Auto-Alignment Guides for single-device drag
+      const dragged = devices.find((d) => d.id === draggingDevId);
+      if (dragged) {
+        let guideX: number | undefined;
+        let guideY: number | undefined;
+        let dinLabel = false;
+
+        const dinTypes = new Set([
+          'mcb_1p', 'mcb_2p', 'mcb_3p', 'rcd_2p', 'spd_surge',
+          'contactor_3p', 'plc_micro_controller', 'industrial_relay_dpdt',
+          'timer_relay', 'vfd_drive', 'panel_meter',
+        ]);
+
+        if (dinTypes.has(dragged.type)) {
+          const dragCy = newY + dragged.height / 2;
+          for (const rail of devices) {
+            if (rail.type !== 'din_rail_track') continue;
+            const railW = rail.state.trackWidth || rail.width || 260;
+            const withinX = newX + dragged.width > rail.x - 16 && newX < rail.x + railW + 16;
+            const railCy = rail.y + rail.height / 2;
+            if (withinX && Math.abs(dragCy - railCy) <= 18) {
+              newY = Math.max(10, Math.round(railCy - dragged.height / 2));
+              guideY = railCy;
+              dinLabel = true;
+              break;
+            }
+          }
+        }
+
+        const dragCx = newX + dragged.width / 2;
+        for (const other of devices) {
+          if (other.id === draggingDevId) continue;
+          const otherCx = other.x + other.width / 2;
+          if (Math.abs(dragCx - otherCx) <= 7) {
+            newX = Math.max(10, Math.round(otherCx - dragged.width / 2));
+            guideX = otherCx;
+            break;
+          }
+        }
+
+        setSnapGuides(guideX !== undefined || guideY !== undefined ? { x: guideX, y: guideY, dinLabel } : null);
+      }
+
+      onUpdateDevicePosition(draggingDevId, newX, newY);
     } else if (isPanning) {
       setPan({
         x: e.clientX - panStart.x,
@@ -344,6 +443,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   const handleMouseUp = () => {
     setDraggingDevId(null);
+    groupDragRef.current = null;
+    setSnapGuides(null);
     setIsPanning(false);
     setDraggingSegment(null);
     blockedDragRef.current = null;
@@ -557,7 +658,13 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                 currentAmps={solved.wireCurrents[wire.id] || 0}
                 flowDirection={solved.wireFlowDirections?.[wire.id] || 'forward'}
                 voltageDropPercent={solved.wireVoltageDropPercents[wire.id] || 0}
-                onSelectWire={() => onSelectWire(wire)}
+                onSelectWire={() => {
+                  if (dmmMode) {
+                    onDmmClampWire?.(wire.id);
+                  } else {
+                    onSelectWire(wire);
+                  }
+                }}
                 onStartSegmentDrag={(wireId, segIdx, isHoriz, pt, waypoints, e) => {
                   if (isSimulating) {
                     onBlockedEdit?.('simulating');
@@ -622,6 +729,36 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
             </g>
           </TerminalHighlightContext.Provider>
 
+          {/* Layer 3.5: CAD Snap & Alignment Guides */}
+          {snapGuides && (snapGuides.x !== undefined || snapGuides.y !== undefined) && (
+            <g id="snap-guides-layer" className="pointer-events-none">
+              {snapGuides.x !== undefined && (
+                <line
+                  x1={snapGuides.x}
+                  y1={-5000}
+                  x2={snapGuides.x}
+                  y2={5000}
+                  stroke="#38bdf8"
+                  strokeWidth={1.2}
+                  strokeDasharray="6 4"
+                  opacity={0.85}
+                />
+              )}
+              {snapGuides.y !== undefined && (
+                <line
+                  x1={-5000}
+                  y1={snapGuides.y}
+                  x2={5000}
+                  y2={snapGuides.y}
+                  stroke="#38bdf8"
+                  strokeWidth={1.2}
+                  strokeDasharray="6 4"
+                  opacity={0.85}
+                />
+              )}
+            </g>
+          )}
+
           {/* Layer 4: Sparks & Arc Flash Effects */}
           <g id="sparks-layer" className="pointer-events-none">
             {solved.sparks.map((spark) => {
@@ -657,6 +794,32 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           </g>
         </g>
       </svg>
+
+      {/* Handheld Digital Multimeter / Clamp Meter HUD */}
+      {dmmMode && (
+        <div className="pointer-events-none absolute bottom-10 right-4 z-30 w-64 rounded-xl border-2 border-amber-500/80 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-[10px] font-bold tracking-widest text-amber-400 uppercase">
+                True RMS DMM / Clamp
+              </span>
+            </div>
+            <span className="text-[9px] font-mono text-slate-400">CAT IV 600V</span>
+          </div>
+          <div className="rounded-lg bg-emerald-950/80 border border-emerald-700/50 px-3 py-2 font-mono">
+            <div className="text-[10px] text-emerald-400/80 uppercase tracking-wider">
+              {dmmReadout?.label || 'Click 2 terminals (V) or 1 wire (A)'}
+            </div>
+            <div className="text-2xl font-black text-emerald-300 tracking-tight mt-0.5">
+              {dmmReadout?.primary || '---'}
+            </div>
+            {dmmReadout?.secondary && (
+              <div className="text-[11px] text-emerald-400/90 mt-0.5">{dmmReadout.secondary}</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

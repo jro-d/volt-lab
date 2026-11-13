@@ -29,6 +29,9 @@ import { ThermalOverloadDevice } from './ThermalOverloadDevice';
 import { ControlTransformerDevice } from './ControlTransformerDevice';
 import { ThreePhaseSourceDevice } from './ThreePhaseSourceDevice';
 import { PushButtonFwdRevDevice } from './PushButtonFwdRevDevice';
+import { SwitchMultiGangDevice } from './SwitchMultiGangDevice';
+import { PanelHardwareDevice } from './PanelHardwareDevice';
+import { IndustrialControlExtDevice } from './IndustrialControlExtDevice';
 
 interface DeviceRendererProps {
   device: ElectricalDevice;
@@ -157,6 +160,19 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
         return <ThreePhaseSourceDevice {...commonProps} />;
       case 'push_button_fwd_rev':
         return <PushButtonFwdRevDevice {...commonProps} />;
+      case 'switch_2gang':
+      case 'switch_3gang':
+      case 'dimmer_switch':
+        return <SwitchMultiGangDevice {...commonProps} />;
+      case 'ats_changeover':
+      case 'panelboard_frame':
+      case 'panel_meter':
+        return <PanelHardwareDevice {...commonProps} />;
+      case 'timer_relay':
+      case 'selector_hoa':
+      case 'limit_switch':
+      case 'vfd_drive':
+        return <IndustrialControlExtDevice {...commonProps} />;
       default:
         return <McbDevice {...commonProps} />;
     }

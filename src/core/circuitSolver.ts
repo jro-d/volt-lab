@@ -306,6 +306,51 @@ export function solveCircuit(
       if (outs.q2) addEdge(terminalKey(dev.id, 'q2_1'), terminalKey(dev.id, 'q2_2'));
       if (outs.q3) addEdge(terminalKey(dev.id, 'q3_1'), terminalKey(dev.id, 'q3_2'));
       if (outs.q4) addEdge(terminalKey(dev.id, 'q4_1'), terminalKey(dev.id, 'q4_2'));
+    } else if (dev.type === 'switch_2gang') {
+      if (dev.state.isOn) addEdge(terminalKey(dev.id, 'com1'), terminalKey(dev.id, 'l1_out'));
+      if (dev.state.isOn2) addEdge(terminalKey(dev.id, 'com2'), terminalKey(dev.id, 'l2_out'));
+    } else if (dev.type === 'switch_3gang') {
+      if (dev.state.isOn) addEdge(terminalKey(dev.id, 'com1'), terminalKey(dev.id, 'l1_out'));
+      if (dev.state.isOn2) addEdge(terminalKey(dev.id, 'com2'), terminalKey(dev.id, 'l2_out'));
+      if (dev.state.isOn3) addEdge(terminalKey(dev.id, 'com3'), terminalKey(dev.id, 'l3_out'));
+    } else if (dev.type === 'dimmer_switch') {
+      if (dev.state.isOn !== false && (dev.state.level ?? 80) > 0) {
+        addEdge(terminalKey(dev.id, 'in_l'), terminalKey(dev.id, 'out_l'));
+      }
+    } else if (dev.type === 'ats_changeover') {
+      if (dev.state.source === 'generator') {
+        addEdge(terminalKey(dev.id, 'gen_l'), terminalKey(dev.id, 'load_l'));
+        addEdge(terminalKey(dev.id, 'gen_n'), terminalKey(dev.id, 'load_n'));
+      } else {
+        addEdge(terminalKey(dev.id, 'norm_l'), terminalKey(dev.id, 'load_l'));
+        addEdge(terminalKey(dev.id, 'norm_n'), terminalKey(dev.id, 'load_n'));
+      }
+    } else if (dev.type === 'panel_meter') {
+      addEdge(terminalKey(dev.id, 'ct_in'), terminalKey(dev.id, 'ct_out'));
+    } else if (dev.type === 'timer_relay') {
+      if (dev.state.timedOut) {
+        addEdge(terminalKey(dev.id, 'com_15'), terminalKey(dev.id, 'no_18'));
+      } else {
+        addEdge(terminalKey(dev.id, 'com_15'), terminalKey(dev.id, 'nc_16'));
+      }
+    } else if (dev.type === 'selector_hoa') {
+      if (dev.state.mode === 'hand') {
+        addEdge(terminalKey(dev.id, 'com'), terminalKey(dev.id, 'hand'));
+      } else if (dev.state.mode === 'auto') {
+        addEdge(terminalKey(dev.id, 'com'), terminalKey(dev.id, 'auto'));
+      }
+    } else if (dev.type === 'limit_switch') {
+      if (dev.state.actuated) {
+        addEdge(terminalKey(dev.id, 'no_13'), terminalKey(dev.id, 'no_14'));
+      } else {
+        addEdge(terminalKey(dev.id, 'nc_11'), terminalKey(dev.id, 'nc_12'));
+      }
+    } else if (dev.type === 'vfd_drive') {
+      if (dev.state.isOn !== false) {
+        addEdge(terminalKey(dev.id, 'l1'), terminalKey(dev.id, 'u'));
+        addEdge(terminalKey(dev.id, 'l2'), terminalKey(dev.id, 'v'));
+        addEdge(terminalKey(dev.id, 'l3'), terminalKey(dev.id, 'w'));
+      }
     }
     // control_transformer: galvanic isolation — no primary↔secondary continuity (handled as a source below)
   }
@@ -512,6 +557,15 @@ export function solveCircuit(
           dev.state.plcOutputs = outp;
           if (contactsChanged) break;
         }
+      } else if (dev.type === 'ats_changeover' && dev.state.autoMode !== false) {
+        const normLive = nodePotentials[terminalKey(dev.id, 'norm_l')] === 'live';
+        const genLive = nodePotentials[terminalKey(dev.id, 'gen_l')] === 'live';
+        const desired = normLive ? 'normal' : genLive ? 'generator' : dev.state.source || 'normal';
+        if (dev.state.source !== desired) {
+          dev.state.source = desired;
+          contactsChanged = true;
+          break;
+        }
       }
     }
 
@@ -602,6 +656,7 @@ export function solveCircuit(
       const hotPot = nodePotentials[terminalKey(dev.id, 'hot')];
       const nPot = nodePotentials[terminalKey(dev.id, 'neutral')];
       const isLit = hotPot === 'live' && nPot === 'neutral';
+      dev.state.openNeutral = hotPot === 'live' && (!nPot || nPot === 'none');
 
       deviceEnergized[dev.id] = isLit;
       if (isLit) {
@@ -779,6 +834,23 @@ export function solveCircuit(
         totalWatts += 150; // Nominal branch plug load
       }
       deviceEnergized[dev.id] = isPilotLit || isRecPowered;
+    } else if (dev.type === 'timer_relay') {
+      const coilHot = isCoilPowered(dev.id, 'a1', 'a2');
+      deviceEnergized[dev.id] = coilHot;
+      if (coilHot) {
+        totalWatts += 4;
+      }
+    } else if (dev.type === 'vfd_drive') {
+      const l1Pot = nodePotentials[terminalKey(dev.id, 'l1')];
+      const l2Pot = nodePotentials[terminalKey(dev.id, 'l2')];
+      const isPowered = l1Pot === 'live' && (l2Pot === 'live' || l2Pot === 'neutral');
+      const isRun = isPowered && dev.state.isOn !== false;
+      dev.state.running = isRun;
+      deviceEnergized[dev.id] = isRun;
+      if (isRun) totalWatts += 20;
+    } else if (dev.type === 'ats_changeover') {
+      const lOut = nodePotentials[terminalKey(dev.id, 'load_l')] === 'live';
+      deviceEnergized[dev.id] = lOut;
     }
   }
 
@@ -908,7 +980,36 @@ export function solveCircuit(
       if (dev.state.receptaclePowered) {
         traceLoadCurrent(terminalKey(dev.id, 'rec_l'), terminalKey(dev.id, 'rec_n'), 150 / gridVoltage);
       }
+    } else if (dev.type === 'timer_relay') {
+      const a1Pot = nodePotentials[terminalKey(dev.id, 'a1')];
+      const liveT = a1Pot === 'live' ? 'a1' : 'a2';
+      const neutT = a1Pot === 'live' ? 'a2' : 'a1';
+      traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), 4 / gridVoltage);
     }
+  }
+
+  // Update digital panel meters with live bus RMS voltage, branch current, and frequency
+  for (const dev of devices) {
+    if (dev.type !== 'panel_meter') continue;
+    const vlKey = terminalKey(dev.id, 'v_l');
+    const vnKey = terminalKey(dev.id, 'v_n');
+    const vlPot = nodePotentials[vlKey];
+    const vnPot = nodePotentials[vnKey];
+    const hasVolts =
+      (vlPot === 'live' && (vnPot === 'neutral' || vnPot === 'earth')) ||
+      (vlPot === 'live' && vnPot === 'live' && nodePhases[vlKey] && nodePhases[vnKey] && nodePhases[vlKey] !== nodePhases[vnKey]);
+    let ctAmps = 0;
+    for (const w of wires) {
+      if (
+        (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ct_in' || w.fromTerminalId === 'ct_out')) ||
+        (w.toDeviceId === dev.id && (w.toTerminalId === 'ct_in' || w.toTerminalId === 'ct_out'))
+      ) {
+        ctAmps = Math.max(ctAmps, wireCurrents[w.id] || 0);
+      }
+    }
+    dev.state.volts = hasVolts ? Math.max(nodeVoltages[vlKey] || gridVoltage, gridVoltage) : 0;
+    dev.state.amps = ctAmps;
+    dev.state.hz = standard === 'PEC' ? 60 : 50;
   }
 
   // Calculate voltage drop on all wires
@@ -926,16 +1027,55 @@ export function solveCircuit(
     wireVoltageDropPercents[wire.id] = vdPercent;
   }
 
-  // 6. Thermal Overload Trip on Breakers (actual current through each breaker's conductors)
+  // 6. Thermal & Magnetic Trip Curve Evaluation (B/C/D) on Breakers
+  const hasVfdUpstream = (node: string): boolean => {
+    let curr: string | undefined = node;
+    const seen = new Set<string>();
+    while (curr && !seen.has(curr)) {
+      seen.add(curr);
+      if (deviceById.get(devOfNode(curr))?.type === 'vfd_drive') return true;
+      curr = liveParent[curr]?.prevNode;
+    }
+    return false;
+  };
+
+  const motorInrushByBreaker: Record<string, number> = {};
+  for (const dev of devices) {
+    if ((dev.type === 'motor_ac_industrial' || dev.type === 'motor_3phase_dol') && deviceEnergized[dev.id]) {
+      const startKey = terminalKey(dev.id, dev.type === 'motor_ac_industrial' ? 'u1' : 'l1');
+      const runAmps = dev.state.measuredAmps || (dev.state.wattage || 2200) / gridVoltage;
+      const inrushMult = hasVfdUpstream(startKey) ? 1.8 : 6.0;
+      const inrushAmps = runAmps * inrushMult;
+      let curr: string | undefined = startKey;
+      const seen = new Set<string>();
+      while (curr && !seen.has(curr)) {
+        seen.add(curr);
+        const up = deviceById.get(devOfNode(curr));
+        if (up && BREAKER_TYPES.has(up.type)) {
+          motorInrushByBreaker[up.id] = Math.max(motorInrushByBreaker[up.id] || 0, inrushAmps);
+        }
+        curr = liveParent[curr]?.prevNode;
+      }
+    }
+  }
+
   for (const dev of devices) {
     if (!BREAKER_TYPES.has(dev.type) || !dev.state.closed || dev.state.tripped) continue;
     if (trippedDevices.includes(dev.id)) continue;
     const rated = dev.state.ratedAmps || 16;
+    const curve = dev.state.tripCurve || 'C';
+    const curveMagFactor = curve === 'B' ? 3.5 : curve === 'D' ? 12 : 6.5;
     let breakerAmps = 0;
     for (const w of wires) {
       if (w.fromDeviceId === dev.id || w.toDeviceId === dev.id) {
         breakerAmps = Math.max(breakerAmps, wireCurrents[w.id] || 0);
       }
+    }
+    const peakInrush = motorInrushByBreaker[dev.id] || 0;
+    if (peakInrush > rated * curveMagFactor) {
+      trippedDevices.push(dev.id);
+      tripReasons[dev.id] = `Magnetic Inrush Trip (Curve ${curve}): Motor starting LRA (${peakInrush.toFixed(1)}A) exceeds ${curve} threshold (${(rated * curveMagFactor).toFixed(0)}A) — select Type C/D or VFD soft-start`;
+      continue;
     }
     // If the conducted load exceeds 1.3x rated, trip thermally
     if (breakerAmps > rated * 1.3) {

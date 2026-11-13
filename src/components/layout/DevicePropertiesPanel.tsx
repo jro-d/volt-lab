@@ -1212,6 +1212,21 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {/* --- WIRE PROPERTIES --- */}
       {wire && (
         <div className="space-y-3">
+          {/* Wire Tag / Circuit Label */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Wire Tag / Circuit Label
+            </label>
+            <input
+              type="text"
+              value={wire.label || ''}
+              maxLength={18}
+              placeholder="e.g. CKT-1 L1, T1, SW-RET"
+              onChange={(e) => onUpdateWireProperty(wire.id, { label: e.target.value })}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono placeholder:text-slate-600 focus:outline-none focus:border-sky-500"
+            />
+          </div>
+
           {/* Gauge Selector */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">

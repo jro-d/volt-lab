@@ -88,7 +88,18 @@ export type DeviceType =
   | 'thermal_overload_relay'
   | 'control_transformer'
   | 'source_3phase_440v'
-  | 'push_button_fwd_rev';
+  | 'push_button_fwd_rev'
+  // Phase 4: Extended Residential, Commercial & Industrial Suite
+  | 'switch_2gang'
+  | 'switch_3gang'
+  | 'dimmer_switch'
+  | 'ats_changeover'
+  | 'panelboard_frame'
+  | 'panel_meter'
+  | 'timer_relay'
+  | 'selector_hoa'
+  | 'limit_switch'
+  | 'vfd_drive';
 
 export interface ElectricalDevice {
   id: string;
@@ -163,6 +174,7 @@ export interface ElectricalWire {
   waypoints?: { x: number; y: number }[];
   cableBundleId?: string; // id grouping paired wires (e.g. feed + return)
   conductorRole?: 'feed_live' | 'return_neutral' | 'earth_ground' | 'switched_live' | 'traveler';
+  label?: string; // Optional user circuit/wire tag (e.g. CKT-1 L1, T1, SW-RET)
 }
 
 

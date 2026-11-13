@@ -332,6 +332,31 @@ export function analyzeCodeCompliance(
     });
   }
 
+  // Check for Open / Floating Neutral Hazard on energized single-phase loads
+  for (const dev of devices) {
+    const isSinglePhaseLoad =
+      dev.type === 'light_bulb' ||
+      dev.type === 'appliance_fan' ||
+      dev.type === 'appliance_ac' ||
+      dev.type === 'appliance_water_heater';
+    if (!isSinglePhaseLoad) continue;
+    const hotId = dev.type === 'light_bulb' ? 'hot' : 'line';
+    const hotPot = solved.nodePotentials[`${dev.id}:${hotId}`];
+    const neutPot = solved.nodePotentials[`${dev.id}:neutral`];
+    if (hotPot === 'live' && (!neutPot || neutPot === 'none')) {
+      violations.push({
+        id: `viol_open_neutral_${dev.id}`,
+        codeStandard: standard,
+        severity: 'error',
+        category: 'shock_hazard',
+        articleRef: standard === 'PEC' ? 'PEC 2017 Art. 2.10.1 / 3.00.13 (Grounded Conductor Continuity)' : 'IEC 60364-4-41',
+        title: `Open / Floating Neutral on ${dev.name}`,
+        message: `${dev.name} is energized at ${gridVoltage}V on its Line terminal with an open or missing Neutral return, creating a floating return hazard.`,
+        recommendation: 'Verify continuity of the neutral conductor back to the main Neutral Busbar / N-OUT terminal.',
+      });
+    }
+  }
+
   return {
     totalConnectedWatts: solved.totalWatts,
     totalCurrentAmps: solved.totalAmps,
