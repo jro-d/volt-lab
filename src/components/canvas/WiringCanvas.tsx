@@ -3,7 +3,7 @@ import { ElectricalDevice, ElectricalWire, DeviceTerminal, CodeStandard, WiringM
 import { DeviceRenderer } from '../devices/DeviceRenderer';
 import { TerminalHighlightContext, HighlightedEndpointInfo } from '../devices/TerminalContext';
 import { WireRenderer } from './WireRenderer';
-import { calculateOrthogonalPath, generateSvgPath, Point, getDeviceTerminalPosition } from '../../core/wireRouter';
+import { calculateOrthogonalPath, computeWireRoute, generateSvgPath, Point, getDeviceTerminalPosition } from '../../core/wireRouter';
 import { SolvedCircuit } from '../../core/circuitSolver';
 import { cadStatus } from '../../utils/cadStatusStore';
 
@@ -19,6 +19,8 @@ interface WiringCanvasProps {
   /** Additional Shift+click multi-selection (ordered, first = alignment anchor) */
   selectedDeviceIds?: string[];
   selectedWireId: string | null;
+  /** Every selected wire (marquee / Shift+click); selectedWireId is the primary one */
+  selectedWireIds?: string[];
   /** Grid energized: dragging, wiring and structural edits are locked */
   isSimulating?: boolean;
   /** Grid snap in px (0 = OFF) */
@@ -26,7 +28,11 @@ interface WiringCanvasProps {
   /** Called when the user attempts an edit that is currently locked */
   onBlockedEdit?: (reason: 'simulating' | 'locked-device') => void;
   onSelectDevice: (id: string | null, additive?: boolean) => void;
-  onSelectWire: (wire: ElectricalWire | null) => void;
+  onSelectWire: (wire: ElectricalWire | null, additive?: boolean) => void;
+  /** Rubber-band selection finished: devices + wires inside the box */
+  onMarqueeSelect?: (deviceIds: string[], wireIds: string[], additive: boolean) => void;
+  /** Double-click on a device or wire: show the inspector */
+  onOpenInspector?: () => void;
   onUpdateDevicePosition: (id: string, x: number, y: number) => void;
   onUpdateMultipleDevicePositions?: (updates: { id: string; x: number; y: number }[]) => void;
   onConnectWire: (fromDevId: string, fromTermId: string, toDevId: string, toTermId: string, mode?: WiringMode) => void;
@@ -73,11 +79,14 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   selectedDeviceId,
   selectedDeviceIds = [],
   selectedWireId,
+  selectedWireIds = [],
   isSimulating = false,
   snapSize = 10,
   onBlockedEdit,
   onSelectDevice,
   onSelectWire,
+  onMarqueeSelect,
+  onOpenInspector,
   onUpdateDevicePosition,
   onUpdateMultipleDevicePositions,
   onConnectWire,
@@ -126,6 +135,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   };
 
   // Dragging device state
+  const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number; additive: boolean } | null>(null);
+  const marqueeRef = useRef<typeof marquee>(null);
   const [draggingDevId, setDraggingDevId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 });
   const groupDragRef = useRef<{ anchorId: string; anchorStart: Point; members: { id: string; x: number; y: number }[] } | null>(null);
@@ -284,7 +295,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     e.stopPropagation();
 
     // Shift+click builds a multi-selection (used by Align H / Align V / Group Drag)
-    if (e.shiftKey) {
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
       onSelectDevice(device.id, true);
       onSelectWire(null);
       return;
@@ -372,6 +383,13 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         blocked.notified = true;
         onBlockedEdit?.(blocked.reason);
       }
+    }
+
+    if (marqueeRef.current) {
+      const m = { ...marqueeRef.current, x1: coords.x, y1: coords.y };
+      marqueeRef.current = m;
+      setMarquee(m);
+      return;
     }
 
     if (draggingSegment) {
@@ -468,7 +486,52 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     }
   };
 
+  const finishMarquee = () => {
+    const m = marqueeRef.current;
+    if (!m) return;
+    marqueeRef.current = null;
+    setMarquee(null);
+    const minX = Math.min(m.x0, m.x1);
+    const maxX = Math.max(m.x0, m.x1);
+    const minY = Math.min(m.y0, m.y1);
+    const maxY = Math.max(m.y0, m.y1);
+    if ((maxX - minX) * zoom < 5 && (maxY - minY) * zoom < 5) return; // a plain click, not a drag
+    const hit = (ax: number, ay: number, bx: number, by: number) =>
+      Math.max(ax, bx) >= minX && Math.min(ax, bx) <= maxX && Math.max(ay, by) >= minY && Math.min(ay, by) <= maxY;
+    const devIds = devices
+      .filter((d) => {
+        const rot = (((d.rotation || 0) % 360) + 360) % 360;
+        const sw = rot === 90 || rot === 270;
+        const w = sw ? d.height : d.width;
+        const h = sw ? d.width : d.height;
+        const cx = d.x + d.width / 2;
+        const cy = d.y + d.height / 2;
+        return hit(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2);
+      })
+      .map((d) => d.id);
+    const wireIds = wires
+      .filter((w) => {
+        const route = computeWireRoute(w, devices);
+        if (!route) return false;
+        const pts = route.waypoints;
+        for (let i = 0; i < pts.length - 1; i++) {
+          if (hit(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y)) return true;
+        }
+        return false;
+      })
+      .map((w) => w.id);
+    onMarqueeSelect?.(devIds, wireIds, m.additive);
+  };
+
+  // Releasing the mouse outside the canvas must still end the rubber band
+  React.useEffect(() => {
+    const up = () => finishMarquee();
+    window.addEventListener('mouseup', up);
+    return () => window.removeEventListener('mouseup', up);
+  });
+
   const handleMouseUp = () => {
+    finishMarquee();
     setDraggingDevId(null);
     groupDragRef.current = null;
     setSnapGuides(null);
@@ -492,15 +555,23 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       if (target?.closest?.('[data-wire-id]')) {
         return;
       }
-      // Left click on empty space deselects
-      onSelectDevice(null);
-      onSelectWire(null);
-      if (wiringStart) {
+      const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+      // Left click on empty space deselects (unless extending a selection)
+      if (!additive) {
+        onSelectDevice(null);
+        onSelectWire(null);
+      }
+      if (wiringStart || rewiringTarget) {
         setWiringStart(null);
+        if (rewiringTarget) onSetRewiringTarget?.(null);
+        return;
       }
-      if (rewiringTarget) {
-        onSetRewiringTarget?.(null);
-      }
+      if (dmmMode) return;
+      // Otherwise begin a rubber-band selection
+      const c = getSvgCoordinates(e);
+      const m = { x0: c.x, y0: c.y, x1: c.x, y1: c.y, additive };
+      marqueeRef.current = m;
+      setMarquee(m);
     }
   };
 
@@ -665,6 +736,16 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         </div>
       )}
 
+      {/* Multi-selection summary */}
+      {(selectedDeviceIds.length > 1 || selectedWireIds.length > 1) && !wiringStart && (
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-slate-900/90 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg" style={{ marginLeft: insetLeft / 2 }}>
+          <span className="text-sky-300">Selected</span>
+          {selectedDeviceIds.length > 0 && <span>{selectedDeviceIds.length} device{selectedDeviceIds.length === 1 ? '' : 's'}</span>}
+          {selectedWireIds.length > 0 && <span>{selectedWireIds.length} wire{selectedWireIds.length === 1 ? '' : 's'}</span>}
+          <span className="text-slate-400 font-medium">· double-click for properties</span>
+        </div>
+      )}
+
       {/* Wire Tool Notice */}
       {wiringStart && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-rose-600 text-white font-bold text-xs px-4 py-1.5 rounded-full shadow-lg animate-pulse">
@@ -713,18 +794,20 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                 key={wire.id}
                 wire={wire}
                 devices={devices}
-                isSelected={selectedWireId === wire.id}
+                isSelected={selectedWireId === wire.id || selectedWireIds.includes(wire.id)}
+                showGrips={selectedWireIds.length <= 1}
                 standard={standard}
                 currentAmps={solved.wireCurrents[wire.id] || 0}
                 flowDirection={solved.wireFlowDirections?.[wire.id] || 'forward'}
                 voltageDropPercent={solved.wireVoltageDropPercents[wire.id] || 0}
-                onSelectWire={() => {
+                onSelectWire={(_w, ev) => {
                   if (dmmMode) {
                     onDmmClampWire?.(wire.id);
                   } else {
-                    onSelectWire(wire);
+                    onSelectWire(wire, ev.shiftKey || ev.ctrlKey || ev.metaKey);
                   }
                 }}
+                onOpenInspector={onOpenInspector}
                 onStartSegmentDrag={(wireId, segIdx, isHoriz, pt, waypoints, e) => {
                   if (isSimulating) {
                     onBlockedEdit?.('simulating');
@@ -776,6 +859,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                   selectedTerminalId={wiringStart ? `${wiringStart.dev.id}:${wiringStart.term.id}` : null}
                   hoveredTerminalId={hoveredTerminalId}
                   onDeviceMouseDown={handleDeviceMouseDown}
+                  onDeviceDoubleClick={() => onOpenInspector?.()}
                   onTerminalMouseDown={handleTerminalMouseDown}
                   setHoveredTerminalId={setHoveredTerminalId}
                   onToggleState={onToggleDeviceState}
@@ -788,6 +872,22 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
               ))}
             </g>
           </TerminalHighlightContext.Provider>
+
+          {/* Rubber-band selection box */}
+          {marquee && (
+            <rect
+              x={Math.min(marquee.x0, marquee.x1)}
+              y={Math.min(marquee.y0, marquee.y1)}
+              width={Math.abs(marquee.x1 - marquee.x0)}
+              height={Math.abs(marquee.y1 - marquee.y0)}
+              fill="#0284c7"
+              fillOpacity={0.08}
+              stroke="#0284c7"
+              strokeWidth={1 / zoom}
+              strokeDasharray={`${5 / zoom} ${3 / zoom}`}
+              className="pointer-events-none"
+            />
+          )}
 
           {/* Layer 3.5: CAD Snap & Alignment Guides */}
           {snapGuides && (snapGuides.x !== undefined || snapGuides.y !== undefined) && (
@@ -870,7 +970,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       )}
 
       {/* Quick Rewire / Disconnect Handles for Selected Wire (rendered only when a wire is selected in Edit Mode) */}
-      {selectedWireId && !isSimulating && !rewiringTarget && (() => {
+      {selectedWireId && selectedWireIds.length <= 1 && !isSimulating && !rewiringTarget && (() => {
         const w = wires.find((item) => item.id === selectedWireId);
         if (!w) return null;
         const fromDev = devices.find((d) => d.id === w.fromDeviceId);
@@ -1038,9 +1138,6 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           dmmMode ? 'bottom-3 left-4' : 'bottom-3 right-4'
         } z-20 rounded-lg border border-stone-300/60 border-l-[3px] border-l-teal-700/75 bg-[#fcfaf5]/65 backdrop-blur-[1px] px-3 py-2 opacity-45`}
       >
-        <div className="font-mono text-[9.5px] font-semibold tracking-wider text-teal-800 border-b border-stone-300/70 pb-1 mb-1">
-          MARINE HV DIGITAL TWIN · STCW A-III/6
-        </div>
         <div className="font-mono text-[9.5px] leading-[1.45] grid grid-cols-[78px_auto] gap-x-2 text-stone-700">
           <span className="text-stone-500">DEVELOPED BY</span>
           <span className="font-medium text-stone-800">: John Ray O. Dalida</span>

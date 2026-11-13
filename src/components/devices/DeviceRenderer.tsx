@@ -45,6 +45,8 @@ interface DeviceRendererProps {
   selectedTerminalId?: string | null;
   hoveredTerminalId?: string | null;
   onDeviceMouseDown: (device: ElectricalDevice, e: React.MouseEvent) => void;
+  /** Double-click on the device body (not a terminal) — opens the inspector */
+  onDeviceDoubleClick?: (device: ElectricalDevice, e: React.MouseEvent) => void;
   onTerminalMouseDown: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
   setHoveredTerminalId: (id: string | null) => void;
   onToggleState?: (device: ElectricalDevice) => void;
@@ -63,6 +65,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
   selectedTerminalId,
   hoveredTerminalId,
   onDeviceMouseDown,
+  onDeviceDoubleClick,
   onTerminalMouseDown,
   setHoveredTerminalId,
   onToggleState,
@@ -182,6 +185,10 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
   return (
     <g
       onMouseDown={(e) => onDeviceMouseDown(device, e)}
+      onDoubleClick={(e) => {
+        if ((e.target as Element).closest?.('[data-terminal]')) return;
+        onDeviceDoubleClick?.(device, e);
+      }}
       className={`${dragLocked ? 'cursor-pointer' : 'cursor-move'} group`}
     >
       {/* Rotatable Device Container & Selection Outline */}

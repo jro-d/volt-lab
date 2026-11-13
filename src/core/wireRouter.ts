@@ -233,3 +233,116 @@ export function generateSvgPath(points: Point[], cornerRadius: number = 8): stri
   d += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
   return d;
 }
+
+type Dir = 'up' | 'down' | 'left' | 'right';
+
+/**
+ * Re-attaches a user-routed wire (stored waypoints) to its terminals after a device moved,
+ * keeping every segment strictly horizontal/vertical (90° bends only). The wire simply gets
+ * longer/shorter instead of turning diagonal. Falls back to the automatic orthogonal router
+ * when the stored route can no longer be honoured (stem would point back into the device, etc.).
+ */
+export function reanchorWaypoints(
+  stored: Point[],
+  start: Point,
+  end: Point,
+  startDir: Dir,
+  endDir: Dir,
+  startLeadOut: number,
+  endLeadOut: number
+): Point[] {
+  const auto = () => calculateOrthogonalPath(start, end, startDir, endDir, startLeadOut, endLeadOut);
+  const n = stored.length;
+  if (n < 2) return auto();
+
+  if (n === 2) {
+    return Math.abs(start.x - end.x) < 0.5 || Math.abs(start.y - end.y) < 0.5 ? [start, end] : auto();
+  }
+
+  // Segment orientations of the stored route: H = horizontal, V = vertical
+  const orient: ('H' | 'V')[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const dx = Math.abs(stored[i + 1].x - stored[i].x);
+    const dy = Math.abs(stored[i + 1].y - stored[i].y);
+    if (dy < 0.5 && dx >= 0.5) orient.push('H');
+    else if (dx < 0.5 && dy >= 0.5) orient.push('V');
+    else return auto(); // diagonal or zero-length: rebuild
+    if (i > 0 && orient[i] === orient[i - 1]) return auto();
+  }
+
+  const dS = { x: start.x - stored[0].x, y: start.y - stored[0].y };
+  const dE = { x: end.x - stored[n - 1].x, y: end.y - stored[n - 1].y };
+
+  let pts: Point[];
+  if (Math.abs(dS.x - dE.x) < 0.5 && Math.abs(dS.y - dE.y) < 0.5) {
+    // Both terminals moved together (group drag / unchanged): translate the whole route rigidly
+    pts = stored.map((p) => ({ x: p.x + dS.x, y: p.y + dS.y }));
+  } else {
+    pts = stored.map((p) => ({ ...p }));
+    pts[0] = { ...start };
+    pts[n - 1] = { ...end };
+    if (orient[0] === 'H') pts[1].y = start.y;
+    else pts[1].x = start.x;
+    if (orient[n - 2] === 'H') pts[n - 2].y = end.y;
+    else pts[n - 2].x = end.x;
+  }
+  pts[0] = { ...start };
+  pts[n - 1] = { ...end };
+
+  // The first / last stub must still leave the terminal in its exit direction
+  const stubOk = (from: Point, next: Point, dir: Dir) => {
+    const MIN = 10;
+    switch (dir) {
+      case 'down': return Math.abs(next.x - from.x) < 0.5 && next.y - from.y >= MIN;
+      case 'up': return Math.abs(next.x - from.x) < 0.5 && from.y - next.y >= MIN;
+      case 'right': return Math.abs(next.y - from.y) < 0.5 && next.x - from.x >= MIN;
+      case 'left': return Math.abs(next.y - from.y) < 0.5 && from.x - next.x >= MIN;
+    }
+  };
+  if (!stubOk(pts[0], pts[1], startDir) || !stubOk(pts[n - 1], pts[n - 2], endDir)) return auto();
+
+  // Final guard: every segment must be axis-aligned
+  for (let i = 0; i < n - 1; i++) {
+    if (Math.abs(pts[i].x - pts[i + 1].x) > 0.5 && Math.abs(pts[i].y - pts[i + 1].y) > 0.5) return auto();
+  }
+  return pts;
+}
+
+/**
+ * Final drawn route of a wire (terminal-anchored, always orthogonal). Shared by the renderer
+ * and by marquee selection so both agree on where a wire actually runs.
+ */
+export function computeWireRoute(
+  wire: {
+    fromDeviceId: string;
+    fromTerminalId: string;
+    toDeviceId: string;
+    toTerminalId: string;
+    waypoints?: Point[];
+  },
+  devices: ElectricalDevice[]
+): { waypoints: Point[]; start: Point; end: Point } | null {
+  const fromDev = devices.find((d) => d.id === wire.fromDeviceId);
+  const toDev = devices.find((d) => d.id === wire.toDeviceId);
+  if (!fromDev || !toDev) return null;
+  const fromTerm = fromDev.terminals.find((t) => t.id === wire.fromTerminalId);
+  const toTerm = toDev.terminals.find((t) => t.id === wire.toTerminalId);
+  if (!fromTerm || !toTerm) return null;
+
+  const fromPos = getDeviceTerminalPosition(fromDev, fromTerm);
+  const toPos = getDeviceTerminalPosition(toDev, toTerm);
+  const start: Point = { x: fromPos.x, y: fromPos.y };
+  const end: Point = { x: toPos.x, y: toPos.y };
+
+  // Stagger lead-out distance across multiple terminals to keep wires in clean parallel lanes
+  const startLane = Math.round((fromTerm.relX - 0.5) * 28);
+  const endLane = Math.round((toTerm.relX - 0.5) * 28);
+  const startLeadOut = Math.max(26, 36 + (fromPos.dir === 'down' ? startLane : -startLane));
+  const endLeadOut = Math.max(26, 36 + (toPos.dir === 'down' ? endLane : -endLane));
+
+  const waypoints =
+    wire.waypoints && wire.waypoints.length >= 2
+      ? reanchorWaypoints(wire.waypoints, start, end, fromPos.dir, toPos.dir, startLeadOut, endLeadOut)
+      : calculateOrthogonalPath(start, end, fromPos.dir, toPos.dir, startLeadOut, endLeadOut);
+  return { waypoints, start, end };
+}

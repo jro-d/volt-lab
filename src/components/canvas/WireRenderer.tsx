@@ -1,16 +1,19 @@
 import React from 'react';
 import { ElectricalWire, ElectricalDevice, CodeStandard } from '../../types/electrical';
-import { calculateOrthogonalPath, generateSvgPath, Point, getDeviceTerminalPosition } from '../../core/wireRouter';
+import { computeWireRoute, generateSvgPath, Point } from '../../core/wireRouter';
 
 interface WireRendererProps {
   wire: ElectricalWire;
   devices: ElectricalDevice[];
   isSelected?: boolean;
+  /** Show the segment drag grips (hidden while several wires are selected) */
+  showGrips?: boolean;
   standard?: CodeStandard;
   currentAmps?: number;
   flowDirection?: 'forward' | 'reverse';
   voltageDropPercent?: number;
   onSelectWire?: (wire: ElectricalWire, e: React.MouseEvent) => void;
+  onOpenInspector?: () => void;
   onStartSegmentDrag?: (
     wireId: string,
     segmentIndex: number,
@@ -25,80 +28,17 @@ export const WireRenderer: React.FC<WireRendererProps> = ({
   wire,
   devices,
   isSelected,
+  showGrips = true,
   currentAmps = 0,
   flowDirection = 'forward',
   voltageDropPercent = 0,
   onSelectWire,
+  onOpenInspector,
   onStartSegmentDrag,
 }) => {
-  const fromDev = devices.find(d => d.id === wire.fromDeviceId);
-  const toDev = devices.find(d => d.id === wire.toDeviceId);
-
-  if (!fromDev || !toDev) return null;
-
-  const fromTerm = fromDev.terminals.find(t => t.id === wire.fromTerminalId);
-  const toTerm = toDev.terminals.find(t => t.id === wire.toTerminalId);
-
-  if (!fromTerm || !toTerm) return null;
-
-  // Compute absolute pixel coordinates and exit directions taking rotation into account
-  const fromPos = getDeviceTerminalPosition(fromDev, fromTerm);
-  const toPos = getDeviceTerminalPosition(toDev, toTerm);
-
-  const start: Point = { x: fromPos.x, y: fromPos.y };
-  const end: Point = { x: toPos.x, y: toPos.y };
-  const startDir = fromPos.dir;
-  const endDir = toPos.dir;
-
-  // Stagger lead-out distance across multiple terminals to keep wires in clean parallel lanes
-  const startLane = Math.round((fromTerm.relX - 0.5) * 28);
-  const endLane = Math.round((toTerm.relX - 0.5) * 28);
-
-  const startLeadOut = Math.max(26, 36 + (startDir === 'down' ? startLane : -startLane));
-  const endLeadOut = Math.max(26, 36 + (endDir === 'down' ? endLane : -endLane));
-
-  // Ensure wire endpoints are 100% attached to device terminals at all times
-  let waypoints: Point[];
-  if (wire.waypoints && wire.waypoints.length >= 2) {
-    const pts = wire.waypoints.map(p => ({ ...p }));
-    const oldStart = pts[0];
-    const oldEnd = pts[pts.length - 1];
-    const dStartX = start.x - oldStart.x;
-    const dStartY = start.y - oldStart.y;
-    const dEndX = end.x - oldEnd.x;
-    const dEndY = end.y - oldEnd.y;
-
-    // Anchor first and last points permanently to terminal coordinates
-    pts[0] = { ...start };
-    pts[pts.length - 1] = { ...end };
-
-    // If start device moved, adapt the adjacent lead-out point (pts[1]) so the stem follows
-    if (pts.length > 2 && (Math.abs(dStartX) > 0.5 || Math.abs(dStartY) > 0.5)) {
-      if (Math.abs(oldStart.x - pts[1].x) < 3) {
-        pts[1] = { x: start.x, y: pts[1].y + dStartY };
-      } else if (Math.abs(oldStart.y - pts[1].y) < 3) {
-        pts[1] = { x: pts[1].x + dStartX, y: start.y };
-      } else {
-        pts[1] = { x: pts[1].x + dStartX, y: pts[1].y + dStartY };
-      }
-    }
-
-    // If end device moved, adapt pts[last - 1]
-    const last = pts.length - 1;
-    if (pts.length > 2 && (Math.abs(dEndX) > 0.5 || Math.abs(dEndY) > 0.5)) {
-      if (Math.abs(oldEnd.x - pts[last - 1].x) < 3) {
-        pts[last - 1] = { x: end.x, y: pts[last - 1].y + dEndY };
-      } else if (Math.abs(oldEnd.y - pts[last - 1].y) < 3) {
-        pts[last - 1] = { x: pts[last - 1].x + dEndX, y: end.y };
-      } else {
-        pts[last - 1] = { x: pts[last - 1].x + dEndX, y: pts[last - 1].y + dEndY };
-      }
-    }
-
-    waypoints = pts;
-  } else {
-    waypoints = calculateOrthogonalPath(start, end, startDir, endDir, startLeadOut, endLeadOut);
-  }
+  const route = computeWireRoute(wire, devices);
+  if (!route) return null;
+  const { waypoints, start, end } = route;
 
   const pathD = generateSvgPath(waypoints, 8);
 
@@ -119,9 +59,10 @@ export const WireRenderer: React.FC<WireRendererProps> = ({
           onSelectWire(wire, e);
         }
       }}
-      onClick={(e) => {
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => {
         e.stopPropagation();
-        onSelectWire?.(wire, e);
+        onOpenInspector?.();
       }}
       className="cursor-pointer group"
     >
@@ -194,11 +135,12 @@ export const WireRenderer: React.FC<WireRendererProps> = ({
       <circle cx={end.x} cy={end.y} r={strokeWidth * 0.75} fill="#d97706" stroke="#78350f" strokeWidth={0.8} />
 
       {/* Draggable Wire Segment Grip Handles (shown when selected) */}
-      {isSelected && onStartSegmentDrag && waypoints.slice(0, waypoints.length - 1).map((pA, idx) => {
+      {isSelected && showGrips && onStartSegmentDrag && waypoints.slice(0, waypoints.length - 1).map((pA, idx) => {
         const pB = waypoints[idx + 1];
         const isHoriz = Math.abs(pA.y - pB.y) < 1.5;
         const len = Math.hypot(pB.x - pA.x, pB.y - pA.y);
-        if (len < 16) return null;
+        // Segments touching a terminal stay anchored (dragging them would slant the wire)
+        if (len < 16 || idx === 0 || idx === waypoints.length - 2) return null;
 
         const midX = (pA.x + pB.x) / 2;
         const midY = (pA.y + pB.y) / 2;
