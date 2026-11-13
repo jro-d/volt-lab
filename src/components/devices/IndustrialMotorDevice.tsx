@@ -1,179 +1,169 @@
 import React from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import { DeviceComponentProps, DeviceTerminals } from './DeviceTerminals';
 
-interface IndustrialMotorDeviceProps {
-  device: ElectricalDevice;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const IndustrialMotorDevice: React.FC<IndustrialMotorDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
+/**
+ * TEFC squirrel-cage induction motor (side view): finned cast-iron frame, fan cowl, keyed shaft,
+ * terminal box U1/V1/W1/PE. The solver reports direction from the phase sequence on U1-V1-W1.
+ */
+export const IndustrialMotorDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device } = props;
   const { x, y, width, height } = device;
-  const isRunning = !!device.state.motorRunning;
+  const isRunning = !!(device.state.motorRunning || device.state.running);
+  const dir: 'CW' | 'CCW' | null = device.state.motorDirection || (isRunning ? 'CW' : null);
+  const fault: string | null = device.state.motorFault || null;
   const rpm = device.state.motorRpm || 1750;
-  const hp = device.state.motorHp || 3.0;
+  const hp = device.state.motorHp || (device.state.wattage ? +(device.state.wattage / 746).toFixed(1) : 3);
+  const amps = device.state.measuredAmps || 0;
+
+  const bodyX = x + 16;
+  const bodyY = y + 40;
+  const bodyW = width - 44;
+  const bodyH = height - 58;
+  const shaftCy = bodyY + bodyH / 2;
+
+  const spinStyle: React.CSSProperties = {
+    transformOrigin: '0px 0px',
+    animationDuration: '0.35s',
+    animationDirection: dir === 'CCW' ? 'reverse' : 'normal',
+  };
 
   return (
     <g id={`device-${device.id}`}>
       <defs>
-        {/* Cast Iron Stator Finish */}
-        <linearGradient id="castIronBody" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#0284c7" />
-          <stop offset="35%" stopColor="#0369a1" />
-          <stop offset="70%" stopColor="#075985" />
+        <linearGradient id="mot-frame" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#38bdf8" />
+          <stop offset="18%" stopColor="#0284c7" />
+          <stop offset="60%" stopColor="#075985" />
           <stop offset="100%" stopColor="#0c4a6e" />
         </linearGradient>
-
-        {/* Steel Shaft Metal */}
-        <linearGradient id="motorShaftSteel" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#64748b" />
-          <stop offset="50%" stopColor="#f8fafc" />
-          <stop offset="100%" stopColor="#334155" />
+        <linearGradient id="mot-shaft" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#94a3b8" />
+          <stop offset="45%" stopColor="#f8fafc" />
+          <stop offset="100%" stopColor="#475569" />
         </linearGradient>
+        <pattern id="mot-grille" width="3" height="3" patternUnits="userSpaceOnUse">
+          <rect width="3" height="3" fill="#0c4a6e" />
+          <circle cx="1.5" cy="1.5" r="0.8" fill="#082f49" />
+        </pattern>
       </defs>
 
-      {/* Cast Iron Stator Mounting Feet Base */}
-      <rect x={x + 12} y={y + height - 14} width={24} height={14} rx={2} fill="#0c4a6e" stroke="#082f49" strokeWidth={1} />
-      <rect x={x + width - 36} y={y + height - 14} width={24} height={14} rx={2} fill="#0c4a6e" stroke="#082f49" strokeWidth={1} />
-      {/* Foundation Bolt Holes */}
-      <circle cx={x + 24} cy={y + height - 6} r={3} fill="#082f49" stroke="#38bdf8" strokeWidth={0.8} />
-      <circle cx={x + width - 24} cy={y + height - 6} r={3} fill="#082f49" stroke="#38bdf8" strokeWidth={0.8} />
+      {/* Mounting feet */}
+      <path d={`M ${bodyX + 6} ${bodyY + bodyH - 2} l -4 16 h 30 l -4 -16 Z`} fill="#0c4a6e" stroke="#082f49" strokeWidth={0.8} />
+      <path d={`M ${bodyX + bodyW - 32} ${bodyY + bodyH - 2} l -4 16 h 30 l -4 -16 Z`} fill="#0c4a6e" stroke="#082f49" strokeWidth={0.8} />
+      <rect x={bodyX - 4} y={bodyY + bodyH + 13} width={bodyW + 8} height={3} rx={1} fill="#475569" opacity={0.5} />
 
-      {/* Main Motor Cylindrical Stator Casing */}
-      <rect
-        x={x + 14}
-        y={y + 36}
-        width={width - 28}
-        height={height - 48}
-        rx={10}
-        fill="url(#castIronBody)"
-        stroke="#0c4a6e"
-        strokeWidth={1.8}
-        filter="drop-shadow(0 8px 18px rgba(0,0,0,0.22))"
-      />
-
-      {/* Horizontal Stator Cooling Fins */}
-      {[46, 54, 62, 70, 78, 86].map((fy, i) => (
-        <line
-          key={i}
-          x1={x + 18}
-          y1={y + fy}
-          x2={x + width - 42}
-          y2={y + fy}
-          stroke="#38bdf8"
-          strokeWidth={1.2}
-          opacity={0.35}
-          strokeLinecap="round"
-        />
-      ))}
-
-      {/* Rear Fan Cowl Shroud */}
+      {/* Fan cowl (non-drive end) */}
       <path
-        d={`M ${x + width - 26} ${y + 40} Q ${x + width - 14} ${y + height / 2 + 10} ${x + width - 26} ${y + height - 20} Z`}
-        fill="#075985"
+        d={`M ${bodyX + bodyW - 2} ${bodyY + 3} L ${x + width - 8} ${bodyY + 8} Q ${x + width - 2} ${shaftCy} ${x + width - 8} ${bodyY + bodyH - 8} L ${bodyX + bodyW - 2} ${bodyY + bodyH - 3} Z`}
+        fill="url(#mot-grille)"
         stroke="#082f49"
-        strokeWidth={1.2}
-      />
-
-      {/* Front Output Drive Shaft & Bearing Hub */}
-      <rect
-        x={x - 4}
-        y={y + height / 2 + 6}
-        width={18}
-        height={14}
-        rx={2}
-        fill="url(#motorShaftSteel)"
-        stroke="#334155"
         strokeWidth={1}
       />
-      {/* Keyway Slot on Drive Shaft */}
-      <rect x={x - 2} y={y + height / 2 + 11} width={8} height={3} fill="#0f172a" />
 
-      {/* Rotating Shaft Pulley / Fan Animation */}
-      <g transform={`translate(${x + 14}, ${y + height / 2 + 13})`}>
-        <circle r={10} fill="#0284c7" stroke="#38bdf8" strokeWidth={1.2} />
-        {/* Spinning Spokes */}
-        <g className={isRunning ? "animate-spin" : undefined} style={{ transformOrigin: "0px 0px", animationDuration: "0.25s" }}>
-          <line x1={-8} y1={0} x2={8} y2={0} stroke="#ffffff" strokeWidth={2} strokeLinecap="round" />
-          <line x1={0} y1={-8} x2={0} y2={8} stroke="#ffffff" strokeWidth={2} strokeLinecap="round" />
+      {/* Finned cast-iron frame */}
+      <rect
+        x={bodyX}
+        y={bodyY}
+        width={bodyW}
+        height={bodyH}
+        rx={7}
+        fill="url(#mot-frame)"
+        stroke="#0c4a6e"
+        strokeWidth={1.4}
+        filter="drop-shadow(0 8px 16px rgba(2,6,23,0.25))"
+        className={fault ? 'animate-pulse' : undefined}
+      />
+      {Array.from({ length: 7 }).map((_, i) => (
+        <line
+          key={i}
+          x1={bodyX + 5}
+          y1={bodyY + 6 + i * ((bodyH - 12) / 6)}
+          x2={bodyX + bodyW - 5}
+          y2={bodyY + 6 + i * ((bodyH - 12) / 6)}
+          stroke="#7dd3fc"
+          strokeWidth={1}
+          opacity={0.35}
+        />
+      ))}
+      {/* Drive-end bearing shield */}
+      <rect x={bodyX - 5} y={bodyY + 6} width={7} height={bodyH - 12} rx={2} fill="#075985" stroke="#082f49" strokeWidth={0.8} />
+
+      {/* Keyed output shaft */}
+      <rect x={x - 6} y={shaftCy - 5} width={18} height={10} rx={1.5} fill="url(#mot-shaft)" stroke="#334155" strokeWidth={0.8} />
+      <rect x={x - 4} y={shaftCy - 1.5} width={9} height={3} fill="#1e293b" />
+
+      {/* Shaft end-view rotor disc (spins in the solver-reported direction) */}
+      <g transform={`translate(${x + 2}, ${shaftCy + 22})`}>
+        <circle r={9} fill="#0f172a" stroke={isRunning ? '#4ade80' : '#38bdf8'} strokeWidth={1.2} />
+        <g className={isRunning ? 'animate-spin' : undefined} style={spinStyle}>
+          <line x1={-7} y1={0} x2={7} y2={0} stroke="#f8fafc" strokeWidth={1.6} strokeLinecap="round" />
+          <line x1={0} y1={-7} x2={0} y2={7} stroke="#f8fafc" strokeWidth={1.6} strokeLinecap="round" />
+          <circle cx={0} cy={-6} r={1.5} fill="#f97316" />
         </g>
-        <circle r={3} fill="#0f172a" />
+        <circle r={2.2} fill="#64748b" />
       </g>
 
-      {/* Top Conduit Terminal Connection Box */}
+      {/* Direction badge on the shaft */}
+      {isRunning && dir && (
+        <g transform={`translate(${x + 26}, ${shaftCy + 22})`} className="pointer-events-none">
+          <rect x={-12} y={-8} width={50} height={16} rx={8} fill={dir === 'CW' ? '#16a34a' : '#7c3aed'} stroke="#ffffff" strokeWidth={1} />
+          <g transform="translate(-3, 0)">
+            <path
+              d={dir === 'CW' ? 'M -4 2 A 4.5 4.5 0 1 1 3 3' : 'M 4 2 A 4.5 4.5 0 1 0 -3 3'}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={1.4}
+            />
+            <polygon points={dir === 'CW' ? '1.5,1 5,3.5 1.5,5.5' : '-1.5,1 -5,3.5 -1.5,5.5'} fill="#ffffff" />
+          </g>
+          <text x={16} y={2.6} textAnchor="middle" fontSize="6" fontWeight="900" fill="#ffffff" fontFamily="ui-monospace, monospace">
+            {dir === 'CW' ? 'CW FWD' : 'CCW REV'}
+          </text>
+        </g>
+      )}
+
+      {/* Lifting eyebolt */}
+      <circle cx={bodyX + bodyW / 2 + 22} cy={bodyY - 6} r={4} fill="none" stroke="#64748b" strokeWidth={1.6} />
+      <line x1={bodyX + bodyW / 2 + 22} y1={bodyY - 2} x2={bodyX + bodyW / 2 + 22} y2={bodyY + 1} stroke="#64748b" strokeWidth={2} />
+
+      {/* Terminal box */}
       <rect
-        x={x + 36}
+        x={x + 30}
         y={y + 12}
-        width={width - 56}
-        height={26}
-        rx={4}
+        width={width - 42}
+        height={28}
+        rx={3}
         fill="#0f172a"
         stroke="#0284c7"
-        strokeWidth={1.4}
-        filter="drop-shadow(0 2px 6px rgba(0,0,0,0.3))"
+        strokeWidth={1.2}
+        filter="drop-shadow(0 2px 5px rgba(0,0,0,0.3))"
       />
-      {/* Conduit Entry Knockout */}
-      <circle cx={x + width - 20} cy={y + 25} r={4} fill="#334155" stroke="#64748b" strokeWidth={0.8} />
+      <rect x={x + 33} y={y + 15} width={width - 48} height={2} rx={1} fill="#1e293b" />
 
-      {/* Motor Stator Nameplate Stamp */}
-      <text x={x + width / 2} y={y + 60} textAnchor="middle" fontSize="6.5" fontWeight="900" fontFamily="sans-serif" fill="#ffffff">
-        3-PHASE INDUCTION MOTOR
+      {/* Nameplate (aluminium) */}
+      <rect x={bodyX + 8} y={bodyY + 9} width={bodyW - 16} height={bodyH - 18} rx={2} fill="#e2e8f0" stroke="#94a3b8" strokeWidth={0.6} opacity={0.95} />
+      <text x={bodyX + bodyW / 2} y={bodyY + 18} textAnchor="middle" fontSize="5.4" fontWeight="900" fill="#0c4a6e" fontFamily="ui-sans-serif, system-ui">
+        3~ IND. MOTOR · {device.state.tag || 'M1'}
       </text>
-      <text x={x + width / 2} y={y + 68} textAnchor="middle" fontSize="5.5" fontWeight="bold" fontFamily="monospace" fill="#38bdf8">
-        {hp} HP • 230/400V • 60Hz
+      <text x={bodyX + bodyW / 2} y={bodyY + 25} textAnchor="middle" fontSize="4.6" fontWeight="700" fill="#334155" fontFamily="ui-monospace, monospace">
+        {hp}HP · 440V Δ · 60Hz · IP55
       </text>
-      <text x={x + width / 2} y={y + 76} textAnchor="middle" fontSize="6" fontWeight="bold" fontFamily="monospace" fill={isRunning ? "#4ade80" : "#94a3b8"}>
-        {isRunning ? `⚡ ${rpm} RPM (RUNNING)` : "OFF (0 RPM)"}
+      <text
+        x={bodyX + bodyW / 2}
+        y={bodyY + 33}
+        textAnchor="middle"
+        fontSize="5.4"
+        fontWeight="900"
+        fill={fault ? '#dc2626' : isRunning ? '#15803d' : '#64748b'}
+        fontFamily="ui-monospace, monospace"
+      >
+        {fault ? `⚠ ${fault.split(' (')[0]}` : isRunning ? `${rpm} RPM · ${amps > 0 ? amps.toFixed(1) + 'A' : 'RUN'}` : 'STOPPED · 0 RPM'}
       </text>
 
-      {/* Lifting Eyebolt */}
-      <circle cx={x + width / 2} cy={y + 8} r={5} fill="none" stroke="#64748b" strokeWidth={1.5} />
-      <line x1={x + width / 2} y1={y + 12} x2={x + width / 2} y2={y + 14} stroke="#64748b" strokeWidth={2} />
-
-      {/* Terminal Screw Points inside Terminal Box */}
-      {device.terminals.map((terminal) => {
-        const tx = x + width * terminal.relX;
-        const ty = y + height * terminal.relY;
-        const termKey = `${device.id}:${terminal.id}`;
-
-        return (
-          <g key={terminal.id}>
-            <TerminalPoint
-              terminal={terminal}
-              x={tx}
-              y={ty}
-              isHovered={hoveredTerminalId === termKey}
-              isSelected={selectedTerminalId === termKey}
-              onMouseDown={(e) => onTerminalMouseDown(device, terminal, e)}
-              onMouseEnter={() => setHoveredTerminalId(termKey)}
-              onMouseLeave={() => setHoveredTerminalId(null)}
-            />
-            {/* Terminal Pin Label */}
-            <text
-              x={tx}
-              y={ty + 12}
-              textAnchor="middle"
-              fontSize="5.5"
-              fontWeight="bold"
-              fontFamily="monospace"
-              fill={terminal.id === 'pe' ? '#4ade80' : '#f8fafc'}
-            >
-              {terminal.label || terminal.id}
-            </text>
-          </g>
-        );
-      })}
+      <DeviceTerminals
+        {...props}
+        labelColor={(t) => (t.id === 'pe' ? '#4ade80' : '#f8fafc')}
+      />
     </g>
   );
 };

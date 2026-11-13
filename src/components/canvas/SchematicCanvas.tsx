@@ -82,8 +82,16 @@ export const SchematicCanvas: React.FC<SchematicCanvasProps> = ({
     setIsPanning(false);
   };
 
+  // Block page scroll while wheel-zooming (React's onWheel is passive, so use a native listener)
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const block = (ev: WheelEvent) => ev.preventDefault();
+    el.addEventListener('wheel', block, { passive: false });
+    return () => el.removeEventListener('wheel', block);
+  }, []);
+
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
     const newZoom = Math.min(2.5, Math.max(0.4, zoom * zoomFactor));
 
@@ -234,7 +242,7 @@ export const SchematicCanvas: React.FC<SchematicCanvasProps> = ({
       case 'contactor':
         return (
           <g transform={`translate(${node.x}, ${node.y})`}>
-            <rect x={-26} y={-24} width={52} height={48} rx={3} fill="#f8fafc" stroke="#0f172a" strokeWidth={1.5} />
+            <rect x={-26} y={-24} width={52} height={48} rx={3} fill={node.status === 'ON' ? '#dcfce7' : '#f8fafc'} stroke="#0f172a" strokeWidth={1.5} />
             {/* 3 Main power contact poles */}
             <line x1={-14} y1={-18} x2={-14} y2={-6} stroke="#0f172a" strokeWidth={1.5} />
             <line x1={-14} y1={-6} x2={-8} y2={6} stroke="#0f172a" strokeWidth={1.8} />
@@ -311,6 +319,56 @@ export const SchematicCanvas: React.FC<SchematicCanvasProps> = ({
             <text x={0} y={3} textAnchor="middle" fontSize={8} fontWeight="900" fill="#0369a1" fontFamily="monospace">PLC-CPU</text>
             <text x={0} y={20} textAnchor="middle" fontSize={7} fontWeight="bold" fill="#ea580c" fontFamily="monospace">Q1 Q2 Q3 Q4</text>
             <text x={0} y={38} textAnchor="middle" fontSize={8} fontWeight="bold" fill="#334155">{node.label}</text>
+          </g>
+        );
+      case 'tor':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <rect x={-26} y={-22} width={52} height={44} rx={3} fill={node.status === 'TRIPPED' ? '#ffedd5' : '#f8fafc'} stroke="#0f172a" strokeWidth={1.5} />
+            {/* IEC thermal element symbol (square wave) on each pole */}
+            {[-14, 0, 14].map((px) => (
+              <path key={px} d={`M ${px} -18 L ${px} -8 L ${px - 4} -8 L ${px - 4} 4 L ${px + 4} 4 L ${px + 4} -8 L ${px} -8 M ${px} 4 L ${px} 18`} fill="none" stroke="#0f172a" strokeWidth={1.3} />
+            ))}
+            <text x={0} y={34} textAnchor="middle" fontSize={8} fontWeight="bold" fill="#334155">OLR 95-96 / 97-98</text>
+            <text x={0} y={44} textAnchor="middle" fontSize={7.5} fill="#64748b">{node.label}</text>
+          </g>
+        );
+      case 'transformer':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <circle cx={0} cy={-9} r={13} fill="none" stroke="#0f172a" strokeWidth={1.6} />
+            <circle cx={0} cy={9} r={13} fill={node.status === 'ON' ? '#dcfce7' : 'none'} fillOpacity={0.6} stroke="#0f172a" strokeWidth={1.6} />
+            <text x={20} y={-6} fontSize={8} fontWeight="bold" fill="#dc2626" fontFamily="monospace">440V</text>
+            <text x={20} y={14} fontSize={8} fontWeight="bold" fill="#2563eb" fontFamily="monospace">220V</text>
+            <text x={0} y={36} textAnchor="middle" fontSize={8} fontWeight="bold" fill="#334155">{node.label}</text>
+          </g>
+        );
+      case 'source3p':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <circle cx={0} cy={0} r={22} fill="#fefce8" stroke="#0f172a" strokeWidth={2} />
+            <path d="M -12 0 Q -6 -10 0 0 T 12 0" fill="none" stroke="#0f172a" strokeWidth={1.6} />
+            <text x={0} y={14} textAnchor="middle" fontSize={8} fontWeight="900" fill="#0f172a" fontFamily="monospace">3~ 440V</text>
+            <text x={0} y={36} textAnchor="middle" fontSize={8} fontWeight="bold" fill="#334155">{node.label}</text>
+          </g>
+        );
+      case 'pushbutton3':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <rect x={-30} y={-18} width={60} height={36} rx={3} fill="#f8fafc" stroke="#0f172a" strokeWidth={1.5} />
+            {[
+              { x: -18, c: '#dc2626', nc: true },
+              { x: 0, c: '#16a34a', nc: false },
+              { x: 18, c: '#d97706', nc: false },
+            ].map((b) => (
+              <g key={b.x}>
+                <circle cx={b.x - 4} cy={-2} r={1.8} fill={b.c} />
+                <circle cx={b.x + 4} cy={-2} r={1.8} fill={b.c} />
+                <line x1={b.x - 4} y1={-2} x2={b.x + 4} y2={b.nc ? -2 : -8} stroke={b.c} strokeWidth={1.5} />
+              </g>
+            ))}
+            <text x={0} y={12} textAnchor="middle" fontSize={7} fontWeight="bold" fill="#334155">STOP · FWD · REV</text>
+            <text x={0} y={30} textAnchor="middle" fontSize={8} fontWeight="bold" fill="#334155">{node.label}</text>
           </g>
         );
       default:

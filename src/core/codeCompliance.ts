@@ -2,6 +2,22 @@ import { ElectricalDevice, ElectricalWire, CodeStandard } from '../types/electri
 import { CodeViolation, ElectricalAnalysisReport } from '../types/codes';
 import { getWireStandards, CONDUIT_FILL_STANDARDS } from '../data/standardsData';
 import { SolvedCircuit } from './circuitSolver';
+import { parsePhysicalLadder } from './ladderEngine';
+
+/** Devices that live inside a motor control panel (panel wiring is not run in branch conduit) */
+const PANEL_DEVICE_TYPES = new Set([
+  'source_3phase_440v',
+  'mcb_3p',
+  'contactor_3p',
+  'thermal_overload_relay',
+  'control_transformer',
+  'push_button_station',
+  'push_button_fwd_rev',
+  'push_button_estop',
+  'pilot_light_indicator',
+  'industrial_relay_dpdt',
+  'plc_micro_controller',
+]);
 
 export function analyzeCodeCompliance(
   devices: ElectricalDevice[],
@@ -104,7 +120,7 @@ export function analyzeCodeCompliance(
           recommendation: 'Consider System A (Pigtail Splice with wire nuts in an orange octagonal box) so downstream continuity does not depend on this receptacle body.'
         });
       }
-    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_3phase_dol' || dev.type === 'royu_safety_breaker_2p') {
+    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_3phase_dol' || dev.type === 'motor_ac_industrial' || dev.type === 'royu_safety_breaker_2p') {
       const gndWire = wires.find(w => 
         (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ground' || w.fromTerminalId === 'pe')) || 
         (w.toDeviceId === dev.id && (w.toTerminalId === 'ground' || w.toTerminalId === 'pe'))
@@ -180,6 +196,7 @@ export function analyzeCodeCompliance(
   // Check for Dead Short Circuit from solver
   if (solved.sparks.length > 0) {
     for (const spark of solved.sparks) {
+      const isArc = spark.severity === 'arc_flash';
       violations.push({
         id: `viol_dead_short_${spark.id}`,
         codeStandard: standard,
@@ -187,10 +204,93 @@ export function analyzeCodeCompliance(
         category: 'shock_hazard',
         hazardLevel: 'fire_risk',
         articleRef: standard === 'PEC' ? 'PEC 2017 Art. 2.40.1.1 & 1.10.1.9' : 'IEC 60364-4-43',
-        title: '💥 CRITICAL: Direct Dead Short Circuit Fault Active',
+        title: isArc ? '💥 CRITICAL: Phase-to-Phase Arc Flash Fault' : '💥 CRITICAL: Direct Dead Short Circuit Fault Active',
         message: spark.message,
-        recommendation: 'Disconnect the direct Phase-to-Neutral or Phase-to-Earth jumper before resetting the upstream circuit breaker.'
+        recommendation: isArc
+          ? 'Wire each reversing contactor coil through the other contactor\'s 21-22 NC auxiliary contact (electrical interlock) and release any forced test plungers before re-arming the 3P breaker.'
+          : 'Disconnect the direct Phase-to-Neutral or Phase-to-Earth jumper before resetting the upstream circuit breaker.'
       });
+    }
+  }
+
+  // 4b. Motor control: overload protection & reversing interlocks (PEC 4.30 / IEC 60204-1)
+  const motors = devices.filter(d => d.type === 'motor_ac_industrial');
+  const contactors = devices.filter(d => d.type === 'contactor_3p');
+  const hasTor = devices.some(d => d.type === 'thermal_overload_relay');
+  if (motors.length > 0 && contactors.length > 0 && !hasTor) {
+    violations.push({
+      id: 'viol_motor_overload_missing',
+      codeStandard: standard,
+      severity: 'warning',
+      category: 'ampacity',
+      articleRef: standard === 'PEC' ? 'PEC 2017 Art. 4.30.3.32 (Motor Overload Protection)' : 'IEC 60204-1 Cl. 7.3',
+      title: 'Motor Running Overload Protection Missing',
+      message: 'A contactor-controlled motor has no thermal overload relay. A locked rotor or single-phasing condition will overheat the windings before the MCB responds.',
+      affectedDeviceId: motors[0].id,
+      recommendation: 'Install a thermal overload relay (TOR) after the contactor, set its dial to the motor FLA and wire its 95-96 NC contact in series with the coil circuit.'
+    });
+  }
+  for (const tor of devices.filter(d => d.type === 'thermal_overload_relay')) {
+    const ncWired = wires.some(w =>
+      (w.fromDeviceId === tor.id && (w.fromTerminalId === 'nc_95' || w.fromTerminalId === 'nc_96')) ||
+      (w.toDeviceId === tor.id && (w.toTerminalId === 'nc_95' || w.toTerminalId === 'nc_96'))
+    );
+    const mainWired = wires.some(w => w.fromDeviceId === tor.id || w.toDeviceId === tor.id);
+    if (mainWired && !ncWired) {
+      violations.push({
+        id: `viol_tor_nc_${tor.id}`,
+        codeStandard: standard,
+        severity: 'error',
+        category: 'ampacity',
+        articleRef: standard === 'PEC' ? 'PEC 2017 Art. 4.30.3.32' : 'IEC 60947-4-1',
+        title: 'Overload Relay 95-96 Not in the Control Circuit',
+        message: `${tor.name} carries motor current but its 95-96 trip contact is not wired — a thermal trip will never drop out the contactor.`,
+        affectedDeviceId: tor.id,
+        recommendation: 'Wire the control supply X1 → 95, then 96 → STOP button so an overload opens the coil circuit.'
+      });
+    }
+  }
+
+  // Reversing pairs: two contactors whose load terminals land on the same downstream device
+  const loadSide = (c: ElectricalDevice) => {
+    const ids = new Set<string>();
+    for (const w of wires) {
+      if (w.fromDeviceId === c.id && ['t1', 't2', 't3'].includes(w.fromTerminalId)) ids.add(w.toDeviceId);
+      if (w.toDeviceId === c.id && ['t1', 't2', 't3'].includes(w.toTerminalId)) ids.add(w.fromDeviceId);
+    }
+    return ids;
+  };
+  if (contactors.length >= 2) {
+    const phys = parsePhysicalLadder(devices, wires);
+    for (let i = 0; i < contactors.length; i++) {
+      for (let j = i + 1; j < contactors.length; j++) {
+        const a = contactors[i];
+        const b = contactors[j];
+        const la = loadSide(a);
+        const shared = [...loadSide(b)].some(id => la.has(id));
+        if (!shared) continue;
+        const interlocked = (coil: ElectricalDevice, other: ElectricalDevice) => {
+          const rung = phys.rungs.find(r => r.load.deviceId === coil.id && r.load.kind === 'COIL');
+          if (!rung) return true; // coil not wired yet — nothing to check
+          return rung.prePaths
+            .map((pre, k) => [...pre, ...(rung.postPaths[k] || [])])
+            .every(path => path.some(e => e.deviceId === other.id && e.contactKey === 'aux_nc'));
+        };
+        if (!interlocked(a, b) || !interlocked(b, a)) {
+          violations.push({
+            id: `viol_interlock_${a.id}_${b.id}`,
+            codeStandard: standard,
+            severity: 'error',
+            category: 'shock_hazard',
+            hazardLevel: 'fire_risk',
+            articleRef: standard === 'PEC' ? 'PEC 2017 Art. 4.30.7 / IEC 60204-1 Cl. 9.3.4' : 'IEC 60204-1 Cl. 9.3.4',
+            title: '⚠ Reversing Starter Without Electrical Interlock',
+            message: `${a.state.tag || a.name} and ${b.state.tag || b.name} feed the same motor circuit, but their coils are not cross-interlocked through each other's 21-22 NC contacts. Pressing FWD and REV together bolts two phases together.`,
+            affectedDeviceId: !interlocked(a, b) ? a.id : b.id,
+            recommendation: `Wire ${b.state.tag || 'KM2'} 21-22 in series before ${a.state.tag || 'KM1'} A1, and ${a.state.tag || 'KM1'} 21-22 in series before ${b.state.tag || 'KM2'} A1.`
+          });
+        }
+      }
     }
   }
 
@@ -211,8 +311,9 @@ export function analyzeCodeCompliance(
     });
   }
 
-  // 5. Conduit Fill Calculation
-  const totalConductors = wires.length;
+  // 5. Conduit Fill Calculation (field wiring only — conductors between panel devices run in wireways)
+  const panelIds = new Set(devices.filter(d => PANEL_DEVICE_TYPES.has(d.type)).map(d => d.id));
+  const totalConductors = wires.filter(w => !(panelIds.has(w.fromDeviceId) && panelIds.has(w.toDeviceId))).length;
   const sampleConduit = CONDUIT_FILL_STANDARDS[1]; // 3/4" (25mm)
   const approxWireArea = wireStandards[0].crossSectionMm2 * 3.5; // with insulation
   const totalWireArea = totalConductors * approxWireArea;

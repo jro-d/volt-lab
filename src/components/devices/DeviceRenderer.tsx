@@ -24,12 +24,18 @@ import { RoyuSafetyBreakerDevice } from './RoyuSafetyBreakerDevice';
 import { DinRailTrackDevice } from './DinRailTrackDevice';
 import { UtilityBoxSurfacePvcDevice } from './UtilityBoxSurfacePvcDevice';
 import { RoyuModularComboPlateDevice } from './RoyuModularComboPlateDevice';
+import { ThermalOverloadDevice } from './ThermalOverloadDevice';
+import { ControlTransformerDevice } from './ControlTransformerDevice';
+import { ThreePhaseSourceDevice } from './ThreePhaseSourceDevice';
+import { PushButtonFwdRevDevice } from './PushButtonFwdRevDevice';
 
 interface DeviceRendererProps {
   device: ElectricalDevice;
   isSelected?: boolean;
   /** Part of a Shift+click multi-selection (outline only, no floating action bar) */
   isGroupMember?: boolean;
+  /** Glow highlight (linked from the ladder diagram) */
+  isHighlighted?: boolean;
   /** True while the grid is energized or the device position is locked */
   dragLocked?: boolean;
   selectedTerminalId?: string | null;
@@ -38,6 +44,7 @@ interface DeviceRendererProps {
   onTerminalMouseDown: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
   setHoveredTerminalId: (id: string | null) => void;
   onToggleState?: (device: ElectricalDevice) => void;
+  onPatchState?: (deviceId: string, patch: Record<string, any>) => void;
   onRotate?: (device: ElectricalDevice) => void;
   onDuplicate?: (device: ElectricalDevice) => void;
   onDelete?: (device: ElectricalDevice) => void;
@@ -47,6 +54,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
   device,
   isSelected,
   isGroupMember,
+  isHighlighted,
   dragLocked,
   selectedTerminalId,
   hoveredTerminalId,
@@ -54,6 +62,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
   onTerminalMouseDown,
   setHoveredTerminalId,
   onToggleState,
+  onPatchState,
   onRotate,
   onDuplicate,
   onDelete,
@@ -65,6 +74,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
     onTerminalMouseDown,
     setHoveredTerminalId,
     onToggleState,
+    onPatchState,
   };
 
   const cx = device.x + device.width / 2;
@@ -138,6 +148,14 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
         return <UtilityBoxSurfacePvcDevice {...commonProps} />;
       case 'royu_modular_combo_plate':
         return <RoyuModularComboPlateDevice {...commonProps} />;
+      case 'thermal_overload_relay':
+        return <ThermalOverloadDevice {...commonProps} />;
+      case 'control_transformer':
+        return <ControlTransformerDevice {...commonProps} />;
+      case 'source_3phase_440v':
+        return <ThreePhaseSourceDevice {...commonProps} />;
+      case 'push_button_fwd_rev':
+        return <PushButtonFwdRevDevice {...commonProps} />;
       default:
         return <McbDevice {...commonProps} />;
     }
@@ -162,6 +180,19 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
             strokeWidth={1.8}
             strokeDasharray="4 4"
             className="pointer-events-none"
+          />
+        )}
+        {isHighlighted && (
+          <rect
+            x={device.x - 8}
+            y={device.y - 8}
+            width={device.width + 16}
+            height={device.height + 16}
+            rx={10}
+            fill="rgba(250,204,21,0.10)"
+            stroke="#f59e0b"
+            strokeWidth={2.4}
+            className="pointer-events-none animate-pulse"
           />
         )}
         {renderComponent()}

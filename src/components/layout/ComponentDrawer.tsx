@@ -57,15 +57,12 @@ const LIBRARY_TREE: FolderNode[] = [
   },
   {
     id: 'industrial',
-    label: 'Industrial & Motor Controls',
-    types: [
-      'contactor_3p',
-      'industrial_relay_dpdt',
-      'push_button_station',
-      'push_button_estop',
-      'pilot_light_indicator',
-      'motor_ac_industrial',
-      'motor_3phase_dol',
+    label: 'Marine & Industrial Motor Control',
+    children: [
+      { id: 'supply3p', label: '3-Phase Supply & Control Power', types: ['source_3phase_440v', 'control_transformer'] },
+      { id: 'starters', label: 'Contactors & Overload Relays', types: ['contactor_3p', 'thermal_overload_relay', 'industrial_relay_dpdt'] },
+      { id: 'operators', label: 'Push Buttons & Pilot Lights', types: ['push_button_station', 'push_button_fwd_rev', 'push_button_estop', 'pilot_light_indicator'] },
+      { id: 'motors', label: 'Motors', types: ['motor_ac_industrial', 'motor_3phase_dol'] },
     ],
   },
   { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller'] },

@@ -24,14 +24,15 @@ import {
   FlipHorizontal2,
   PanelRight,
   Trash2,
+  Rows3,
 } from 'lucide-react';
 
 interface TopNavBarProps {
   standard: CodeStandard;
   onStandardChange: (std: CodeStandard) => void;
   gridVoltage: number;
-  viewMode: 'realistic' | 'schematic' | 'split';
-  onViewModeChange: (mode: 'realistic' | 'schematic' | 'split') => void;
+  viewMode: 'realistic' | 'split' | 'ladder' | 'schematic';
+  onViewModeChange: (mode: 'realistic' | 'split' | 'ladder' | 'schematic') => void;
   isCompliant: boolean;
   trippedCount: number;
   activeLabTitle?: string;
@@ -137,7 +138,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center shadow-sm shrink-0">
             <Zap className="w-4 h-4 text-white fill-white" />
           </div>
-          <div className="min-w-0 hidden lg:block">
+          <div className="min-w-0 hidden xl:block">
             <div className="text-[13px] font-serif font-bold text-stone-900 leading-tight flex items-center gap-1.5">
               VoltLab
               <span className="text-[9px] font-mono font-bold px-1.5 py-px rounded-full bg-rose-50 text-rose-600 border border-rose-200/80">
@@ -227,8 +228,9 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         <div className="flex items-center bg-white p-0.5 rounded-lg border border-stone-200 shadow-sm shrink-0">
           {([
             { id: 'realistic', label: 'Realistic', icon: Eye, tip: 'Realistic physical wiring workbench' },
-            { id: 'split', label: 'Dual View', icon: Layers, tip: 'Split dual view (physical + single-line diagram)' },
-            { id: 'schematic', label: 'Schematic (SLD)', icon: SlidersHorizontal, tip: 'Single-line diagram (SLD)' },
+            { id: 'split', label: 'Dual View', icon: Layers, tip: 'Split dual view (physical workbench + live ladder / SLD)' },
+            { id: 'ladder', label: 'Ladder Logic', icon: Rows3, tip: 'Control ladder diagram (live sync, lab target & rung builder)' },
+            { id: 'schematic', label: 'SLD Schematic', icon: SlidersHorizontal, tip: 'Single-line diagram (SLD)' },
           ] as const).map((v) => (
             <button
               key={v.id}
@@ -279,6 +281,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           <AlignVerticalJustifyCenter className="w-4 h-4" />
         </RibbonButton>
         {onFlipAllOutlets && (
+          <span className="hidden xl:contents">
           <RibbonButton
             onClick={onFlipAllOutlets}
             active={isAllRearView}
@@ -287,6 +290,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           >
             <FlipHorizontal2 className="w-4 h-4" />
           </RibbonButton>
+          </span>
         )}
       </div>
 
@@ -324,7 +328,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             }`}
             title="Philippine Electrical Code (60Hz, AWG, Black/Red/White/Green)"
           >
-            🇵🇭 PEC 2017
+            🇵🇭 PEC<span className="hidden xl:inline"> 2017</span>
           </button>
           <button
             onClick={() => onStandardChange('IEC')}
@@ -333,7 +337,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             }`}
             title={`International Electrotechnical Commission (${hz}Hz, metric mm², Brown/Blue/Green-Yellow)`}
           >
-            🌐 IEC 60364
+            🌐 IEC<span className="hidden xl:inline"> 60364</span>
           </button>
         </div>
 

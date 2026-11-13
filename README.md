@@ -42,6 +42,21 @@ Users can place realistic electrical distribution equipment, route physical cond
 - **3-Phase AC Induction Motor**: High-torque motor with cast-iron stator cooling fins, conduit terminal box, and spinning keyed drive shaft.
 - **22mm Panel Pilot Indicator Lights**: Multi-color panel lamps (Green Running, Red Standby, Amber Fault, Blue Info) with jeweled fresnel lens bloom.
 
+### 3b. ⚓ Marine & Industrial Motor Control Trainer (Phase 3)
+- **440V 60Hz 3-Phase Feeder**: L1 / L2 / L3 / PE supply block with phase-presence lamps, rotary main isolator and phase-sequence indicator. The solver tracks each line's identity through breakers, contactors and overload relays.
+- **Motor Rotation by Phase Sequence**: U1-V1-W1 = L1-L2-L3 spins the motor **CW (FORWARD)**; swapping any two lines spins it **CCW (REVERSE)** with a live direction badge on the shaft. One missing line shows a **single-phasing** fault.
+- **Upgraded 3-Pole Contactor (LC1D / 3RT style)**: 1NO + 1NC auxiliary block (13-14 seal-in, 21-22 interlock) and a **🔍 X-ray cutaway** revealing the A1-A2 coil, laminated armature, return springs and copper contact bridges that pull down when energized.
+- **Thermal Overload Relay (3RU / LRD style)**: pass-through main poles, 95-96 NC trip and 97-98 NO alarm contacts, rotary ampere dial, TEST slider and RESET button. Trips automatically when motor current exceeds the dial setting.
+- **440V / 220V Control Transformer**: H1-H2 primary across two phases; X1 becomes the 220V control hot, X2 the control return.
+- **Forward / Reverse / Stop Station** and momentary (hold-to-press) push buttons.
+- **Phase-to-Phase Short Detection**: closing FOR and REV together bolts L1 to L3 — the solver fires a phase-to-phase arc flash at the contactor and trips the upstream 3-pole MCB.
+
+### 3c. Control Ladder Diagram (Ladder Logic view)
+- **Live Sync**: the wired control circuit between X1 and X2 is parsed into NEMA / IEC 2-rail ladder rungs (series contacts, parallel seal-in branches, coils and pilot lamps) with energized paths in green and blocking contacts in red. Hold START / STOP / FWD / REV symbols to operate the circuit; click OLR to TEST / RESET.
+- **Lab Target**: the active lab's reference ladder, live-highlighted.
+- **Rung Builder**: draw rungs with `| |`, `|/|`, `||`, `( )` and `(*)` symbols linked to workbench devices, then **Verify Against Physical Wiring** to get diagnostics such as *"Missing KM1 13-14 Seal-In across START"* or *"Missing REV 21-22 NC Electrical Interlock before KM1/FOR coil"*.
+- **Dual View** shows the physical workbench beside the live ladder (or SLD); hovering a ladder symbol glows the matching device.
+
 ### 4. Real-Time Circuit Solver & Fault Physics
 - **Kirchhoff Nodal Engine**: Solves node voltages and branch currents dynamically across all connected devices and conductors.
 - **Multi-Stage Dynamic Evaluation**: Simulates cascading logic loops (e.g., Push Button $\to$ PLC Input $\to$ PLC Relay Output $\to$ Contactor Coil $\to$ Motor).
@@ -89,6 +104,8 @@ VoltLab opens to a clean, blank canvas by default and features an **"Example Wir
 11. **DOL Motor Starter (Contactor + 3-Wire Seal-In Control)**: Start NO, Stop NC, aux NO $13-14$ seal-in loop, 3 HP motor, and green running pilot.
 12. **Industrial Control Relay: Run / Standby Annunciation**: DPDT Form-C relay swapping between Red Standby (NC 12) and Green Running (NO 14) lamps.
 13. **Micro PLC Automated Machine Starter**: PLC reading pushbuttons on digital input $I_1$ and driving relay output $Q_1$ to pull in the motor contactor.
+14. **⚓ Marine / Industrial DOL Motor Starter (440V/220V)**: 440V feeder $	o$ 3P MCB $	o$ contactor $	o$ thermal overload relay $	o$ 3-phase motor, with a 2P control MCB, 440/220V control transformer, OLR 95-96 $	o$ STOP $	o$ START + 13-14 latch $	o$ A1-A2, and RUN / FAULT pilots.
+15. **🔄 Forward-Reverse Motor Starter with Electrical Interlocking**: FOR / REV contactors with T1/T3 phase reversal, 21-22 NC cross-interlocks, overload relay and FWD / REV / STOP station.
 
 ### Appliances & Interactive Loads
 14. **Electric Ventilation Fan Circuit**: Switch-controlled fan with smooth 60fps aerodynamic blade rotation animation.

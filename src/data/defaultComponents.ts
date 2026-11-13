@@ -8,7 +8,7 @@ export interface ComponentDefinition {
   width: number;
   height: number;
   description: string;
-  brand?: 'ROYU' | 'Schneider' | 'Generic';
+  brand?: 'ROYU' | 'Schneider' | 'Siemens' | 'Generic';
   modelNumber?: string;
   kaRating?: number;
   mountingType?: 'bolt_on' | 'plug_in' | 'din_rail' | 'flush_utility' | 'surface_nema3r';
@@ -542,28 +542,143 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
   {
     type: 'contactor_3p',
     category: 'industrial',
-    name: '3-Pole Industrial Motor Contactor',
+    name: '3-Pole Motor Contactor (LC1D32 / 3RT Style)',
     defaultLabel: 'KM1',
-    width: 88,
-    height: 120,
-    description: 'Heavy-duty magnetic contactor for 3-phase motors with 3 power poles (L1-T1, L2-T2, L3-T3), coil A1-A2, and auxiliary NO 13-14 seal-in contact.',
+    width: 124,
+    height: 140,
+    brand: 'Schneider',
+    modelNumber: 'TeSys LC1D32 + LADN11',
+    mountingType: 'din_rail',
+    pecReference: 'PEC 2017 Art. 4.30.7 (Motor Controllers)',
+    description: 'AC-3 magnetic contactor: 3 main power poles (1/L1-2/T1, 3/L2-4/T2, 5/L3-6/T3), 220V coil A1-A2, plus front auxiliary block with 13-14 NO seal-in and 21-22 NC interlock contacts. Toggle Cutaway to see the coil, armature, return spring and moving contact bridges.',
     defaultProperties: {
       coilEnergized: false,
       closed: false,
-      ratedAmps: 25,
-      motorKw: 7.5
+      ratedAmps: 32,
+      motorKw: 15,
+      coilVoltage: 220,
+      tag: 'KM1',
+      viewMode: 'front',
     },
     terminals: [
-      { id: 'a1', name: 'Coil A1 (Line)', type: 'coil', relX: 0.14, relY: 0.08, label: 'A1', phaseLabel: 'A1' },
-      { id: 'l1', name: 'Line 1 (1/L1)', type: 'phase', relX: 0.38, relY: 0.08, label: '1/L1', phaseLabel: 'L1' },
-      { id: 'l2', name: 'Line 2 (3/L2)', type: 'phase2', relX: 0.62, relY: 0.08, label: '3/L2', phaseLabel: 'L2' },
-      { id: 'l3', name: 'Line 3 (5/L3)', type: 'phase3', relX: 0.86, relY: 0.08, label: '5/L3', phaseLabel: 'L3' },
-      { id: 'no_13', name: 'Aux NO In (13)', type: 'no', relX: 0.14, relY: 0.44, label: '13', phaseLabel: 'NO' },
-      { id: 'no_14', name: 'Aux NO Out (14)', type: 'no', relX: 0.14, relY: 0.70, label: '14', phaseLabel: 'NO' },
-      { id: 'a2', name: 'Coil A2 (Neutral)', type: 'coil', relX: 0.14, relY: 0.92, label: 'A2', phaseLabel: 'A2' },
-      { id: 't1', name: 'Motor T1 (2/T1)', type: 'load', relX: 0.38, relY: 0.92, label: '2/T1', phaseLabel: '1' },
-      { id: 't2', name: 'Motor T2 (4/T2)', type: 'load', relX: 0.62, relY: 0.92, label: '4/T2', phaseLabel: '2' },
-      { id: 't3', name: 'Motor T3 (6/T3)', type: 'load', relX: 0.86, relY: 0.92, label: '6/T3', phaseLabel: '3' },
+      { id: 'a1', name: 'Coil A1 (Control Hot)', type: 'coil', relX: 0.08, relY: 0.07, label: 'A1', phaseLabel: 'A1' },
+      { id: 'l1', name: 'Line 1 (1/L1)', type: 'phase', relX: 0.25, relY: 0.07, label: '1/L1', phaseLabel: 'L1' },
+      { id: 'l2', name: 'Line 2 (3/L2)', type: 'phase2', relX: 0.41, relY: 0.07, label: '3/L2', phaseLabel: 'L2' },
+      { id: 'l3', name: 'Line 3 (5/L3)', type: 'phase3', relX: 0.57, relY: 0.07, label: '5/L3', phaseLabel: 'L3' },
+      { id: 'no_13', name: 'Aux NO 13 (Seal-In)', type: 'no', relX: 0.78, relY: 0.07, label: '13 NO', phaseLabel: 'NO' },
+      { id: 'nc_21', name: 'Aux NC 21 (Interlock)', type: 'nc', relX: 0.93, relY: 0.07, label: '21 NC', phaseLabel: 'NC' },
+      { id: 'a2', name: 'Coil A2 (Control Return)', type: 'coil', relX: 0.08, relY: 0.93, label: 'A2', phaseLabel: 'A2' },
+      { id: 't1', name: 'Motor T1 (2/T1)', type: 'load', relX: 0.25, relY: 0.93, label: '2/T1', phaseLabel: '1' },
+      { id: 't2', name: 'Motor T2 (4/T2)', type: 'load', relX: 0.41, relY: 0.93, label: '4/T2', phaseLabel: '2' },
+      { id: 't3', name: 'Motor T3 (6/T3)', type: 'load', relX: 0.57, relY: 0.93, label: '6/T3', phaseLabel: '3' },
+      { id: 'no_14', name: 'Aux NO 14 (Seal-In)', type: 'no', relX: 0.78, relY: 0.93, label: '14 NO', phaseLabel: 'NO' },
+      { id: 'nc_22', name: 'Aux NC 22 (Interlock)', type: 'nc', relX: 0.93, relY: 0.93, label: '22 NC', phaseLabel: 'NC' },
+    ]
+  },
+  {
+    type: 'thermal_overload_relay',
+    category: 'industrial',
+    name: 'Thermal Overload Relay (3RU / LRD Style)',
+    defaultLabel: 'F2',
+    width: 124,
+    height: 124,
+    brand: 'Siemens',
+    modelNumber: 'SIRIUS 3RU2126-1HB0 (5.5-8A)',
+    mountingType: 'din_rail',
+    pecReference: 'PEC 2017 Art. 4.30.3.32 (Motor Overload Protection)',
+    description: '3-pole bimetallic thermal overload relay (TOR). Main poles pass through 1/L1-2/T1, 3/L2-4/T2, 5/L3-6/T3. Trip contacts: 95-96 NC opens on overload, 97-98 NO closes for a fault pilot lamp. Front: rotary ampere dial, red TEST slider and blue RESET button.',
+    defaultProperties: {
+      tripped: false,
+      tripAmps: 6,
+      measuredAmps: 0,
+      tag: 'F2',
+    },
+    terminals: [
+      { id: 'l1', name: 'Line 1 In (1/L1)', type: 'phase', relX: 0.25, relY: 0.07, label: '1/L1', phaseLabel: 'L1' },
+      { id: 'l2', name: 'Line 2 In (3/L2)', type: 'phase2', relX: 0.41, relY: 0.07, label: '3/L2', phaseLabel: 'L2' },
+      { id: 'l3', name: 'Line 3 In (5/L3)', type: 'phase3', relX: 0.57, relY: 0.07, label: '5/L3', phaseLabel: 'L3' },
+      { id: 'nc_95', name: 'Trip Contact NC 95', type: 'nc', relX: 0.78, relY: 0.07, label: '95 NC', phaseLabel: 'NC' },
+      { id: 'no_97', name: 'Alarm Contact NO 97', type: 'no', relX: 0.93, relY: 0.07, label: '97 NO', phaseLabel: 'NO' },
+      { id: 't1', name: 'Motor Out T1 (2/T1)', type: 'load', relX: 0.25, relY: 0.93, label: '2/T1', phaseLabel: '1' },
+      { id: 't2', name: 'Motor Out T2 (4/T2)', type: 'load', relX: 0.41, relY: 0.93, label: '4/T2', phaseLabel: '2' },
+      { id: 't3', name: 'Motor Out T3 (6/T3)', type: 'load', relX: 0.57, relY: 0.93, label: '6/T3', phaseLabel: '3' },
+      { id: 'nc_96', name: 'Trip Contact NC 96', type: 'nc', relX: 0.78, relY: 0.93, label: '96 NC', phaseLabel: 'NC' },
+      { id: 'no_98', name: 'Alarm Contact NO 98', type: 'no', relX: 0.93, relY: 0.93, label: '98 NO', phaseLabel: 'NO' },
+    ]
+  },
+  {
+    type: 'control_transformer',
+    category: 'industrial',
+    name: 'Control Transformer 440V / 220V (250VA)',
+    defaultLabel: 'TC1',
+    width: 116,
+    height: 132,
+    brand: 'Generic',
+    modelNumber: 'CT-250 440/220V 60Hz',
+    mountingType: 'din_rail',
+    pecReference: 'PEC 2017 Art. 4.30.7.2 (Control Circuit Transformers)',
+    description: 'Laminated iron-core step-down control transformer. Primary H1-H2 connected line-to-line across 440V (e.g. L1-L2); secondary X1 supplies the 220V control hot rail and X2 is the control return (L2/N).',
+    defaultProperties: {
+      primaryVolts: 440,
+      secondaryVolts: 220,
+      vaRating: 250,
+      secondaryLive: false,
+      tag: 'TC1',
+    },
+    terminals: [
+      { id: 'h1', name: 'Primary H1 (440V)', type: 'phase', relX: 0.24, relY: 0.07, label: 'H1', phaseLabel: 'H1' },
+      { id: 'h2', name: 'Primary H2 (440V)', type: 'phase2', relX: 0.76, relY: 0.07, label: 'H2', phaseLabel: 'H2' },
+      { id: 'x1', name: 'Secondary X1 (220V Control L1)', type: 'phase', relX: 0.24, relY: 0.93, label: 'X1', phaseLabel: 'X1' },
+      { id: 'x2', name: 'Secondary X2 (220V Return L2/N)', type: 'neutral', relX: 0.76, relY: 0.93, label: 'X2', phaseLabel: 'X2' },
+    ]
+  },
+  {
+    type: 'source_3phase_440v',
+    category: 'supply',
+    name: '440V 60Hz 3-Phase Feeder (Shipboard / Industrial)',
+    defaultLabel: 'FEEDER-440V',
+    width: 168,
+    height: 96,
+    brand: 'Generic',
+    modelNumber: '3-Phase 440V 60Hz Supply Block',
+    pecReference: 'PEC 2017 Art. 2.15 (Feeders) / IEC 60092 (Ships)',
+    description: '3-phase + PE supply terminal block (L1 / L2 / L3 / PE) for wiring DOL and Forward-Reverse motor starters without a residential kWh meter. Phase sequence L1-L2-L3 drives a motor clockwise.',
+    defaultProperties: {
+      lineVoltage: 440,
+      frequency: 60,
+      closed: true,
+    },
+    terminals: [
+      { id: 'l1', name: 'Phase L1 (Red/Black)', type: 'phase', relX: 0.18, relY: 0.86, label: 'L1', phaseLabel: 'L1' },
+      { id: 'l2', name: 'Phase L2 (Yellow/White)', type: 'phase2', relX: 0.39, relY: 0.86, label: 'L2', phaseLabel: 'L2' },
+      { id: 'l3', name: 'Phase L3 (Blue)', type: 'phase3', relX: 0.60, relY: 0.86, label: 'L3', phaseLabel: 'L3' },
+      { id: 'pe', name: 'Protective Earth (PE)', type: 'earth', relX: 0.82, relY: 0.86, label: 'PE', phaseLabel: 'PE' },
+    ]
+  },
+  {
+    type: 'push_button_fwd_rev',
+    category: 'industrial',
+    name: 'Forward / Reverse / Stop Push Button Station',
+    defaultLabel: 'S1-FR',
+    width: 120,
+    height: 124,
+    brand: 'Generic',
+    modelNumber: '3-Hole 22mm Control Station',
+    pecReference: 'PEC 2017 Art. 4.30.7 (Motor Control Circuits)',
+    description: '3-hole operator station: red STOP (NC 1-2), green FORWARD (NO 3-4) and amber REVERSE (NO 5-6) momentary push buttons.',
+    defaultProperties: {
+      stopPressed: false,
+      fwdPressed: false,
+      revPressed: false,
+      tag: 'S1',
+    },
+    terminals: [
+      { id: 'stop_1', name: 'Stop NC 1', type: 'nc', relX: 0.18, relY: 0.07, label: '1 NC', phaseLabel: 'NC' },
+      { id: 'fwd_3', name: 'Forward NO 3', type: 'no', relX: 0.50, relY: 0.07, label: '3 NO', phaseLabel: 'NO' },
+      { id: 'rev_5', name: 'Reverse NO 5', type: 'no', relX: 0.82, relY: 0.07, label: '5 NO', phaseLabel: 'NO' },
+      { id: 'stop_2', name: 'Stop NC 2', type: 'nc', relX: 0.18, relY: 0.93, label: '2 NC', phaseLabel: 'NC' },
+      { id: 'fwd_4', name: 'Forward NO 4', type: 'no', relX: 0.50, relY: 0.93, label: '4 NO', phaseLabel: 'NO' },
+      { id: 'rev_6', name: 'Reverse NO 6', type: 'no', relX: 0.82, relY: 0.93, label: '6 NO', phaseLabel: 'NO' },
     ]
   },
   {
@@ -577,12 +692,13 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     defaultProperties: {
       startPressed: false,
       stopPressed: false,
+      tag: 'S1',
     },
     terminals: [
-      { id: 'start_3', name: 'Start NO Terminal 3', type: 'no', relX: 0.30, relY: 0.10, label: '3', phaseLabel: 'NO' },
-      { id: 'start_4', name: 'Start NO Terminal 4', type: 'no', relX: 0.70, relY: 0.10, label: '4', phaseLabel: 'NO' },
-      { id: 'stop_1', name: 'Stop NC Terminal 1', type: 'nc', relX: 0.30, relY: 0.90, label: '1', phaseLabel: 'NC' },
-      { id: 'stop_2', name: 'Stop NC Terminal 2', type: 'nc', relX: 0.70, relY: 0.90, label: '2', phaseLabel: 'NC' },
+      { id: 'start_3', name: 'Start NO Terminal 3', type: 'no', relX: 0.22, relY: 0.07, label: '3 NO', phaseLabel: 'NO' },
+      { id: 'start_4', name: 'Start NO Terminal 4', type: 'no', relX: 0.78, relY: 0.07, label: '4 NO', phaseLabel: 'NO' },
+      { id: 'stop_1', name: 'Stop NC Terminal 1', type: 'nc', relX: 0.22, relY: 0.93, label: '1 NC', phaseLabel: 'NC' },
+      { id: 'stop_2', name: 'Stop NC Terminal 2', type: 'nc', relX: 0.78, relY: 0.93, label: '2 NC', phaseLabel: 'NC' },
     ]
   },
   {
@@ -653,16 +769,18 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
   {
     type: 'motor_ac_industrial',
     category: 'industrial',
-    name: '3-Phase Industrial Induction Motor (3.0 HP)',
+    name: '3-Phase Industrial Induction Motor (3.0 HP, 440V)',
     defaultLabel: 'MOTOR-3P',
     width: 130,
     height: 115,
-    description: 'Squirrel-cage AC induction motor with cast iron stator cooling fins, conduit terminal box, and keyed output shaft.',
+    description: 'TEFC squirrel-cage induction motor with cast-iron finned stator, terminal box U1/V1/W1/PE and keyed shaft. Phase sequence L1-L2-L3 spins CW (forward); swapping any two phases reverses it (CCW).',
     defaultProperties: {
       motorRunning: false,
       wattage: 2200,
       motorHp: 3.0,
-      motorRpm: 1750
+      motorRpm: 1750,
+      motorDirection: null,
+      tag: 'M1',
     },
     terminals: [
       { id: 'u1', name: 'Phase U1', type: 'phase', relX: 0.32, relY: 0.22, label: 'U1', phaseLabel: 'L1' },

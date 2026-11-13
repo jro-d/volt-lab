@@ -13,6 +13,7 @@ const BOOLEAN_TRANSIENT_KEYS = [
   'pilotLit',
   'coilEnergized',
   'plcPowered',
+  'secondaryLive',
 ];
 
 /** Return a copy of the device with all solver-derived (energized) state cleared. */
@@ -25,6 +26,13 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('brightness' in state) state.brightness = 0;
   if ('plcInputs' in state) state.plcInputs = {};
   if ('plcOutputs' in state) state.plcOutputs = {};
+  if ('measuredAmps' in state) state.measuredAmps = 0;
+  if ('motorDirection' in state) state.motorDirection = null;
+  if ('motorFault' in state) state.motorFault = null;
+  // Momentary push buttons spring back when the grid is de-energized
+  for (const k of ['startPressed', 'stopPressed', 'fwdPressed', 'revPressed']) {
+    if (k in state) state[k] = false;
+  }
   // A contactor's `closed` flag is purely coil-driven (unlike breakers / switches, where it is user state)
   if (device.type === 'contactor_3p') state.closed = false;
 

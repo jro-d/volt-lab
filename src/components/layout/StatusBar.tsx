@@ -65,6 +65,21 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         </span>
       </div>
 
+      <div className="hidden xl:flex items-center gap-2 text-[10px] text-stone-400 truncate" title="Keyboard shortcuts">
+        {[
+          ['F', 'fit'],
+          ['R', 'rotate'],
+          ['Del', 'delete'],
+          ['Ctrl+Z', 'undo'],
+          ['Space+drag', 'pan'],
+        ].map(([k, v]) => (
+          <span key={k} className="flex items-center gap-1">
+            <kbd className="px-1 py-px rounded border border-stone-300 bg-white text-stone-600 font-bold">{k}</kbd>
+            {v}
+          </span>
+        ))}
+      </div>
+
       <div className="font-semibold text-stone-700 truncate">
         {standardLabel} • {gridVoltage}V {gridFrequency}Hz • Connected: {Math.round(totalWatts)}W ({totalAmps.toFixed(2)}A)
       </div>

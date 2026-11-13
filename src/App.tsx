@@ -16,11 +16,15 @@ import { DevicePropertiesPanel } from './components/layout/DevicePropertiesPanel
 import { LabSelectorModal } from './components/layout/LabSelectorModal';
 import { WiringCanvas } from './components/canvas/WiringCanvas';
 import { SchematicCanvas } from './components/canvas/SchematicCanvas';
+import { LadderCanvas } from './components/canvas/LadderCanvas';
+import { LadderRung } from './types/ladder';
 import { sound } from './utils/soundFx';
 import { resetTransientState, resetTripState, toEditModeDevices } from './utils/deviceState';
 import { Trash2, Lock } from 'lucide-react';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
+
+export type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
 
 export const App: React.FC = () => {
   // Start with clean blank canvas as requested by user
@@ -29,7 +33,18 @@ export const App: React.FC = () => {
   });
 
   const [standard, setStandard] = useState<CodeStandard>(project.codeStandard);
-  const [viewMode, setViewMode] = useState<'realistic' | 'schematic' | 'split'>('realistic');
+  const [viewMode, setViewMode] = useState<ViewMode>('realistic');
+  // Right-hand pane of Dual View: control ladder or single-line diagram
+  const [dualPane, setDualPane] = useState<'ladder' | 'sld'>('ladder');
+  // Physical device glow-linked from a hovered / clicked ladder symbol
+  const [hoverDeviceId, setHoverDeviceId] = useState<string | null>(null);
+  const [flashDeviceId, setFlashDeviceId] = useState<string | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashDevice = useCallback((id: string | null) => {
+    setFlashDeviceId(id);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    if (id) flashTimer.current = setTimeout(() => setFlashDeviceId(null), 1800);
+  }, []);
 
   // Edit Mode (de-energized, safe wiring) vs Simulation Mode (grid energized)
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
@@ -138,12 +153,16 @@ export const App: React.FC = () => {
   // When standard switches, update colors & wire gauges
   const handleStandardChange = (newStd: CodeStandard) => {
     setStandard(newStd);
-    setProject(prev => ({
-      ...prev,
-      codeStandard: newStd,
-      gridVoltage: newStd === 'PEC' ? 230 : 230,
-      gridFrequency: newStd === 'PEC' ? 60 : 50,
-    }));
+    setProject(prev => {
+      // A 3-phase feeder sets its own line voltage / frequency — keep them when switching code book
+      const feeder = prev.devices.find(d => d.type === 'source_3phase_440v');
+      return {
+        ...prev,
+        codeStandard: newStd,
+        gridVoltage: feeder ? feeder.state.lineVoltage || 440 : 230,
+        gridFrequency: feeder ? feeder.state.frequency || 60 : newStd === 'PEC' ? 60 : 50,
+      };
+    });
     setActiveWireColor(COLOR_STANDARDS[newStd].phase1);
     setActiveWireGauge(getDefaultWireGauge(newStd, 'lighting'));
   };
@@ -545,6 +564,20 @@ export const App: React.FC = () => {
     }));
   };
 
+  // Merge a partial state patch into a live device (momentary push buttons, TOR dial/test/reset,
+  // isolators, cutaway view). Works in both Edit and Simulation mode — it is operation, not wiring.
+  const handlePatchDeviceState = useCallback((deviceId: string, patch: Record<string, any>) => {
+    setProject(prev => ({
+      ...prev,
+      devices: prev.devices.map(d => (d.id === deviceId ? { ...d, state: { ...d.state, ...patch } } : d)),
+    }));
+  }, []);
+
+  // Student rung-builder ladder lives on the project (exported / imported with it)
+  const handleUpdateLadder = useCallback((rungs: LadderRung[]) => {
+    setProject(prev => ({ ...prev, ladder: rungs }));
+  }, []);
+
   // Toggle breaker or switch state
   const handleToggleDeviceState = (device: ElectricalDevice) => {
     setProject(prev => ({
@@ -724,6 +757,7 @@ export const App: React.FC = () => {
     setProject(loaded);
     setStandard(lab.project.codeStandard);
     setIsLabModalOpen(false);
+    setIsLibraryOpen(false);
     setSelectedDeviceId(null);
     setSelectedGroupIds([]);
     setSelectedWireId(null);
@@ -744,6 +778,26 @@ export const App: React.FC = () => {
   };
 
   const selectedDevice = project.devices.find(d => d.id === selectedDeviceId) || null;
+
+  // Dual View right-pane switch (Ladder ⇄ SLD)
+  const dualSwitch = (
+    <div className="flex items-center bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm">
+      {([
+        { id: 'ladder', label: 'Ladder' },
+        { id: 'sld', label: 'SLD' },
+      ] as const).map(t => (
+        <button
+          key={t.id}
+          onClick={() => setDualPane(t.id)}
+          className={`px-2.5 h-6 rounded-md text-[11px] font-bold transition ${
+            dualPane === t.id ? 'bg-stone-800 text-white' : 'text-stone-600 hover:text-stone-900'
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
   const isLocked = isSimulating;
 
   // Blocked-edit notifications coming from the canvas
@@ -832,6 +886,7 @@ export const App: React.FC = () => {
             onDeleteSelected={handleDeleteSelected}
             onRotateDevice={handleRotateDevice}
             onDuplicateDevice={handleDuplicateDevice}
+            onPatchDeviceState={handlePatchDeviceState}
             onClose={() => {
               setSelectedDeviceId(null);
               setSelectedGroupIds([]);
@@ -866,11 +921,15 @@ export const App: React.FC = () => {
               onUpdateDevicePosition={handleUpdateDevicePosition}
               onConnectWire={handleConnectWire}
               onToggleDeviceState={handleToggleDeviceState}
+              onPatchDeviceState={handlePatchDeviceState}
+              highlightDeviceIds={[hoverDeviceId, flashDeviceId].filter((x): x is string => !!x)}
               onUpdateWireWaypoints={handleUpdateWireWaypoints}
               onDropDevice={handleDropDevice}
               onRotateDevice={handleRotateDevice}
               onDuplicateDevice={handleDuplicateDevice}
               onDeleteDevice={handleDeleteSelected}
+              fitKey={`${project.id}-realistic`}
+              insetLeft={isLibraryOpen ? 336 : 0}
             />
           )}
 
@@ -879,6 +938,22 @@ export const App: React.FC = () => {
               devices={project.devices}
               wires={project.wires}
               solved={solved}
+            />
+          )}
+
+          {viewMode === 'ladder' && (
+            <LadderCanvas
+              key={`ladder-full-${project.id}`}
+              devices={project.devices}
+              wires={project.wires}
+              solved={solved}
+              isSimulating={isSimulating}
+              ladder={project.ladder}
+              targetLadder={project.targetLadder}
+              onUpdateLadder={handleUpdateLadder}
+              selectedDeviceId={selectedDeviceId}
+              onSelectDevice={() => {}}
+              onPatchDeviceState={handlePatchDeviceState}
             />
           )}
 
@@ -910,19 +985,43 @@ export const App: React.FC = () => {
                   onUpdateDevicePosition={handleUpdateDevicePosition}
                   onConnectWire={handleConnectWire}
                   onToggleDeviceState={handleToggleDeviceState}
+                  onPatchDeviceState={handlePatchDeviceState}
+                  highlightDeviceIds={[hoverDeviceId, flashDeviceId].filter((x): x is string => !!x)}
                   onUpdateWireWaypoints={handleUpdateWireWaypoints}
                   onDropDevice={handleDropDevice}
                   onRotateDevice={handleRotateDevice}
                   onDuplicateDevice={handleDuplicateDevice}
                   onDeleteDevice={handleDeleteSelected}
+                  fitKey={`${project.id}-split`}
+                  insetLeft={isLibraryOpen ? 336 : 0}
                 />
               </div>
-              <div className="w-full h-full relative">
-                <SchematicCanvas
-                  devices={project.devices}
-                  wires={project.wires}
-                  solved={solved}
-                />
+              <div className="w-full h-full relative flex flex-col">
+                {dualPane === 'sld' && <div className="absolute bottom-3 right-3 z-20">{dualSwitch}</div>}
+                {dualPane === 'ladder' ? (
+                  <LadderCanvas
+                    key={`ladder-dual-${project.id}`}
+                    compact
+                    devices={project.devices}
+                    wires={project.wires}
+                    solved={solved}
+                    isSimulating={isSimulating}
+                    ladder={project.ladder}
+                    targetLadder={project.targetLadder}
+                    onUpdateLadder={handleUpdateLadder}
+                    selectedDeviceId={selectedDeviceId}
+                    onSelectDevice={(id) => flashDevice(id)}
+                    onPatchDeviceState={handlePatchDeviceState}
+                    onHoverDevice={setHoverDeviceId}
+                    headerRight={dualSwitch}
+                  />
+                ) : (
+                  <SchematicCanvas
+                    devices={project.devices}
+                    wires={project.wires}
+                    solved={solved}
+                  />
+                )}
               </div>
             </div>
           )}

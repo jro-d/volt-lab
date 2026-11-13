@@ -28,7 +28,11 @@ export interface SchematicNode {
     | 'pushbutton'
     | 'estop'
     | 'pilot'
-    | 'plc';
+    | 'plc'
+    | 'tor'
+    | 'transformer'
+    | 'source3p'
+    | 'pushbutton3';
   status?: string;
 }
 
@@ -42,7 +46,11 @@ export interface SchematicEdge {
 export function generateSchematicModel(devices: ElectricalDevice[], wires: ElectricalWire[]) {
   const nodes: SchematicNode[] = devices.map(d => {
     let symbol: SchematicNode['symbol'] = 'breaker';
-    if (d.type.includes('meter')) symbol = 'meter';
+    if (d.type === 'thermal_overload_relay') symbol = 'tor';
+    else if (d.type === 'control_transformer') symbol = 'transformer';
+    else if (d.type === 'source_3phase_440v') symbol = 'source3p';
+    else if (d.type === 'push_button_fwd_rev') symbol = 'pushbutton3';
+    else if (d.type.includes('meter')) symbol = 'meter';
     else if (d.type.includes('rcd')) symbol = 'rcd';
     else if (d.type.includes('spd')) symbol = 'spd';
     else if (d.type.includes('busbar') || d.type === 'din_rail_track') symbol = 'busbar';
@@ -71,17 +79,28 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
       x: d.x,
       y: d.y,
       symbol,
-      status: d.state.tripped ? 'TRIPPED' : d.state.lit ? 'ON' : d.state.powered ? 'ENERGIZED' : 'NORMAL'
+      status: d.state.tripped
+        ? 'TRIPPED'
+        : d.state.lit || d.state.coilEnergized || d.state.motorRunning || d.state.secondaryLive
+        ? 'ON'
+        : d.state.powered
+        ? 'ENERGIZED'
+        : 'NORMAL'
     };
   });
 
+  const termType = (devId: string, termId: string) =>
+    devices.find(d => d.id === devId)?.terminals.find(t => t.id === termId)?.type;
+  const CONTROL_TYPES = new Set(['coil', 'no', 'nc', 'switched', 'traveler', 'input', 'output', 'common']);
+
   const edges: SchematicEdge[] = wires.map(w => {
+    const types = [termType(w.fromDeviceId, w.fromTerminalId), termType(w.toDeviceId, w.toTerminalId)];
     let edgeType: SchematicEdge['type'] = 'live';
-    if (w.fromTerminalId.includes('n') || w.toTerminalId.includes('n') || w.fromTerminalId === 'neutral' || w.toTerminalId === 'neutral') {
-      edgeType = 'neutral';
-    } else if (w.fromTerminalId.includes('pe') || w.toTerminalId.includes('pe') || w.fromTerminalId === 'ground' || w.toTerminalId === 'ground' || w.fromTerminalId === 'clamp') {
+    if (w.conductorRole === 'earth_ground' || types.includes('earth')) {
       edgeType = 'earth';
-    } else if (w.fromTerminalId.includes('t') || w.toTerminalId.includes('t') || w.fromTerminalId === 'sw_out') {
+    } else if (w.conductorRole === 'return_neutral' || types.includes('neutral')) {
+      edgeType = 'neutral';
+    } else if (types.some(t => t && CONTROL_TYPES.has(t))) {
       edgeType = 'control';
     }
 
