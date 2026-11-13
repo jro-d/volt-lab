@@ -1,211 +1,252 @@
-import React, { useId } from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import React from 'react';
+import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
-interface WallSwitchDeviceProps {
-  device: ElectricalDevice;
-  isSelected?: boolean;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId?: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const WallSwitchDevice: React.FC<WallSwitchDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
-  const uid = useId().replace(/:/g, '');
-  const { width, height, terminals } = device;
-  const is1Gang = device.type === 'switch_1gang';
-  const is3Way = device.type === 'switch_3way';
-  const is4Way = device.type === 'switch_4way';
-
+/**
+ * EduVolt-style ROYU Wide-Series 1-Way / 3-Way / 4-Way Flush Wall Switch.
+ * Pure flat architectural CAD plate with embedded [FRONT / REAR] toggle inside trim band
+ * and non-overlapping terminal silkscreen labels.
+ */
+export const WallSwitchDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device, onToggleState, onPatchState } = props;
+  const { x, y, width, height, type, terminals } = device;
   const isClosed = !!device.state.closed;
   const position3Way = device.state.position || 'A';
   const cross4Way = !!device.state.crossState;
-  const isUpState = is1Gang ? isClosed : is3Way ? position3Way === 'A' : !cross4Way;
+  const isRearView = device.state.viewMode === 'rear';
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+  const hasTopTerms = type === 'switch_3way' || type === 'switch_4way';
+
+  const isActive =
+    type === 'switch_1gang' ? isClosed : type === 'switch_3way' ? position3Way === 'A' : cross4Way;
+
+  const patch = (p: Record<string, any>) => {
+    if (onPatchState) onPatchState(device.id, p);
+    else {
+      Object.assign(device.state, p);
+      onToggleState?.({ ...device, state: { ...device.state, ...p } });
+    }
+  };
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (is1Gang) {
-      device.state.closed = !device.state.closed;
-    } else if (is3Way) {
-      device.state.position = position3Way === 'A' ? 'B' : 'A';
-    } else if (is4Way) {
-      device.state.crossState = !cross4Way;
-    }
-    onToggleState?.(device);
+    if (type === 'switch_1gang') patch({ closed: !isClosed });
+    else if (type === 'switch_3way') patch({ position: position3Way === 'A' ? 'B' : 'A' });
+    else patch({ crossState: !cross4Way });
   };
 
-  const cx = width / 2;
-  const cy = height / 2;
+  const handleFlipView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    patch({ viewMode: isRearView ? 'front' : 'rear' });
+  };
+
+  const tagText = type === 'switch_1gang' ? '1-WAY' : type === 'switch_3way' ? '3-WAY' : '4-WAY';
+  const headerY = hasTopTerms ? y + 26 : y + 4;
+  const bodyTop = hasTopTerms ? y + 41 : y + 19;
+  const bodyBot = y + height - 29;
+  const bodyH = bodyBot - bodyTop;
 
   return (
-    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`swPlate-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="60%" stopColor="#f8fafc" />
-          <stop offset="100%" stopColor="#dde4ed" />
-        </linearGradient>
-        <linearGradient id={`swPaddle-${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={isUpState ? '#ffffff' : '#dbe3ee'} />
-          <stop offset="50%" stopColor="#f1f5f9" />
-          <stop offset="100%" stopColor={isUpState ? '#cbd5e1' : '#ffffff'} />
-        </linearGradient>
-      </defs>
+    <g className="select-none">
+      {/* Subtle CAD shadow */}
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="rgba(15, 23, 42, 0.14)" />
 
-      {/* Wallbox Cast Shadow */}
-      <rect x={2} y={4} width={width} height={height} rx={9} fill="rgba(15, 23, 42, 0.2)" />
-
-      {/* Outer Contoured Wide-Series Polycarbonate Plate */}
+      {/* Wallplate Frame */}
       <rect
-        x={0}
-        y={0}
+        x={x}
+        y={y}
         width={width}
         height={height}
-        rx={9}
-        fill={`url(#swPlate-${uid})`}
-        stroke="#94a3b8"
-        strokeWidth={1.6}
-      />
-      <rect x={2.5} y={2.5} width={width - 5} height={height - 5} rx={7} fill="none" stroke="#ffffff" strokeWidth={1.1} />
-
-      {/* Recessed Sub-frame Well & Concealed Brass Mounting Screws */}
-      <rect x={7} y={7} width={width - 14} height={height - 14} rx={5.5} fill="#e2e8f0" stroke="#cbd5e1" strokeWidth={0.9} />
-      <circle cx={cx} cy={12} r={2} fill="#94a3b8" />
-      <circle cx={cx} cy={height - 12} r={2} fill="#94a3b8" />
-
-      {/* Rocker Actuator Bezel */}
-      <rect
-        x={12}
-        y={17}
-        width={width - 24}
-        height={height - 46}
-        rx={4.5}
-        fill="#0f172a"
-        stroke="#64748b"
-        strokeWidth={1}
+        rx={5}
+        fill={isRearView ? '#475569' : '#f8fafc'}
+        stroke="#0f172a"
+        strokeWidth={1.3}
       />
 
-      {/* Interactive 3D Wide-Series Rocker Paddle */}
-      <g onClick={handleToggle} className="cursor-pointer group">
+      {/* Top Terminal Bay & Embedded Silkscreen Labels (for 3-way / 4-way) */}
+      {hasTopTerms && (
+        <g>
+          <rect x={x + 3} y={y + 2} width={width - 6} height={17} rx={2} fill="#1f2937" />
+          <rect x={x + 3} y={y + 19} width={width - 6} height={7} fill="#0f172a" />
+          {terminals
+            .filter((t) => t.relY < 0.5)
+            .map((t) => (
+              <text
+                key={`wt-${t.id}`}
+                x={x + t.relX * width}
+                y={y + 24.3}
+                textAnchor="middle"
+                fontSize="4.4"
+                fontWeight="900"
+                fontFamily="ui-monospace, monospace"
+                fill="#fcd34d"
+              >
+                {t.label}
+              </text>
+            ))}
+        </g>
+      )}
+
+      {/* Embedded Top Branding & Flip Chip (No floating external pill) */}
+      <rect x={x + 4} y={headerY} width={width - 8} height={13} rx={2} fill="#0f172a" />
+      <text x={x + 8} y={headerY + 8.6} fontSize="5" fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#ef4444">
+        ROYU
+      </text>
+      <g onMouseDown={stopCanvas} onClick={handleFlipView} className="cursor-pointer">
+        <title>Flip between Front Wallplate and Rear Terminal Schematic</title>
         <rect
-          x={14}
-          y={19}
-          width={width - 28}
-          height={height - 50}
-          rx={3.5}
-          fill={`url(#swPaddle-${uid})`}
-          stroke="#94a3b8"
-          strokeWidth={0.9}
-        />
-
-        {/* Tilt Depth Shadow (top edge when depressed down, bottom edge when pressed up) */}
-        {isUpState ? (
-          <rect x={15} y={height - 39} width={width - 30} height={6} rx={1.5} fill="rgba(15, 23, 42, 0.22)" />
-        ) : (
-          <rect x={15} y={20} width={width - 30} height={6} rx={1.5} fill="rgba(15, 23, 42, 0.22)" />
-        )}
-
-        {/* Center Pivot Seam */}
-        <line x1={16} y1={cy - 6} x2={width - 16} y2={cy - 6} stroke="#cbd5e1" strokeWidth={0.9} />
-
-        {/* Phosphor Night-Glow Indicator Bar */}
-        <rect
-          x={cx - 10}
-          y={cy - 9}
-          width={20}
-          height={3.2}
-          rx={1.5}
-          fill={isClosed || !is1Gang ? '#f59e0b' : '#94a3b8'}
-          stroke={isClosed ? '#b45309' : 'none'}
+          x={x + width - 33}
+          y={headerY + 1.5}
+          width={26}
+          height={10}
+          rx={2}
+          fill={isRearView ? '#0284c7' : '#334155'}
+          stroke="#38bdf8"
           strokeWidth={0.5}
         />
-
-        {/* Tactile ON / OFF Symbol */}
         <text
-          x={cx}
-          y={isUpState ? 28 : 29}
+          x={x + width - 20}
+          y={headerY + 8.2}
           textAnchor="middle"
-          fontSize={6}
-          fontWeight="bold"
-          fontFamily="monospace"
-          fill="#64748b"
+          fontSize="4"
+          fontWeight="900"
+          fontFamily="ui-monospace, monospace"
+          fill="#f8fafc"
         >
-          I
-        </text>
-        <text
-          x={cx}
-          y={height - 36}
-          textAnchor="middle"
-          fontSize={6}
-          fontWeight="bold"
-          fontFamily="monospace"
-          fill="#64748b"
-        >
-          O
+          {isRearView ? 'FRONT' : 'REAR'}
         </text>
       </g>
 
-      {/* Engraved Plate Specs & Mode Indicator */}
-      <text
-        x={cx}
-        y={height - 19}
-        textAnchor="middle"
-        fontSize={6.8}
-        fontWeight="900"
-        fontFamily="monospace"
-        fill="#1e293b"
-      >
-        {is1Gang
-          ? isClosed
-            ? 'ON · 1-WAY'
-            : 'OFF · 1-WAY'
-          : is3Way
-            ? `3-WAY POS ${position3Way}`
-            : cross4Way
-              ? '4-WAY CROSS'
-              : '4-WAY PAR'}
-      </text>
-      <text
-        x={cx}
-        y={height - 11.5}
-        textAnchor="middle"
-        fontSize={5}
-        fontWeight="bold"
-        fill="#64748b"
-      >
-        ROYU 16A 250V~
-      </text>
-
-      {terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const termId = `${device.id}:${t.id}`;
-        return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isSelected={selectedTerminalId === termId}
-            isHovered={hoveredTerminalId === termId}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onTerminalMouseDown?.(device, t, e);
-            }}
-            onMouseEnter={() => setHoveredTerminalId?.(termId)}
-            onMouseLeave={() => setHoveredTerminalId?.(null)}
+      {!isRearView ? (
+        /* Front Architectural Rocker Actuator */
+        <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
+          <title>Click switch rocker to toggle contact state</title>
+          <rect x={x + 8} y={bodyTop} width={width - 16} height={bodyH} rx={3} fill="#e2e8f0" stroke="#334155" strokeWidth={1.1} />
+          <rect
+            x={x + 11}
+            y={bodyTop + (isActive ? 3 : 2)}
+            width={width - 22}
+            height={bodyH - 5}
+            rx={2}
+            fill={isActive ? '#ffffff' : '#cbd5e1'}
+            stroke="#64748b"
+            strokeWidth={0.8}
           />
-        );
-      })}
+          <rect
+            x={cx - 10}
+            y={isActive ? bodyTop + 7 : bodyBot - 10}
+            width={20}
+            height={3.2}
+            rx={1.5}
+            fill={type === 'switch_1gang' ? (isClosed ? '#16a34a' : '#64748b') : '#0284c7'}
+          />
+          <text
+            x={cx}
+            y={bodyTop + bodyH * 0.48}
+            textAnchor="middle"
+            fontSize="6"
+            fontWeight="900"
+            fontFamily="ui-monospace, monospace"
+            fill="#0f172a"
+          >
+            {type === 'switch_1gang'
+              ? isClosed
+                ? 'ON'
+                : 'OFF'
+              : type === 'switch_3way'
+              ? `POS ${position3Way}`
+              : cross4Way
+              ? 'CROSS'
+              : 'STRAIGHT'}
+          </text>
+          <text
+            x={cx}
+            y={bodyTop + bodyH * 0.68}
+            textAnchor="middle"
+            fontSize="4.2"
+            fontWeight="800"
+            fontFamily="ui-monospace, monospace"
+            fill="#475569"
+          >
+            {tagText} 16A
+          </text>
+        </g>
+      ) : (
+        /* Rear Polyamide Terminal Block & Live Contact Schematic */
+        <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
+          <title>Click rear mechanism to toggle contact path</title>
+          <rect x={x + 7} y={bodyTop} width={width - 14} height={bodyH} rx={3} fill="#111827" stroke="#0f172a" strokeWidth={1} />
+          {type === 'switch_1gang' && (
+            <g strokeWidth={1.8} strokeLinecap="round">
+              <circle cx={x + width * 0.30} cy={bodyTop + bodyH * 0.5} r={2.5} fill="#fbbf24" />
+              <circle cx={x + width * 0.70} cy={bodyTop + bodyH * 0.5} r={2.5} fill="#fbbf24" />
+              <line
+                x1={x + width * 0.30}
+                y1={bodyTop + bodyH * 0.5}
+                x2={isClosed ? x + width * 0.70 : cx + 6}
+                y2={isClosed ? bodyTop + bodyH * 0.5 : bodyTop + bodyH * 0.25}
+                stroke={isClosed ? '#22c55e' : '#94a3b8'}
+              />
+            </g>
+          )}
+          {type === 'switch_3way' && (
+            <g strokeWidth={1.6} strokeLinecap="round">
+              <circle cx={cx} cy={bodyTop + bodyH * 0.28} r={2.5} fill="#f59e0b" />
+              <circle cx={x + width * 0.30} cy={bodyTop + bodyH * 0.72} r={2.3} fill="#38bdf8" />
+              <circle cx={x + width * 0.70} cy={bodyTop + bodyH * 0.72} r={2.3} fill="#38bdf8" />
+              <line
+                x1={cx}
+                y1={bodyTop + bodyH * 0.28}
+                x2={position3Way === 'A' ? x + width * 0.30 : x + width * 0.70}
+                y2={bodyTop + bodyH * 0.72}
+                stroke="#22c55e"
+              />
+            </g>
+          )}
+          {type === 'switch_4way' && (
+            <g strokeWidth={1.6} strokeLinecap="round">
+              <line
+                x1={x + width * 0.30}
+                y1={bodyTop + bodyH * 0.25}
+                x2={cross4Way ? x + width * 0.70 : x + width * 0.30}
+                y2={bodyTop + bodyH * 0.75}
+                stroke="#22c55e"
+              />
+              <line
+                x1={x + width * 0.70}
+                y1={bodyTop + bodyH * 0.25}
+                x2={cross4Way ? x + width * 0.30 : x + width * 0.70}
+                y2={bodyTop + bodyH * 0.75}
+                stroke="#38bdf8"
+              />
+            </g>
+          )}
+        </g>
+      )}
+
+      {/* Embedded Bottom Silkscreen Strip */}
+      <rect x={x + 3} y={y + height - 27} width={width - 6} height={7} fill="#0f172a" />
+      {terminals
+        .filter((t) => t.relY >= 0.5)
+        .map((t) => (
+          <text
+            key={`wb-${t.id}`}
+            x={x + t.relX * width}
+            y={y + height - 21.8}
+            textAnchor="middle"
+            fontSize="4.4"
+            fontWeight="900"
+            fontFamily="ui-monospace, monospace"
+            fill={t.type === 'phase' ? '#f87171' : t.type === 'switched' ? '#fb923c' : '#38bdf8'}
+          >
+            {t.label}
+          </text>
+        ))}
+
+      {/* Bottom Terminal Bay */}
+      <rect x={x + 3} y={y + height - 20} width={width - 6} height={18} rx={2} fill="#1f2937" />
+
+      <DeviceTerminals {...props} hideLabel={() => true} />
     </g>
   );
 };

@@ -1,147 +1,68 @@
-import React, { useId } from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import React from 'react';
+import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
-interface EstopDeviceProps {
-  device: ElectricalDevice;
-  isSelected?: boolean;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId?: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const EstopDevice: React.FC<EstopDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
-  const uid = useId().replace(/:/g, '');
-  const { width, height, terminals } = device;
+/**
+ * EduVolt-style Yellow NEMA 4X Emergency Stop Twist-to-Release Station.
+ * Non-overlapping header, mushroom button, state strip, and embedded 11-12 NC label band.
+ */
+export const EstopDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device, onToggleState, onPatchState } = props;
+  const { x, y, width, height } = device;
   const isLatched = !!device.state.estopActive;
-  const cx = width / 2;
-  const mushCy = height * 0.44;
+  const cx = x + width / 2;
+  const mushCy = y + 36;
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onToggleState?.({
-      ...device,
-      state: {
-        ...device.state,
-        estopActive: !isLatched,
-      },
-    });
+    if (onPatchState) onPatchState(device.id, { estopActive: !isLatched });
+    else onToggleState?.({ ...device, state: { ...device.state, estopActive: !isLatched } });
   };
 
   return (
-    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`estopYellow-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#fde047" />
-          <stop offset="60%" stopColor="#eab308" />
-          <stop offset="100%" stopColor="#a16207" />
-        </linearGradient>
-        <radialGradient id={`estopMushroom-${uid}`} cx="36%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#f87171" />
-          <stop offset="45%" stopColor="#dc2626" />
-          <stop offset="100%" stopColor="#7f1d1d" />
-        </radialGradient>
-      </defs>
+    <g id={`device-${device.id}`} className="select-none">
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="rgba(15, 23, 42, 0.16)" />
+      <rect x={x} y={y} width={width} height={height} rx={5} fill="#facc15" stroke="#0f172a" strokeWidth={1.3} />
 
-      {/* NEMA 4X High-Visibility Yellow Safety Enclosure */}
-      <rect x={2} y={4} width={width} height={height} rx={9} fill="rgba(15, 23, 42, 0.25)" />
-      <rect x={0} y={0} width={width} height={height} rx={9} fill={`url(#estopYellow-${uid})`} stroke="#713f12" strokeWidth={1.7} />
-
-      {/* Dark Charcoal Recessed Lower Base Skirt */}
-      <rect x={4} y={height - 17} width={width - 8} height={13} rx={3} fill="#0f172a" />
-
-      {/* 4 Stainless Torx Cover Screws */}
-      {[
-        [10, 10],
-        [width - 10, 10],
-        [10, height - 22],
-        [width - 10, height - 22],
-      ].map(([sx, sy], i) => (
-        <circle key={`esc-${i}`} cx={sx} cy={sy} r={2.4} fill="#cbd5e1" stroke="#475569" strokeWidth={0.8} />
-      ))}
-
-      {/* Anti-Tamper Safety Shroud Ring & Legend Collar */}
-      <circle cx={cx} cy={mushCy} r={24} fill="#fef08a" stroke="#713f12" strokeWidth={1.2} />
-      <text x={cx} y={mushCy - 16} textAnchor="middle" fontSize={4.8} fontWeight="900" fill="#7f1d1d" letterSpacing="0.5">
+      {/* Top Safety Header Strip */}
+      <rect x={x + 3} y={y + 3} width={width - 6} height={11} rx={2} fill="#991b1b" />
+      <text x={cx} y={y + 10.4} textAnchor="middle" fontSize="4.5" fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#fef08a" letterSpacing="0.4">
         EMERGENCY STOP
       </text>
 
-      {/* 40mm Contoured Red Mushroom Plunger */}
-      <g onClick={handleToggle} className="cursor-pointer group">
-        {/* Plunger Shadow */}
-        <circle cx={cx} cy={mushCy + (isLatched ? 2 : 4)} r={isLatched ? 16 : 18} fill="rgba(15, 23, 42, 0.35)" />
-        {/* Stem collar when armed */}
-        {!isLatched && <circle cx={cx} cy={mushCy} r={19} fill="#991b1b" />}
+      {/* Anti-Tamper Collar + 40mm Mushroom Cap */}
+      <circle cx={cx} cy={mushCy} r={19} fill="#fef08a" stroke="#713f12" strokeWidth={1} />
+      <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
+        <title>Click Emergency Stop to latch / twist-release NC 11-12 contacts</title>
+        <circle cx={cx} cy={mushCy} r={15.5} fill="#7f1d1d" />
         <circle
           cx={cx}
           cy={mushCy}
-          r={isLatched ? 15.5 : 17.5}
-          fill={`url(#estopMushroom-${uid})`}
+          r={isLatched ? 12.5 : 14.5}
+          fill={isLatched ? '#b91c1c' : '#ef4444'}
           stroke="#450a0a"
-          strokeWidth={1.2}
-          className="transition-all duration-150"
+          strokeWidth={1.1}
         />
-        {/* Specular Arc Highlight */}
-        <path
-          d={`M ${cx - 10} ${mushCy - 8} A 13 13 0 0 1 ${cx + 2} ${mushCy - 12}`}
-          fill="none"
-          stroke="rgba(255,255,255,0.55)"
-          strokeWidth={2.2}
-          strokeLinecap="round"
-        />
-        {/* Rotary Twist-to-Release Arrows */}
-        <path
-          d={`M ${cx - 7} ${mushCy + 2} A 7 7 0 0 1 ${cx + 7} ${mushCy + 2}`}
-          fill="none"
-          stroke="rgba(255,255,255,0.85)"
-          strokeWidth={1.4}
-          strokeLinecap="round"
-        />
-        <polygon points={`${cx + 7},${mushCy + 2} ${cx + 4},${mushCy - 1} ${cx + 9},${mushCy - 1}`} fill="#ffffff" opacity={0.85} />
+        <path d={`M ${cx - 6} ${mushCy + 1} A 6 6 0 0 1 ${cx + 6} ${mushCy + 1}`} fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth={1.3} strokeLinecap="round" />
+        <polygon points={`${cx + 6},${mushCy + 1} ${cx + 3.5},${mushCy - 1.5} ${cx + 8},${mushCy - 1.5}`} fill="#ffffff" />
       </g>
 
-      <text
-        x={cx}
-        y={height - 8}
-        textAnchor="middle"
-        fontSize={6.2}
-        fontWeight="900"
-        fontFamily="monospace"
-        fill={isLatched ? '#f87171' : '#4ade80'}
-      >
-        {isLatched ? 'LATCHED (NC OPEN)' : 'ARMED (NC CLOSED)'}
+      {/* Crisp State Indicator Strip cleanly below ring */}
+      <rect x={x + 6} y={y + 56.5} width={width - 12} height={8.5} rx={1.5} fill="#0f172a" />
+      <text x={cx} y={y + 62.6} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill={isLatched ? '#f87171' : '#4ade80'}>
+        {isLatched ? 'LATCHED · OPEN' : 'ARMED · CLOSED'}
       </text>
 
-      {terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const termId = `${device.id}:${t.id}`;
-        return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isSelected={selectedTerminalId === termId}
-            isHovered={hoveredTerminalId === termId}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onTerminalMouseDown?.(device, t, e);
-            }}
-            onMouseEnter={() => setHoveredTerminalId?.(termId)}
-            onMouseLeave={() => setHoveredTerminalId?.(null)}
-          />
-        );
-      })}
+      {/* Embedded Bottom Silkscreen + Terminal Pocket */}
+      <rect x={x + 3} y={y + 67} width={width - 6} height={7.5} fill="#1e293b" />
+      <text x={x + width * 0.32} y={y + 72.5} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#fcd34d">
+        11 NC
+      </text>
+      <text x={x + width * 0.68} y={y + 72.5} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#fcd34d">
+        12 NC
+      </text>
+      <rect x={x + 3} y={y + 74.5} width={width - 6} height={height - 76.5} rx={2} fill="#1f2937" />
+
+      <DeviceTerminals {...props} hideLabel={() => true} />
     </g>
   );
 };

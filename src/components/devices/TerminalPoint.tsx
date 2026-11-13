@@ -26,43 +26,46 @@ export const TerminalPoint: React.FC<TerminalPointProps> = ({
   onMouseLeave,
 }) => {
   const deviceId = useContext(DeviceIdContext);
-  const { connectedTerminalKeys, highlightedWireEndpoints } = useContext(TerminalHighlightContext);
+  const { connectedTerminalKeys, highlightedWireEndpoints, onPortContextMenu } = useContext(TerminalHighlightContext);
   const termKey = deviceId ? `${deviceId}:${terminal.id}` : null;
   const connected = isConnected ?? (termKey ? connectedTerminalKeys.has(termKey) : false);
   const wireEndpoint = termKey ? highlightedWireEndpoints.get(termKey) : undefined;
   const isWireEndpointHighlighted = Boolean(wireEndpoint);
-  // Determine color based on terminal type
-  let ringColor = '#ca8a04'; // Brass/gold default
-  let haloColor = 'rgba(234, 179, 8, 0.4)';
+
+  let ringColor = '#64748b';
+  let haloColor = 'rgba(148, 163, 184, 0.35)';
 
   if (terminal.type === 'earth') {
-    ringColor = '#16a34a'; // Green
-    haloColor = 'rgba(34, 197, 94, 0.4)';
+    ringColor = '#16a34a';
+    haloColor = 'rgba(34, 197, 94, 0.38)';
   } else if (terminal.type === 'neutral') {
-    ringColor = '#2563eb'; // Blue
-    haloColor = 'rgba(59, 130, 246, 0.4)';
+    ringColor = '#2563eb';
+    haloColor = 'rgba(59, 130, 246, 0.38)';
   } else if (terminal.type === 'phase' || terminal.type === 'phase2' || terminal.type === 'phase3') {
-    ringColor = '#dc2626'; // Red
-    haloColor = 'rgba(239, 68, 68, 0.4)';
+    ringColor = '#dc2626';
+    haloColor = 'rgba(239, 68, 68, 0.38)';
   } else if (terminal.type === 'switched' || terminal.type === 'traveler') {
-    ringColor = '#eab308'; // Amber
-    haloColor = 'rgba(234, 179, 8, 0.4)';
+    ringColor = '#eab308';
+    haloColor = 'rgba(234, 179, 8, 0.38)';
   } else if (terminal.type === 'coil') {
-    ringColor = '#8b5cf6'; // Purple for relay/contactor coils (A1/A2)
-    haloColor = 'rgba(139, 92, 246, 0.4)';
+    ringColor = '#8b5cf6';
+    haloColor = 'rgba(139, 92, 246, 0.38)';
   } else if (terminal.type === 'no') {
-    ringColor = '#10b981'; // Emerald for Normally Open contacts
-    haloColor = 'rgba(16, 185, 129, 0.4)';
+    ringColor = '#10b981';
+    haloColor = 'rgba(16, 185, 129, 0.38)';
   } else if (terminal.type === 'nc') {
-    ringColor = '#f59e0b'; // Amber for Normally Closed contacts
-    haloColor = 'rgba(245, 158, 11, 0.4)';
+    ringColor = '#f59e0b';
+    haloColor = 'rgba(245, 158, 11, 0.38)';
   } else if (terminal.type === 'input') {
-    ringColor = '#06b6d4'; // Cyan for PLC digital inputs
-    haloColor = 'rgba(6, 182, 212, 0.4)';
+    ringColor = '#06b6d4';
+    haloColor = 'rgba(6, 182, 212, 0.38)';
   } else if (terminal.type === 'output') {
-    ringColor = '#f97316'; // Orange for PLC relay outputs
-    haloColor = 'rgba(249, 115, 22, 0.4)';
+    ringColor = '#f97316';
+    haloColor = 'rgba(249, 115, 22, 0.38)';
   }
+
+  const labelText = terminal.label || terminal.name;
+  const tooltipW = Math.max(70, labelText.length * 6.5 + (connected ? 48 : 16));
 
   return (
     <g
@@ -71,13 +74,20 @@ export const TerminalPoint: React.FC<TerminalPointProps> = ({
       onMouseDown={onMouseDown}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onContextMenu={(e) => {
+        if (connected && deviceId && onPortContextMenu) {
+          e.preventDefault();
+          e.stopPropagation();
+          onPortContextMenu(deviceId, terminal.id, e.clientX, e.clientY);
+        }
+      }}
     >
       {/* Interactive Hit Target / Snap Halo */}
       <circle
         r={isWireEndpointHighlighted ? 16 : 14}
         fill={
           isWireEndpointHighlighted
-            ? 'rgba(14, 165, 233, 0.28)'
+            ? 'rgba(14, 165, 233, 0.25)'
             : isHovered || isSelected
               ? haloColor
               : 'transparent'
@@ -85,33 +95,14 @@ export const TerminalPoint: React.FC<TerminalPointProps> = ({
         className="transition-colors duration-150"
       />
 
-      {/* Wire-Connected Port Highlight (when user selects a connected wire, both device ports light up) */}
+      {/* Wire-Connected Port Highlight (when user selects a connected wire, both ends light up) */}
       {isWireEndpointHighlighted && wireEndpoint && (
         <g className="pointer-events-none">
-          <circle
-            r={13}
-            fill="none"
-            stroke="#38bdf8"
-            strokeWidth={2}
-            opacity={0.5}
-            className="animate-ping"
-          />
-          <circle
-            r={11.5}
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth={3.2}
-          />
-          <circle
-            r={11.5}
-            fill="none"
-            stroke="#0284c7"
-            strokeWidth={2}
-            strokeDasharray="4 2"
-          />
-          {/* Corner targeting ticks */}
+          <circle r={13} fill="none" stroke="#38bdf8" strokeWidth={2} opacity={0.45} className="animate-ping" />
+          <circle r={11} fill="none" stroke="#ffffff" strokeWidth={2.8} />
+          <circle r={11} fill="none" stroke="#0284c7" strokeWidth={1.8} strokeDasharray="4 2" />
           <path
-            d="M -13 -8 L -13 -13 L -8 -13 M 8 -13 L 13 -13 L 13 -8 M -13 8 L -13 13 L -8 13 M 8 13 L 13 13 L 13 8"
+            d="M -12.5 -7.5 L -12.5 -12.5 L -7.5 -12.5 M 7.5 -12.5 L 12.5 -12.5 L 12.5 -7.5 M -12.5 7.5 L -12.5 12.5 L -7.5 12.5 M 7.5 12.5 L 12.5 12.5 L 12.5 7.5"
             fill="none"
             stroke="#f59e0b"
             strokeWidth={1.6}
@@ -120,51 +111,46 @@ export const TerminalPoint: React.FC<TerminalPointProps> = ({
         </g>
       )}
 
-      {/* Subtle Ferrule Ring when any wire is terminated at this port */}
+      {/* Subtle Connected Ferrule Ring (only when wire is terminated here) */}
       {connected && !isWireEndpointHighlighted && (
         <circle
-          r={8.5}
+          r={8.4}
           fill="none"
           stroke="#f59e0b"
           strokeWidth={1.3}
-          strokeDasharray="2 1.5"
-          opacity={0.85}
+          strokeDasharray="2.5 1.5"
+          opacity={0.9}
           className="pointer-events-none"
         />
       )}
 
-      {/* Outer Metal Collar / Lug */}
-      <circle
-        r={7}
-        fill={connected ? '#64748b' : '#475569'}
-        stroke={isWireEndpointHighlighted ? '#38bdf8' : '#1e293b'}
-        strokeWidth={isWireEndpointHighlighted ? 1.4 : 1}
+      {/* EduVolt CAD Recessed Cage Pocket */}
+      <rect
+        x={-6.4}
+        y={-6.4}
+        width={12.8}
+        height={12.8}
+        rx={2.2}
+        fill="#1e293b"
+        stroke={isWireEndpointHighlighted ? '#38bdf8' : isHovered ? ringColor : '#0f172a'}
+        strokeWidth={1.1}
       />
 
-      {/* Brass / Copper Terminal Ring */}
+      {/* Metallic Screw Shoulder Ring (subtle polarity tint) */}
       <circle
-        r={5}
-        fill={ringColor}
-        stroke="#0f172a"
-        strokeWidth={0.8}
+        r={5.1}
+        fill="#e2e8f0"
+        stroke={isHovered || isSelected ? ringColor : '#334155'}
+        strokeWidth={isHovered || isSelected ? 1.3 : 0.9}
       />
 
-      {/* Center Screw Slot or Wire Hole */}
-      <circle
-        r={2.2}
-        fill={connected ? '#d97706' : '#0f172a'}
-      />
+      {/* Recessed Machined Phillips (+) Screw Head */}
+      <circle r={3.9} fill="#cbd5e1" stroke="#64748b" strokeWidth={0.5} />
+      <line x1={-2.6} y1={0} x2={2.6} y2={0} stroke="#0f172a" strokeWidth={1.35} strokeLinecap="round" />
+      <line x1={0} y1={-2.6} x2={0} y2={2.6} stroke="#0f172a" strokeWidth={1.35} strokeLinecap="round" />
 
-      {/* Screw Head Slot Line */}
-      <line
-        x1={-3}
-        y1={-1}
-        x2={3}
-        y2={1}
-        stroke="#fef08a"
-        strokeWidth={0.8}
-        opacity={0.75}
-      />
+      {/* Center Ferrule Indicator Dot when occupied */}
+      {connected && <circle r={1.1} fill={ringColor} />}
 
       {/* Selected Pulse Ring (during wire drawing start) */}
       {isSelected && (
@@ -194,7 +180,7 @@ export const TerminalPoint: React.FC<TerminalPointProps> = ({
           <circle cx={-36} cy={-2} r={2.8} fill={wireEndpoint.wireColor} stroke="#ffffff" strokeWidth={0.6} />
           <text
             x={4}
-            y={-1.5}
+            y={-2}
             fill="#f8fafc"
             fontSize={8.2}
             fontWeight="bold"
@@ -207,30 +193,30 @@ export const TerminalPoint: React.FC<TerminalPointProps> = ({
         </g>
       )}
 
-      {/* Small Label Tooltip on Hover */}
+      {/* Clean Hover Tooltip */}
       {isHovered && (
-        <g transform="translate(0, -18)" className="pointer-events-none">
+        <g transform="translate(0, -20)" className="pointer-events-none">
           <rect
-            x={-35}
+            x={-tooltipW / 2}
             y={-12}
-            width={70}
+            width={tooltipW}
             height={16}
-            rx={3}
-            fill="#090d16"
+            rx={3.5}
+            fill="#0f172a"
             stroke="#475569"
-            strokeWidth={0.8}
+            strokeWidth={0.9}
           />
           <text
             x={0}
-            y={0}
+            y={-4}
             fill="#f8fafc"
-            fontSize={9}
+            fontSize={8.5}
             fontWeight="bold"
             textAnchor="middle"
             dominantBaseline="middle"
             fontFamily="monospace"
           >
-            {terminal.label || terminal.name}
+            {connected ? `${labelText} • R-Click` : labelText}
           </text>
         </g>
       )}

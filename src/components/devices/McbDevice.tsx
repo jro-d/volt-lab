@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React from 'react';
 import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
 import { TerminalPoint } from './TerminalPoint';
 
@@ -20,7 +20,6 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
   setHoveredTerminalId,
   onToggleState,
 }) => {
-  const uid = useId().replace(/:/g, '');
   const { width, height, terminals } = device;
   const isClosed = !!device.state.closed && !device.state.tripped;
   const isTripped = !!device.state.tripped;
@@ -42,15 +41,15 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
   const isRoyuDin = profile === 'royu_din_rail';
   const poles = is3P ? 3 : is2P ? 2 : 1;
 
-  const ampColors: Record<number, { fill: string; shade: string; text: string }> = {
-    15: { fill: '#2563eb', shade: '#1e40af', text: '#ffffff' },
-    20: { fill: '#dc2626', shade: '#991b1b', text: '#ffffff' },
-    30: { fill: '#16a34a', shade: '#166534', text: '#ffffff' },
-    40: { fill: '#ea580c', shade: '#9a3412', text: '#ffffff' },
-    60: { fill: '#f1f5f9', shade: '#cbd5e1', text: '#0f172a' },
-    63: { fill: '#f1f5f9', shade: '#cbd5e1', text: '#0f172a' },
+  const ampColors: Record<number, string> = {
+    15: '#2563eb',
+    20: '#dc2626',
+    30: '#16a34a',
+    40: '#ea580c',
+    60: '#475569',
+    63: '#475569',
   };
-  const ampTone = ampColors[ratedAmps] || { fill: '#1e293b', shade: '#0f172a', text: '#f8fafc' };
+  const handleAccent = isBoltOn ? ampColors[ratedAmps] || '#1e293b' : '#111827';
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -85,361 +84,258 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
     onToggleState?.(device);
   };
 
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const poleWidth = (width - 14) / poles;
+  const cx = width / 2;
+  const cy = height / 2;
+  const padX = 3;
+  const innerW = width - padX * 2;
+  const poleW = innerW / poles;
+
+  // Vertical bands scaled strictly from height so zero text can collide
+  const topBayH = Math.round(height * 0.22); // ~24px
+  const botBayY = Math.round(height * 0.78); // ~86px
+  const botBayH = height - botBayY;
+  const faceY = topBayH + 1;
+  const faceH = botBayY - faceY - 1;
+  const brandBarH = 11;
+  const flagY = faceY + brandBarH + 3;
+  const handleY = flagY + 12;
+  const specY = faceY + faceH - 3.5;
+
+  const topPairs = ['1/2', '3/4', '5/6'];
+  const botPairs = ['2/1', '4/3', '6/5'];
+
+  // Crisp DIN rail silhouette behind DIN breakers OR copper stabs for Bolt-On
+  const bodyBg = isBoltOn ? '#1e293b' : '#f1f5f9';
+  const shroudBg = isBoltOn ? '#0f172a' : '#e2e8f0';
+  const strokeCol = isBoltOn ? '#090d16' : '#1e293b';
+  const faceBg = isBoltOn ? '#273244' : '#ffffff';
+  const textCol = isBoltOn ? '#f8fafc' : '#0f172a';
+  const subTextCol = isBoltOn ? '#cbd5e1' : '#475569';
 
   return (
     <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`shellDark-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#2c3545" />
-          <stop offset="50%" stopColor="#171d28" />
-          <stop offset="100%" stopColor="#0b0f17" />
-        </linearGradient>
-        <linearGradient id={`shellLight-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="65%" stopColor="#eef2f6" />
-          <stop offset="100%" stopColor="#d5dde7" />
-        </linearGradient>
-        <linearGradient id={`dinClip-${uid}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#cbd5e1" />
-          <stop offset="50%" stopColor="#f8fafc" />
-          <stop offset="100%" stopColor="#94a3b8" />
-        </linearGradient>
-        <linearGradient id={`copperLug-${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f59e0b" />
-          <stop offset="50%" stopColor="#d97706" />
-          <stop offset="100%" stopColor="#92400e" />
-        </linearGradient>
-        <linearGradient id={`handleGrad-${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={isBoltOn ? ampTone.fill : '#334155'} />
-          <stop offset="100%" stopColor={isBoltOn ? ampTone.shade : '#0f172a'} />
-        </linearGradient>
-      </defs>
-
-      {/* Subtle Grounded Drop Shadow */}
-      <rect x={2} y={3} width={width} height={height} rx={isBoltOn ? 6 : 8} fill="rgba(15, 23, 42, 0.24)" />
-
-      {/* Bolt-On Copper Busbar Mounting Clip OR DIN-Rail Steel Clips */}
+      {/* Mounting Stabs (Bolt-On) or DIN Rail Clips */}
       {isBoltOn ? (
-        <g>
-          {/* Top Molded Copper Bus Stab Clips */}
-          {Array.from({ length: poles }).map((_, idx) => {
-            const cx = 7 + poleWidth * idx + poleWidth / 2;
-            return (
-              <g key={`stab-${idx}`}>
-                <rect x={cx - 8} y={-5} width={16} height={7} rx={1.5} fill={`url(#copperLug-${uid})`} stroke="#78350f" strokeWidth={0.8} />
-                <circle cx={cx} cy={-2} r={1.8} fill="#78350f" />
-              </g>
-            );
-          })}
-          {/* Side Phenolic Mounting Ears */}
-          <rect x={-4} y={centerY - 12} width={5} height={24} rx={1.5} fill="#1f2937" stroke="#090d16" strokeWidth={0.8} />
-          <rect x={width - 1} y={centerY - 12} width={5} height={24} rx={1.5} fill="#1f2937" stroke="#090d16" strokeWidth={0.8} />
-        </g>
+        Array.from({ length: poles }).map((_, idx) => {
+          const sx = padX + poleW * idx + poleW / 2;
+          return (
+            <rect
+              key={`stab-${idx}`}
+              x={sx - 6}
+              y={-4}
+              width={12}
+              height={5}
+              rx={1}
+              fill="#d97706"
+              stroke="#78350f"
+              strokeWidth={0.9}
+            />
+          );
+        })
       ) : (
         <g>
-          <rect x={-6} y={centerY - 13} width={9} height={26} rx={2} fill={`url(#dinClip-${uid})`} stroke="#64748b" strokeWidth={0.9} />
-          <rect x={width - 3} y={centerY - 13} width={9} height={26} rx={2} fill={`url(#dinClip-${uid})`} stroke="#64748b" strokeWidth={0.9} />
-          <rect x={centerX - 10} y={height - 2} width={20} height={6} rx={1.5} fill="#64748b" stroke="#334155" strokeWidth={0.8} />
+          <rect x={-3} y={cy - 11} width={4} height={22} rx={1} fill="#94a3b8" stroke="#334155" strokeWidth={0.9} />
+          <rect x={width - 1} y={cy - 11} width={4} height={22} rx={1} fill="#94a3b8" stroke="#334155" strokeWidth={0.9} />
         </g>
       )}
 
-      {/* Main Molded Case Body */}
+      {/* Main EduVolt Flat CAD Housing */}
       <rect
         x={0}
         y={0}
         width={width}
         height={height}
-        rx={isBoltOn ? 6 : 8}
-        fill={isBoltOn ? `url(#shellDark-${uid})` : `url(#shellLight-${uid})`}
-        stroke={isBoltOn ? '#090d16' : '#94a3b8'}
-        strokeWidth={1.6}
+        rx={4}
+        fill={bodyBg}
+        stroke={strokeCol}
+        strokeWidth={1.4}
       />
 
-      {/* Specular Bevel Highlight */}
-      <rect
-        x={2}
-        y={2}
-        width={width - 4}
-        height={height - 4}
-        rx={isBoltOn ? 4.5 : 6.5}
-        fill="none"
-        stroke={isBoltOn ? 'rgba(255,255,255,0.1)' : '#ffffff'}
-        strokeWidth={1}
-      />
+      {/* Top & Bottom Modular Terminal Pocket Bays */}
+      <rect x={padX} y={2} width={innerW} height={topBayH - 2} rx={2} fill={shroudBg} stroke={strokeCol} strokeWidth={0.9} />
+      <rect x={padX} y={botBayY} width={innerW} height={botBayH - 2} rx={2} fill={shroudBg} stroke={strokeCol} strokeWidth={0.9} />
 
-      {/* Pole Divider Seams & Finger-Safe Terminal Shrouds */}
+      {/* Per-pole Divider Lines + Top/Bottom Silkscreen Numbers (1/2, 3/4, 5/6) */}
       {Array.from({ length: poles }).map((_, idx) => {
-        const px = 7 + poleWidth * idx;
+        const px = padX + poleW * idx;
+        const pcx = px + poleW / 2;
         return (
           <g key={`pole-${idx}`}>
             {idx > 0 && (
-              <line
-                x1={px}
-                y1={4}
-                x2={px}
-                y2={height - 4}
-                stroke={isBoltOn ? '#090d16' : '#cbd5e1'}
-                strokeWidth={1.2}
-              />
+              <>
+                <line x1={px} y1={2} x2={px} y2={topBayH} stroke={strokeCol} strokeWidth={0.9} />
+                <line x1={px} y1={botBayY} x2={px} y2={height - 2} stroke={strokeCol} strokeWidth={0.9} />
+                <line x1={px} y1={faceY} x2={px} y2={botBayY - 1} stroke={isBoltOn ? '#334155' : '#cbd5e1'} strokeWidth={0.8} />
+              </>
             )}
-            {/* Top terminal recessed well */}
-            <rect
-              x={px + 3}
-              y={5}
-              width={poleWidth - 6}
-              height={24}
-              rx={3}
-              fill={isBoltOn ? '#0b0f17' : '#dce3ec'}
-              stroke={isBoltOn ? '#334155' : '#b8c4d4'}
-              strokeWidth={0.8}
-            />
-            {/* Bottom terminal recessed well */}
-            <rect
-              x={px + 3}
-              y={height - 29}
-              width={poleWidth - 6}
-              height={24}
-              rx={3}
-              fill={isBoltOn ? '#0b0f17' : '#dce3ec'}
-              stroke={isBoltOn ? '#334155' : '#b8c4d4'}
-              strokeWidth={0.8}
-            />
-            {/* Terminal numbering */}
             <text
-              x={px + poleWidth / 2}
-              y={33.5}
+              x={pcx}
+              y={topBayH - 1.5}
               textAnchor="middle"
-              fontSize={5.5}
-              fontFamily="monospace"
-              fontWeight="bold"
-              fill={isBoltOn ? '#94a3b8' : '#475569'}
+              fontSize={poles === 1 ? 5.2 : 5.5}
+              fontWeight="800"
+              fontFamily="ui-monospace, monospace"
+              fill={subTextCol}
             >
-              {idx * 2 + 1}
+              {topPairs[idx]}
             </text>
             <text
-              x={px + poleWidth / 2}
-              y={height - 31}
+              x={pcx}
+              y={botBayY + 6.5}
               textAnchor="middle"
-              fontSize={5.5}
-              fontFamily="monospace"
-              fontWeight="bold"
-              fill={isBoltOn ? '#94a3b8' : '#475569'}
+              fontSize={poles === 1 ? 5.2 : 5.5}
+              fontWeight="800"
+              fontFamily="ui-monospace, monospace"
+              fill={subTextCol}
             >
-              {idx * 2 + 2}
+              {botPairs[idx]}
             </text>
           </g>
         );
       })}
 
-      {/* Arc-Chute Side Louvers */}
-      {[-12, -4, 4, 12].map((dy) => (
-        <g key={`louver-${dy}`}>
-          <line
-            x1={3}
-            y1={centerY + dy}
-            x2={6}
-            y2={centerY + dy}
-            stroke={isBoltOn ? '#475569' : '#94a3b8'}
-            strokeWidth={1}
-          />
-          <line
-            x1={width - 6}
-            y1={centerY + dy}
-            x2={width - 3}
-            y2={centerY + dy}
-            stroke={isBoltOn ? '#475569' : '#94a3b8'}
-            strokeWidth={1}
-          />
-        </g>
-      ))}
-
-      {/* Raised Front Fascia / Escutcheon Plate */}
+      {/* Center Raised Faceplate Escutcheon */}
       <rect
-        x={6}
-        y={35}
-        width={width - 12}
-        height={height - 70}
-        rx={4}
-        fill={isBoltOn ? '#1e2532' : '#f8fafc'}
-        stroke={isBoltOn ? '#3b475c' : '#cbd5e1'}
+        x={padX}
+        y={faceY}
+        width={innerW}
+        height={faceH}
+        rx={2}
+        fill={faceBg}
+        stroke={strokeCol}
         strokeWidth={1}
       />
 
-      {/* Brand & Rating Header */}
-      {isBoltOn ? (
-        <g>
-          <rect x={10} y={38} width={width - 20} height={11} rx={2} fill="#0b1120" stroke="#334155" strokeWidth={0.6} />
-          <text
-            x={centerX}
-            y={45.5}
-            textAnchor="middle"
-            fontSize={6.8}
-            fontWeight="900"
-            fontFamily="sans-serif"
-            fill="#f8fafc"
-            letterSpacing="0.8"
-          >
-            {isServiceDisc ? 'MAIN BREAKER' : 'ROYU BOLT-ON'}
-          </text>
-        </g>
-      ) : isRoyuDin ? (
-        <g>
-          <rect x={6} y={35} width={width - 12} height={11} rx={3} fill="#0f4c81" />
-          <rect x={width - 18} y={35} width={12} height={11} rx={2} fill="#dc2626" />
-          <text x={11} y={42.5} fontSize={6.8} fontWeight="900" fill="#ffffff" letterSpacing="0.6">
-            ROYU
-          </text>
-        </g>
-      ) : (
-        <g>
-          <rect x={6} y={35} width={width - 12} height={10} rx={3} fill="#15803d" />
-          <text x={centerX} y={42} textAnchor="middle" fontSize={6.2} fontWeight="bold" fill="#ffffff">
-            IEC 60898
-          </text>
-        </g>
-      )}
-
-      {/* Trip / Status Window Shutter (with glass reflection) */}
-      <g>
+      {/* Embedded Header Band (click to cycle Bolt-On / ROYU DIN / IEC DIN) */}
+      <g onClick={handleCycleStyle} className="cursor-pointer">
+        <title>Click header band to cycle breaker profile (Bolt-On / ROYU DIN / IEC DIN)</title>
         <rect
-          x={centerX - 16}
-          y={49}
-          width={32}
-          height={10}
-          rx={2.5}
-          fill={isTripped ? '#f59e0b' : isClosed ? '#dc2626' : '#16a34a'}
-          stroke="#0f172a"
-          strokeWidth={0.9}
+          x={padX}
+          y={faceY}
+          width={innerW}
+          height={brandBarH}
+          rx={1.5}
+          fill={isServiceDisc ? '#991b1b' : isRoyuDin ? '#0f4c81' : '#111827'}
         />
-        <line x1={centerX - 13} y1={51} x2={centerX + 13} y2={51} stroke="rgba(255,255,255,0.35)" strokeWidth={1} />
         <text
-          x={centerX}
-          y={56}
+          x={cx}
+          y={faceY + 7.8}
           textAnchor="middle"
-          fontSize={6.4}
-          fontWeight="bold"
-          fontFamily="monospace"
-          fill={isTripped ? '#0f172a' : '#ffffff'}
+          fontSize={poles === 1 ? 5.4 : 6.2}
+          fontWeight="900"
+          fontFamily="ui-sans-serif, system-ui"
+          fill="#ffffff"
+          letterSpacing="0.4"
         >
-          {isTripped ? 'TRIP' : isClosed ? 'I ON' : 'O OFF'}
+          {isServiceDisc ? 'MAIN' : isBoltOn ? 'ROYU' : isRoyuDin ? 'VoltLab' : 'IEC DIN'}
         </text>
       </g>
 
-      {/* Recessed Handle Cavity */}
-      <rect
-        x={centerX - (is3P ? 22 : is2P ? 16 : 13)}
-        y={centerY - 13}
-        width={is3P ? 44 : is2P ? 32 : 26}
-        height={28}
-        rx={3.5}
-        fill="#05080f"
-        stroke={isBoltOn ? '#475569' : '#334155'}
-        strokeWidth={1.1}
-      />
-
-      {/* Interactive 3D Breaker Rocker Handle + Metallic Tie-Bar */}
-      <g onClick={handleToggle} className="cursor-pointer group">
-        {/* Cavity drop shadow */}
-        <rect
-          x={centerX - (is3P ? 19 : is2P ? 13 : 10)}
-          y={isTripped ? centerY - 2 : isClosed ? centerY - 10 : centerY + 3}
-          width={is3P ? 38 : is2P ? 26 : 20}
-          height={11}
-          rx={2.5}
-          fill={`url(#handleGrad-${uid})`}
-          stroke={isBoltOn ? '#020617' : '#0f172a'}
-          strokeWidth={1}
-          className="transition-all duration-150"
-        />
-        {/* Handle Top Bevel & Grip Ridges */}
-        <line
-          x1={centerX - (is3P ? 15 : is2P ? 10 : 7)}
-          y1={(isTripped ? centerY - 2 : isClosed ? centerY - 10 : centerY + 3) + 3}
-          x2={centerX + (is3P ? 15 : is2P ? 10 : 7)}
-          y2={(isTripped ? centerY - 2 : isClosed ? centerY - 10 : centerY + 3) + 3}
-          stroke="rgba(255,255,255,0.45)"
-          strokeWidth={1}
-        />
-        <line
-          x1={centerX - (is3P ? 15 : is2P ? 10 : 7)}
-          y1={(isTripped ? centerY - 2 : isClosed ? centerY - 10 : centerY + 3) + 6}
-          x2={centerX + (is3P ? 15 : is2P ? 10 : 7)}
-          y2={(isTripped ? centerY - 2 : isClosed ? centerY - 10 : centerY + 3) + 6}
-          stroke="rgba(0,0,0,0.3)"
-          strokeWidth={1}
-        />
-        {/* Multi-pole Tie Pin */}
-        {(is2P || is3P) && (
-          <circle
-            cx={centerX}
-            cy={(isTripped ? centerY - 2 : isClosed ? centerY - 10 : centerY + 3) + 5.5}
-            r={1.6}
-            fill="#cbd5e1"
-            stroke="#0f172a"
-            strokeWidth={0.5}
-          />
-        )}
-        {isBoltOn && (
-          <text
-            x={centerX}
-            y={(isTripped ? centerY - 2 : isClosed ? centerY - 10 : centerY + 3) + 8.5}
-            textAnchor="middle"
-            fontSize={5.8}
-            fontWeight="900"
-            fontFamily="monospace"
-            fill={ampTone.text}
-          >
-            {ratedAmps}A
-          </text>
-        )}
-      </g>
-
-      {/* Laser-Etched Engineering Nameplate */}
+      {/* Rating & Multi-Pole Flag Windows Band (never touches handle!) */}
       <text
-        x={centerX}
-        y={height - 46}
-        textAnchor="middle"
-        fontSize={8.5}
+        x={poles === 1 ? padX + 4 : padX + 5}
+        y={flagY + 6.5}
+        fontSize={poles === 1 ? 6 : 6.8}
         fontWeight="900"
-        fontFamily="monospace"
-        fill={isBoltOn ? '#f8fafc' : '#0f172a'}
+        fontFamily="ui-monospace, monospace"
+        fill={textCol}
       >
         {curve}{ratedAmps}
       </text>
+
+      {/* Per-pole Status Window (Green O / Red I / Amber TRIP) */}
+      {Array.from({ length: poles }).map((_, idx) => {
+        const winW = poles === 1 ? 10 : 11;
+        const wx = poles === 1 ? width - padX - winW - 3 : padX + poleW * idx + poleW / 2 - winW / 2;
+        const wy = poles === 1 ? flagY + 0.5 : flagY;
+        const winFill = isTripped ? '#f59e0b' : isClosed ? '#dc2626' : '#22c55e';
+        return (
+          <g key={`win-${idx}`}>
+            {poles > 1 && idx === 0 && null}
+            <rect
+              x={poles === 1 ? wx : Math.max(padX + (idx === 0 ? 22 : 0), wx)}
+              y={wy}
+              width={winW}
+              height={6}
+              rx={1}
+              fill={winFill}
+              stroke="#0f172a"
+              strokeWidth={0.7}
+            />
+          </g>
+        );
+      })}
+
+      {/* EduVolt Crisp Bridged Toggle Lever Slot & Interactive Handle */}
+      <g onClick={handleToggle} className="cursor-pointer">
+        <title>Click handle to toggle breaker {isClosed ? 'OFF' : 'ON'}</title>
+        <rect
+          x={padX + 4}
+          y={handleY}
+          width={innerW - 8}
+          height={18}
+          rx={2}
+          fill={isBoltOn ? '#0b1120' : '#cbd5e1'}
+          stroke="#0f172a"
+          strokeWidth={0.8}
+        />
+        {/* Sliding Bridged Handle */}
+        <rect
+          x={padX + 6}
+          y={isTripped ? handleY + 4.5 : isClosed ? handleY + 1.5 : handleY + 8.5}
+          width={innerW - 12}
+          height={8}
+          rx={1.5}
+          fill={handleAccent}
+          stroke="#020617"
+          strokeWidth={0.9}
+        />
+        <line
+          x1={padX + 8}
+          y1={(isTripped ? handleY + 4.5 : isClosed ? handleY + 1.5 : handleY + 8.5) + 2.5}
+          x2={width - padX - 8}
+          y2={(isTripped ? handleY + 4.5 : isClosed ? handleY + 1.5 : handleY + 8.5) + 2.5}
+          stroke="rgba(255,255,255,0.45)"
+          strokeWidth={0.9}
+        />
+        <text
+          x={cx}
+          y={(isTripped ? handleY + 4.5 : isClosed ? handleY + 1.5 : handleY + 8.5) + 6.4}
+          textAnchor="middle"
+          fontSize={4.8}
+          fontWeight="900"
+          fontFamily="ui-monospace, monospace"
+          fill="#ffffff"
+        >
+          {isTripped ? 'TRIP' : isClosed ? 'ON' : 'OFF'}
+        </text>
+      </g>
+
+      {/* Bottom Embedded Rating & Mount Spec Line */}
       <text
-        x={centerX}
-        y={height - 37.5}
-        textAnchor="middle"
-        fontSize={5.8}
-        fontWeight="bold"
-        fontFamily="sans-serif"
-        fill={isBoltOn ? '#94a3b8' : '#475569'}
+        x={poles > 1 ? padX + 5 : cx}
+        y={specY}
+        textAnchor={poles > 1 ? 'start' : 'middle'}
+        fontSize={poles === 1 ? 4.4 : 4.8}
+        fontWeight="800"
+        fontFamily="ui-monospace, monospace"
+        fill={subTextCol}
       >
-        {poles}P {is3P ? '400V~' : '240V~'} {isBoltOn ? '10kA' : '6kA'}
+        {poles === 1 ? `${isBoltOn ? 'BOLT' : 'DIN'} 10kA` : `${poles}P ${isBoltOn ? 'BOLT-ON' : 'DIN'} ${is3P ? '400V' : '240V'}`}
       </text>
 
-      {/* Small Tactile Trip Test Micro-Button (on 2P/3P Bolt-On & Service Disconnect) */}
+      {/* Compact Flush Trip-Test Button inside faceplate (no overlapping!) */}
       {(is2P || is3P) && (
-        <g onClick={handleManualTripTest} className="cursor-pointer" opacity={0.9}>
-          <circle cx={width - 13} cy={centerY + 20} r={3.5} fill="#0f172a" stroke="#64748b" strokeWidth={0.7} />
-          <text x={width - 13} y={centerY + 21.8} textAnchor="middle" fontSize={4.5} fontWeight="bold" fill="#f59e0b">
+        <g onClick={handleManualTripTest} className="cursor-pointer">
+          <title>Simulate manual trip test</title>
+          <circle cx={width - padX - 7} cy={specY - 2} r={3.5} fill="#0f172a" stroke="#64748b" strokeWidth={0.7} />
+          <text x={width - padX - 7} y={specY - 0.5} textAnchor="middle" fontSize={4.2} fontWeight="900" fill="#fbbf24">
             T
           </text>
         </g>
       )}
 
-      {/* Subtle Floating Profile Pill (Top Edge) */}
-      <g onClick={handleCycleStyle} transform={`translate(${centerX}, -9)`} className="cursor-pointer">
-        <rect x={-30} y={-6} width={60} height={11} rx={5.5} fill="#0f172a" stroke="#38bdf8" strokeWidth={0.7} opacity={0.9} />
-        <text x={0} y={1} textAnchor="middle" dominantBaseline="middle" fontSize={6} fontWeight="bold" fill="#e2e8f0">
-          {isBoltOn ? 'Bolt-On' : isRoyuDin ? 'ROYU DIN' : 'IEC DIN'}
-        </text>
-      </g>
-
-      {/* Terminations */}
+      {/* Terminals */}
       {terminals.map((t) => {
         const tx = width * t.relX;
         const ty = height * t.relY;

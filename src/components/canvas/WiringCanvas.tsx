@@ -30,6 +30,10 @@ interface WiringCanvasProps {
   onUpdateDevicePosition: (id: string, x: number, y: number) => void;
   onUpdateMultipleDevicePositions?: (updates: { id: string; x: number; y: number }[]) => void;
   onConnectWire: (fromDevId: string, fromTermId: string, toDevId: string, toTermId: string, mode?: WiringMode) => void;
+  rewiringTarget?: { wireId: string; moveEnd: 'from' | 'to' } | null;
+  onSetRewiringTarget?: (target: { wireId: string; moveEnd: 'from' | 'to' } | null) => void;
+  onRewireWire?: (wireId: string, moveEnd: 'from' | 'to', newDeviceId: string, newTerminalId: string) => void;
+  onDeleteWire?: (wireId: string) => void;
   onToggleDeviceState: (device: ElectricalDevice) => void;
   /** Merge a partial state patch into a device (momentary push buttons, dials, view toggles) */
   onPatchDeviceState?: (deviceId: string, patch: Record<string, any>) => void;
@@ -77,6 +81,10 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   onUpdateDevicePosition,
   onUpdateMultipleDevicePositions,
   onConnectWire,
+  rewiringTarget = null,
+  onSetRewiringTarget,
+  onRewireWire,
+  onDeleteWire,
   onToggleDeviceState,
   onPatchDeviceState,
   highlightDeviceIds = [],
@@ -136,6 +144,12 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   // Terminal wiring connection state
   const [wiringStart, setWiringStart] = useState<{ dev: ElectricalDevice; term: DeviceTerminal } | null>(null);
+  const [portMenu, setPortMenu] = useState<{
+    deviceId: string;
+    terminalId: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [hoveredTerminalId, setHoveredTerminalId] = useState<string | null>(null);
 
@@ -146,12 +160,18 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
-  // Keyboard shortcut listener (ESC to cancel wiring / deselect, Space for panning)
+  // Keyboard shortcut listener (ESC to cancel wiring / rewire / deselect, Space for panning)
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (wiringStart) {
           setWiringStart(null);
+        }
+        if (rewiringTarget) {
+          onSetRewiringTarget?.(null);
+        }
+        if (portMenu) {
+          setPortMenu(null);
         }
         onSelectDevice(null);
         onSelectWire(null);
@@ -172,7 +192,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [wiringStart, onSelectDevice, onSelectWire]);
+  }, [wiringStart, rewiringTarget, portMenu, onSetRewiringTarget, onSelectDevice, onSelectWire]);
 
   // Zoom-to-fit: frame every device (and routed wire waypoint) in the visible canvas area
   const fitToView = React.useCallback(() => {
@@ -312,13 +332,20 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   const handleTerminalMouseDown = (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (e.button === 2) return; // Right-click is reserved for the Connected-Port Rewire/Disconnect menu
+    setPortMenu(null);
     if (dmmMode) {
       onDmmProbeTerminal?.(device.id, terminal.id);
       return;
     }
     if (isSimulating) {
-      // Wire creation is locked while the grid is energized
+      // Wire creation/rewiring is locked while the grid is energized
       onBlockedEdit?.('simulating');
+      return;
+    }
+    if (rewiringTarget) {
+      onRewireWire?.(rewiringTarget.wireId, rewiringTarget.moveEnd, device.id, terminal.id);
+      onSetRewiringTarget?.(null);
       return;
     }
     if (!wiringStart) {
@@ -451,6 +478,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    setPortMenu(null);
     // Middle-click (1), Right-click (2), Alt-click, or Spacebar-drag for smooth canvas panning
     if (e.button === 1 || e.button === 2 || e.altKey || isSpacePressed) {
       setIsPanning(true);
@@ -469,6 +497,9 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       onSelectWire(null);
       if (wiringStart) {
         setWiringStart(null);
+      }
+      if (rewiringTarget) {
+        onSetRewiringTarget?.(null);
       }
     }
   };
@@ -499,8 +530,9 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     setPan({ x: newPanX, y: newPanY });
   };
 
-  // Preview path while drawing a wire
+  // Preview path while drawing or rewiring a wire
   let previewPathD = '';
+  let previewColor = activeWireColor;
   if (wiringStart) {
     const fromPos = getDeviceTerminalPosition(wiringStart.dev, wiringStart.term);
     const startPt: Point = { x: fromPos.x, y: fromPos.y };
@@ -508,7 +540,34 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     const endDir = mousePos.y > startPt.y ? (startDir === 'down' ? 'up' : 'down') : 'up';
     const previewWaypoints = calculateOrthogonalPath(startPt, mousePos, startDir, endDir, 34, 26);
     previewPathD = generateSvgPath(previewWaypoints, 8);
+  } else if (rewiringTarget) {
+    const w = wires.find((item) => item.id === rewiringTarget.wireId);
+    if (w) {
+      const anchorDevId = rewiringTarget.moveEnd === 'from' ? w.toDeviceId : w.fromDeviceId;
+      const anchorTermId = rewiringTarget.moveEnd === 'from' ? w.toTerminalId : w.fromTerminalId;
+      const anchorDev = devices.find((d) => d.id === anchorDevId);
+      const anchorTerm = anchorDev?.terminals.find((t) => t.id === anchorTermId);
+      if (anchorDev && anchorTerm) {
+        const anchorPos = getDeviceTerminalPosition(anchorDev, anchorTerm);
+        const startPt: Point = { x: anchorPos.x, y: anchorPos.y };
+        const endDir = mousePos.y > startPt.y ? (anchorPos.dir === 'down' ? 'up' : 'down') : 'up';
+        const previewWaypoints = calculateOrthogonalPath(startPt, mousePos, anchorPos.dir, endDir, 34, 26);
+        previewPathD = generateSvgPath(previewWaypoints, 8);
+        previewColor = w.color;
+      }
+    }
   }
+
+  const handleOpenPortMenu = React.useCallback((deviceId: string, terminalId: string, clientX: number, clientY: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setPortMenu({
+      deviceId,
+      terminalId,
+      x: Math.min(rect.width - 250, Math.max(12, clientX - rect.left + 8)),
+      y: Math.min(rect.height - 160, Math.max(12, clientY - rect.top + 8)),
+    });
+  }, []);
 
   const terminalHighlightValue = useMemo(() => {
     const connectedTerminalKeys = new Set<string>();
@@ -544,8 +603,9 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       connectedTerminalKeys,
       highlightedWireEndpoints,
       selectedWireColor: activeWire?.color ?? null,
+      onPortContextMenu: handleOpenPortMenu,
     };
-  }, [wires, devices, selectedWireId]);
+  }, [wires, devices, selectedWireId, handleOpenPortMenu]);
 
   return (
     <div
@@ -683,13 +743,13 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
             ))}
           </g>
 
-          {/* Layer 2: Rubber-Band Preview Wire while Drawing */}
-          {wiringStart && previewPathD && (
+          {/* Layer 2: Rubber-Band Preview Wire while Drawing or Rewiring */}
+          {(wiringStart || rewiringTarget) && previewPathD && (
             <g id="wire-preview-layer" className="pointer-events-none">
               <path
                 d={previewPathD}
                 fill="none"
-                stroke={activeWireColor}
+                stroke={previewColor}
                 strokeWidth={3.6}
                 strokeDasharray="6 4"
                 strokeLinecap="round"
@@ -794,6 +854,157 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           </g>
         </g>
       </svg>
+
+      {/* Active Rewire Banner */}
+      {rewiringTarget && (
+        <div className="pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-sky-400 bg-slate-900/95 px-4 py-1.5 text-xs font-bold text-sky-100 shadow-lg backdrop-blur-md">
+          <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
+          <span>Click destination port to move this wire end (Esc to cancel)</span>
+          <button
+            onClick={() => onSetRewiringTarget?.(null)}
+            className="ml-1 rounded-full bg-slate-700 hover:bg-slate-600 px-2 py-0.5 text-[10px] text-white"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Quick Rewire / Disconnect Handles for Selected Wire (rendered only when a wire is selected in Edit Mode) */}
+      {selectedWireId && !isSimulating && !rewiringTarget && (() => {
+        const w = wires.find((item) => item.id === selectedWireId);
+        if (!w) return null;
+        const fromDev = devices.find((d) => d.id === w.fromDeviceId);
+        const toDev = devices.find((d) => d.id === w.toDeviceId);
+        const fromTerm = fromDev?.terminals.find((t) => t.id === w.fromTerminalId);
+        const toTerm = toDev?.terminals.find((t) => t.id === w.toTerminalId);
+        if (!fromDev || !toDev || !fromTerm || !toTerm) return null;
+        const pFrom = getDeviceTerminalPosition(fromDev, fromTerm);
+        const pTo = getDeviceTerminalPosition(toDev, toTerm);
+        const sxFrom = pFrom.x * zoom + pan.x;
+        const syFrom = pFrom.y * zoom + pan.y;
+        const sxTo = pTo.x * zoom + pan.x;
+        const syTo = pTo.y * zoom + pan.y;
+        return (
+          <div className="pointer-events-none absolute inset-0 z-20">
+            {[
+              { key: 'from' as const, x: sxFrom, y: syFrom, label: fromTerm.label || fromTerm.id },
+              { key: 'to' as const, x: sxTo, y: syTo, label: toTerm.label || toTerm.id },
+            ].map((ep) => (
+              <div
+                key={ep.key}
+                style={{ left: ep.x + 14, top: ep.y - 12 }}
+                className="pointer-events-auto absolute flex items-center gap-1 rounded-lg border border-sky-400/90 bg-slate-900/95 px-1.5 py-0.5 shadow-xl text-[10px] font-bold text-white"
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSetRewiringTarget?.({ wireId: w.id, moveEnd: ep.key });
+                  }}
+                  className="hover:text-sky-300 transition flex items-center gap-0.5"
+                  title={`Rewire ${ep.label} to another port`}
+                >
+                  <span>⇄ Rewire</span>
+                </button>
+                <span className="text-slate-600">|</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteWire?.(w.id);
+                  }}
+                  className="hover:text-rose-400 transition"
+                  title="Disconnect wire"
+                >
+                  ✂
+                </button>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Connected-Port Context Popover (ONLY appears when right-clicking a port that has >= 1 attached wire) */}
+      {portMenu && (() => {
+        const portDev = devices.find((d) => d.id === portMenu.deviceId);
+        const portTerm = portDev?.terminals.find((t) => t.id === portMenu.terminalId);
+        const attached = wires
+          .map((w) => {
+            if (w.fromDeviceId === portMenu.deviceId && w.fromTerminalId === portMenu.terminalId) {
+              return { wire: w, moveEnd: 'from' as const, peerDevId: w.toDeviceId, peerTermId: w.toTerminalId };
+            }
+            if (w.toDeviceId === portMenu.deviceId && w.toTerminalId === portMenu.terminalId) {
+              return { wire: w, moveEnd: 'to' as const, peerDevId: w.fromDeviceId, peerTermId: w.fromTerminalId };
+            }
+            return null;
+          })
+          .filter((x): x is NonNullable<typeof x> => !!x);
+        if (attached.length === 0) return null;
+
+        return (
+          <div
+            style={{ left: portMenu.x, top: portMenu.y }}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="absolute z-40 w-64 rounded-xl border border-slate-600 bg-slate-900/95 p-2.5 shadow-2xl backdrop-blur-md text-slate-100"
+          >
+            <div className="flex items-center justify-between border-b border-slate-700 pb-1.5 mb-2">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-sky-400">
+                Port {portTerm?.label || portMenu.terminalId} Connections ({attached.length})
+              </div>
+              <button
+                onClick={() => setPortMenu(null)}
+                className="text-slate-400 hover:text-white text-xs font-bold px-1"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {attached.map(({ wire, moveEnd, peerDevId, peerTermId }) => {
+                const peerDev = devices.find((d) => d.id === peerDevId);
+                const peerTerm = peerDev?.terminals.find((t) => t.id === peerTermId);
+                return (
+                  <div
+                    key={wire.id}
+                    className="rounded-lg bg-slate-800/90 border border-slate-700 px-2 py-1.5 text-[11px]"
+                  >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full shrink-0 border border-white/60"
+                        style={{ backgroundColor: wire.color }}
+                      />
+                      <span className="font-mono font-bold truncate text-slate-200">
+                        {wire.label ? `${wire.label} · ` : ''}↔ {peerDev?.name?.split(' ')[0] || 'Dev'}:{peerTerm?.label || peerTermId}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => {
+                          setPortMenu(null);
+                          if (isSimulating) {
+                            onBlockedEdit?.('simulating');
+                            return;
+                          }
+                          onSetRewiringTarget?.({ wireId: wire.id, moveEnd });
+                        }}
+                        className="flex-1 rounded-md bg-sky-600 hover:bg-sky-500 px-2 py-1 text-[10px] font-bold text-white transition"
+                      >
+                        ⇄ Rewire to New Port
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPortMenu(null);
+                          onDeleteWire?.(wire.id);
+                        }}
+                        className="rounded-md bg-rose-900/80 hover:bg-rose-700 border border-rose-700 px-2 py-1 text-[10px] font-bold text-rose-100 transition"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Handheld Digital Multimeter / Clamp Meter HUD */}
       {dmmMode && (

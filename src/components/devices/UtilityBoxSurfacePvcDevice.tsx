@@ -1,122 +1,105 @@
-import React, { useId } from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import React from 'react';
+import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
-interface UtilityBoxSurfacePvcDeviceProps {
-  device: ElectricalDevice;
-  isSelected?: boolean;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId?: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const UtilityBoxSurfacePvcDevice: React.FC<UtilityBoxSurfacePvcDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
-  const uid = useId().replace(/:/g, '');
-  const { width, height, terminals } = device;
+/**
+ * EduVolt-style 2"x4" Rectangular Surface/Flush Utility Box (PVC or GI Steel).
+ * Embedded material toggle & L/N/PE pass-through labels with zero external pills.
+ */
+export const UtilityBoxSurfacePvcDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device, onToggleState, onPatchState } = props;
+  const { x, y, width, height } = device;
   const isSteel = device.state.boxMaterial === 'galvanized_steel';
-  const cx = width / 2;
-  const cy = height / 2;
+  const cx = x + width / 2;
+  const cy = y + height / 2;
 
   const handleToggleMaterial = (e: React.MouseEvent) => {
     e.stopPropagation();
-    device.state.boxMaterial = isSteel ? 'orange_pvc' : 'galvanized_steel';
-    onToggleState?.(device);
+    const next = isSteel ? 'orange_pvc' : 'galvanized_steel';
+    if (onPatchState) onPatchState(device.id, { boxMaterial: next });
+    else {
+      device.state.boxMaterial = next;
+      onToggleState?.({ ...device, state: { ...device.state, boxMaterial: next } });
+    }
   };
 
   return (
-    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`ubOrange-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#fb923c" />
-          <stop offset="55%" stopColor="#ea580c" />
-          <stop offset="100%" stopColor="#9a3412" />
-        </linearGradient>
-        <linearGradient id={`ubSteel-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#e2e8f0" />
-          <stop offset="55%" stopColor="#94a3b8" />
-          <stop offset="100%" stopColor="#475569" />
-        </linearGradient>
-      </defs>
+    <g className="select-none">
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="rgba(15, 23, 42, 0.16)" />
 
-      <rect x={2} y={4} width={width} height={height} rx={7} fill="rgba(15, 23, 42, 0.22)" />
-
-      {/* 2"x4" Deep Utility Box Outer Lip */}
+      {/* Outer Lip */}
       <rect
-        x={0}
-        y={0}
+        x={x}
+        y={y}
         width={width}
         height={height}
-        rx={7}
-        fill={isSteel ? `url(#ubSteel-${uid})` : `url(#ubOrange-${uid})`}
-        stroke={isSteel ? '#334155' : '#7c2d12'}
-        strokeWidth={1.7}
+        rx={5}
+        fill={isSteel ? '#cbd5e1' : '#ea580c'}
+        stroke="#0f172a"
+        strokeWidth={1.3}
       />
 
       {/* Deep Recessed Cavity */}
       <rect
-        x={7}
-        y={8}
-        width={width - 14}
-        height={height - 16}
-        rx={4}
+        x={x + 5}
+        y={y + 6}
+        width={width - 10}
+        height={height - 12}
+        rx={3}
         fill={isSteel ? '#475569' : '#9a3412'}
-        stroke="rgba(0,0,0,0.3)"
-        strokeWidth={1}
+        stroke="#1e293b"
+        strokeWidth={0.9}
       />
 
-      {/* Knockouts on Top & Bottom */}
-      <circle cx={cx} cy={4} r={3.5} fill="none" stroke={isSteel ? '#e2e8f0' : '#fed7aa'} strokeDasharray="1.8 1" />
-      <circle cx={cx} cy={height - 4} r={3.5} fill="none" stroke={isSteel ? '#e2e8f0' : '#fed7aa'} strokeDasharray="1.8 1" />
+      {/* Top/Bottom Knockout Rings */}
+      <circle cx={cx} cy={y + 3.5} r={2.6} fill="none" stroke={isSteel ? '#e2e8f0' : '#fed7aa'} strokeDasharray="1.5 1" strokeWidth={0.8} />
+      <circle cx={cx} cy={y + height - 3.5} r={2.6} fill="none" stroke={isSteel ? '#e2e8f0' : '#fed7aa'} strokeDasharray="1.5 1" strokeWidth={0.8} />
 
-      {/* Top/Bottom Device Mounting Ears */}
-      <rect x={cx - 10} y={7} width={20} height={6} rx={1.5} fill={isSteel ? '#cbd5e1' : '#fb923c'} stroke="#1e293b" strokeWidth={0.7} />
-      <rect x={cx - 10} y={height - 13} width={20} height={6} rx={1.5} fill={isSteel ? '#cbd5e1' : '#fb923c'} stroke="#1e293b" strokeWidth={0.7} />
+      {/* Pass-Through Barrier Block */}
+      <rect x={x + 8} y={y + 9} width={width - 16} height={height - 18} rx={2.5} fill="#0f172a" stroke="#334155" strokeWidth={0.9} />
 
-      {/* Internal Pass-Through Splice Barrier Strip */}
-      <rect x={11} y={18} width={width - 22} height={height - 36} rx={4} fill="#0f172a" stroke="#475569" strokeWidth={1} opacity={0.92} />
+      {/* Top Embedded Silkscreen Strip */}
+      <rect x={x + 9} y={y + 24} width={width - 18} height={8} fill="#1e293b" />
+      {[
+        { rel: 0.25, lbl: 'L IN', col: '#f87171' },
+        { rel: 0.50, lbl: 'N IN', col: '#60a5fa' },
+        { rel: 0.75, lbl: 'PE', col: '#4ade80' },
+      ].map((t) => (
+        <text key={`ubt-${t.lbl}`} x={x + width * t.rel} y={y + 29.8} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="ui-monospace, monospace" fill={t.col}>
+          {t.lbl}
+        </text>
+      ))}
 
-      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize={5.8} fontWeight="bold" fontFamily="monospace" fill="#cbd5e1">
-        2"×4" {isSteel ? 'GI BOX' : 'PVC BOX'}
+      {/* Internal Continuity Traces */}
+      <line x1={x + width * 0.25} y1={y + 34} x2={x + width * 0.25} y2={y + height - 34} stroke="#dc2626" strokeWidth={1.1} strokeDasharray="2 2" opacity={0.5} />
+      <line x1={cx} y1={y + 34} x2={cx} y2={y + height - 34} stroke="#2563eb" strokeWidth={1.1} strokeDasharray="2 2" opacity={0.5} />
+      <line x1={x + width * 0.75} y1={y + 34} x2={x + width * 0.75} y2={y + height - 34} stroke="#16a34a" strokeWidth={1.1} strokeDasharray="2 2" opacity={0.5} />
+
+      {/* Center Label + Embedded Material Toggle Chip */}
+      <rect x={x + 12} y={cy - 12} width={width - 24} height={24} rx={2.5} fill="#1e293b" stroke="#475569" strokeWidth={0.8} />
+      <text x={cx} y={cy - 3} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#f8fafc">
+        2"×4" UTILITY
       </text>
-
-      {/* Material Switch Badge */}
-      <g onClick={handleToggleMaterial} transform={`translate(${cx}, -8)`} className="cursor-pointer">
-        <rect x={-26} y={-5.5} width={52} height={10} rx={5} fill="#0f172a" stroke="#f59e0b" strokeWidth={0.7} />
-        <text x={0} y={0.5} textAnchor="middle" dominantBaseline="middle" fontSize={5.4} fontWeight="bold" fill="#fef08a">
-          {isSteel ? 'GI Steel' : 'PVC Box'}
+      <g onMouseDown={stopCanvas} onClick={handleToggleMaterial} className="cursor-pointer">
+        <title>Switch box material between Orange PVC and Galvanized Steel</title>
+        <rect x={cx - 18} y={cy + 1} width={36} height={9} rx={1.8} fill="#0f172a" stroke="#f59e0b" strokeWidth={0.6} />
+        <text x={cx} y={cy + 7.2} textAnchor="middle" fontSize="3.9" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#fef08a">
+          {isSteel ? 'GI STEEL' : 'PVC BOX'}
         </text>
       </g>
 
-      {terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const termId = `${device.id}:${t.id}`;
-        return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isSelected={selectedTerminalId === termId}
-            isHovered={hoveredTerminalId === termId}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onTerminalMouseDown?.(device, t, e);
-            }}
-            onMouseEnter={() => setHoveredTerminalId?.(termId)}
-            onMouseLeave={() => setHoveredTerminalId?.(null)}
-          />
-        );
-      })}
+      {/* Bottom Embedded Silkscreen Strip */}
+      <rect x={x + 9} y={y + height - 32} width={width - 18} height={8} fill="#1e293b" />
+      {[
+        { rel: 0.25, lbl: 'L OUT', col: '#f87171' },
+        { rel: 0.50, lbl: 'N OUT', col: '#60a5fa' },
+        { rel: 0.75, lbl: 'PE', col: '#4ade80' },
+      ].map((t) => (
+        <text key={`ubb-${t.lbl}`} x={x + width * t.rel} y={y + height - 26.2} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="ui-monospace, monospace" fill={t.col}>
+          {t.lbl}
+        </text>
+      ))}
+
+      <DeviceTerminals {...props} hideLabel={() => true} />
     </g>
   );
 };

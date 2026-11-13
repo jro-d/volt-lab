@@ -27,6 +27,9 @@ interface DevicePropertiesPanelProps {
   isLibraryOpen?: boolean;
   /** Live state patch (momentary push buttons, TOR test/reset, cutaway toggle) */
   onPatchDeviceState?: (deviceId: string, patch: Record<string, any>) => void;
+  devices?: ElectricalDevice[];
+  onRequestRewire?: (wireId: string, moveEnd: 'from' | 'to') => void;
+  onDisconnectWire?: (wireId: string) => void;
 }
 
 /** Hold-to-press helper for momentary push buttons in the inspector */
@@ -55,6 +58,9 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   onDuplicateDevice,
   isLibraryOpen = false,
   onPatchDeviceState,
+  devices = [],
+  onRequestRewire,
+  onDisconnectWire,
 }) => {
   const patchState = (key: string, value: any) =>
     device && (onPatchDeviceState ? onPatchDeviceState(device.id, { [key]: value }) : onUpdateDeviceProperty(device.id, key, value));
@@ -1320,6 +1326,59 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               <span>Reset Wire Routing to Auto</span>
             </button>
           )}
+
+          {/* Move Endpoint / Disconnect Connected Ports */}
+          {(() => {
+            const fromDev = devices.find((d) => d.id === wire.fromDeviceId);
+            const toDev = devices.find((d) => d.id === wire.toDeviceId);
+            const fromTerm = fromDev?.terminals.find((t) => t.id === wire.fromTerminalId);
+            const toTerm = toDev?.terminals.find((t) => t.id === wire.toTerminalId);
+            return (
+              <div className="bg-[#172235] p-2.5 rounded-xl border border-slate-700 space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Endpoint Ports (Rewire Without Deleting)
+                </span>
+                <div className="space-y-1.5 text-[11px]">
+                  <div className="flex items-center justify-between gap-2 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-700/80">
+                    <span className="text-slate-300 font-mono truncate">
+                      <strong className="text-sky-400">FROM:</strong> {fromDev?.name?.split(' ')[0] || 'Dev'}:{fromTerm?.label || wire.fromTerminalId}
+                    </span>
+                    {onRequestRewire && (
+                      <button
+                        onClick={() => onRequestRewire(wire.id, 'from')}
+                        className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-[10px] shrink-0 transition"
+                        title="Pick a new port for the FROM end"
+                      >
+                        ⇄ Rewire
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-700/80">
+                    <span className="text-slate-300 font-mono truncate">
+                      <strong className="text-amber-400">TO:</strong> {toDev?.name?.split(' ')[0] || 'Dev'}:{toTerm?.label || wire.toTerminalId}
+                    </span>
+                    {onRequestRewire && (
+                      <button
+                        onClick={() => onRequestRewire(wire.id, 'to')}
+                        className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-[10px] shrink-0 transition"
+                        title="Pick a new port for the TO end"
+                      >
+                        ⇄ Rewire
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {onDisconnectWire && (
+                  <button
+                    onClick={() => onDisconnectWire(wire.id)}
+                    className="w-full py-1 px-2.5 rounded-lg bg-rose-950/70 hover:bg-rose-900/80 border border-rose-700/70 text-rose-200 text-[11px] font-bold transition"
+                  >
+                    Disconnect Wire
+                  </button>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 

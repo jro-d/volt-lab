@@ -1,154 +1,96 @@
-import React, { useId } from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import React from 'react';
+import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
 
-interface IndustrialRelayDeviceProps {
-  device: ElectricalDevice;
-  isSelected?: boolean;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId?: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const IndustrialRelayDevice: React.FC<IndustrialRelayDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
-  const uid = useId().replace(/:/g, '');
-  const { width, height, terminals } = device;
+/**
+ * EduVolt-style 8-Pin / DIN Socket DPDT Industrial Ice-Cube Control Relay.
+ * Top (A1, 14, 12, 11) and bottom (A2, 24, 22, 21) silkscreen labels embedded in dark socket bands.
+ */
+export const IndustrialRelayDevice: React.FC<DeviceComponentProps> = (props) => {
+  const { device, onToggleState, onPatchState } = props;
+  const { x, y, width, height } = device;
   const isEnergized = !!device.state.coilEnergized;
-  const cx = width / 2;
+  const cx = x + width / 2;
+  const cy = y + height / 2;
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onToggleState?.({
-      ...device,
-      state: {
-        ...device.state,
-        manualTest: !device.state.manualTest,
-        coilEnergized: !device.state.coilEnergized,
-      },
-    });
+    const next = !isEnergized;
+    if (onPatchState) onPatchState(device.id, { manualTest: !device.state.manualTest, coilEnergized: next });
+    else onToggleState?.({ ...device, state: { ...device.state, manualTest: !device.state.manualTest, coilEnergized: next } });
   };
 
   return (
-    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      <defs>
-        <linearGradient id={`relaySocket-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#334155" />
-          <stop offset="100%" stopColor="#0f172a" />
-        </linearGradient>
-        <linearGradient id={`copperBobbin-${uid}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#7c2d12" />
-          <stop offset="45%" stopColor="#ea580c" />
-          <stop offset="75%" stopColor="#c2410c" />
-          <stop offset="100%" stopColor="#7c2d12" />
-        </linearGradient>
-        <linearGradient id={`iceCover-${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="rgba(255, 255, 255, 0.36)" />
-          <stop offset="50%" stopColor="rgba(226, 232, 240, 0.14)" />
-          <stop offset="100%" stopColor="rgba(148, 163, 184, 0.28)" />
-        </linearGradient>
-      </defs>
+    <g id={`device-${device.id}`} className="select-none">
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="rgba(15, 23, 42, 0.16)" />
+      {/* DIN Relay Socket Body */}
+      <rect x={x} y={y} width={width} height={height} rx={4} fill="#334155" stroke="#0f172a" strokeWidth={1.3} />
 
-      {/* Dark DIN Screw Terminal Socket Base */}
-      <rect x={2} y={4} width={width} height={height} rx={7} fill="rgba(15, 23, 42, 0.25)" />
-      <rect x={0} y={0} width={width} height={height} rx={7} fill={`url(#relaySocket-${uid})`} stroke="#475569" strokeWidth={1.5} />
+      {/* Top Cage Terminal Bay + Embedded Labels */}
+      <rect x={x + 2} y={y + 2} width={width - 4} height={17} rx={2} fill="#1f2937" />
+      <rect x={x + 2} y={y + 19} width={width - 4} height={7.5} fill="#0f172a" />
+      {[
+        { rel: 0.20, lbl: 'A1', col: '#d8b4fe' },
+        { rel: 0.40, lbl: '14', col: '#6ee7b7' },
+        { rel: 0.60, lbl: '12', col: '#fcd34d' },
+        { rel: 0.80, lbl: '11', col: '#93c5fd' },
+      ].map((t) => (
+        <text key={t.lbl} x={x + width * t.rel} y={y + 24.4} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill={t.col}>
+          {t.lbl}
+        </text>
+      ))}
 
-      {/* Top/Bottom Numbered Cage Terminal Bays */}
-      <rect x={6} y={4} width={width - 12} height={24} rx={3.5} fill="#090d16" stroke="#334155" strokeWidth={0.9} />
-      <rect x={6} y={height - 28} width={width - 12} height={24} rx={3.5} fill="#090d16" stroke="#334155" strokeWidth={0.9} />
+      {/* Clear Ice-Cube Polycarbonate Window */}
+      <rect x={x + 5} y={y + 28} width={width - 10} height={height - 56} rx={3} fill="#e2e8f0" stroke="#0f172a" strokeWidth={1.1} />
 
-      {/* Clear Ice-Cube Polycarbonate Relay Cube */}
-      <rect
-        x={9}
-        y={31}
-        width={width - 18}
-        height={height - 62}
-        rx={5}
-        fill="#1e293b"
-        stroke="#94a3b8"
-        strokeWidth={1.3}
-      />
+      {/* Left Copper Bobbin + Coil Status LED */}
+      <rect x={x + 10} y={y + 34} width={18} height={height - 76} rx={2} fill={isEnergized ? '#f97316' : '#b45309'} stroke="#78350f" strokeWidth={0.8} />
+      <circle cx={x + 19} cy={cy - 4} r={3} fill={isEnergized ? '#22c55e' : '#475569'} stroke="#0f172a" strokeWidth={0.6} />
 
-      {/* Internal Enameled Copper Coil Bobbin & Steel Core Yoke */}
-      <rect x={16} y={37} width={22} height={height - 74} rx={3} fill={`url(#copperBobbin-${uid})`} stroke="#f59e0b" strokeWidth={0.7} />
-      <rect x={22} y={35} width={10} height={5} rx={1} fill="#cbd5e1" />
-
-      {/* Internal DPDT Brass/Silver Armature Blades */}
-      {[cx + 6, cx + 18].map((bx, i) => (
+      {/* Dual DPDT Contact Blades */}
+      {[x + 41, x + 56].map((bx, i) => (
         <g key={`arm-${i}`}>
-          {/* NC & NO stationary contacts */}
-          <circle cx={bx - 4} cy={44} r={2} fill="#eab308" />
-          <circle cx={bx + 5} cy={44} r={2} fill="#eab308" />
-          {/* Moving Armature Leaf */}
+          <circle cx={bx - 4} cy={y + 42} r={1.8} fill="#d97706" />
+          <circle cx={bx + 4} cy={y + 42} r={1.8} fill="#d97706" />
           <line
             x1={bx}
-            y1={height - 40}
-            x2={isEnergized ? bx + 5 : bx - 4}
-            y2={45}
-            stroke={isEnergized ? '#4ade80' : '#cbd5e1'}
-            strokeWidth={2}
+            y1={y + height - 42}
+            x2={isEnergized ? bx + 4 : bx - 4}
+            y2={y + 43}
+            stroke={isEnergized ? '#16a34a' : '#475569'}
+            strokeWidth={1.8}
             strokeLinecap="round"
-            className="transition-all duration-150"
           />
         </g>
       ))}
 
-      {/* Internal Coil Status Neon/LED */}
-      <circle cx={27} cy={height / 2} r={3.5} fill={isEnergized ? '#a855f7' : '#334155'} stroke="#0f172a" strokeWidth={0.8} />
-      {isEnergized && <circle cx={27} cy={height / 2} r={7} fill="rgba(168, 85, 247, 0.35)" />}
-
-      {/* Frosted Ice-Cube Specular Polycarbonate Cover & Test Latch Tab */}
-      <rect
-        x={9}
-        y={31}
-        width={width - 18}
-        height={height - 62}
-        rx={5}
-        fill={`url(#iceCover-${uid})`}
-        className="pointer-events-none"
-      />
-
-      {/* Interactive Mechanical Manual Override / Test Push Flag */}
-      <g onClick={handleToggle} className="cursor-pointer">
-        <rect x={width - 27} y={33} width={14} height={9} rx={2} fill={isEnergized ? '#ef4444' : '#38bdf8'} stroke="#0f172a" strokeWidth={0.8} />
-        <text x={width - 20} y={39.5} textAnchor="middle" fontSize={5} fontWeight="bold" fill="#0f172a">
+      {/* Manual Test Button tucked cleanly right of coil */}
+      <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
+        <title>Manual test push-tab (energize DPDT coil)</title>
+        <rect x={x + width - 27} y={y + 30} width={19} height={8.5} rx={1.5} fill={isEnergized ? '#dc2626' : '#0284c7'} stroke="#0f172a" strokeWidth={0.6} />
+        <text x={x + width - 17.5} y={y + 36} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#ffffff">
           TEST
         </text>
       </g>
 
-      <text x={cx} y={height - 33} textAnchor="middle" fontSize={5.5} fontWeight="bold" fontFamily="monospace" fill="#cbd5e1">
+      <text x={cx} y={y + height - 30.5} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#1e293b">
         DPDT 230VAC · 10A
       </text>
 
-      {terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const termId = `${device.id}:${t.id}`;
-        return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isSelected={selectedTerminalId === termId}
-            isHovered={hoveredTerminalId === termId}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onTerminalMouseDown?.(device, t, e);
-            }}
-            onMouseEnter={() => setHoveredTerminalId?.(termId)}
-            onMouseLeave={() => setHoveredTerminalId?.(null)}
-          />
-        );
-      })}
+      {/* Bottom Embedded Labels + Cage Terminal Bay */}
+      <rect x={x + 2} y={y + height - 26.5} width={width - 4} height={7.5} fill="#0f172a" />
+      {[
+        { rel: 0.20, lbl: 'A2', col: '#d8b4fe' },
+        { rel: 0.40, lbl: '24', col: '#6ee7b7' },
+        { rel: 0.60, lbl: '22', col: '#fcd34d' },
+        { rel: 0.80, lbl: '21', col: '#93c5fd' },
+      ].map((t) => (
+        <text key={t.lbl} x={x + width * t.rel} y={y + height - 21} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill={t.col}>
+          {t.lbl}
+        </text>
+      ))}
+      <rect x={x + 2} y={y + height - 19} width={width - 4} height={17} rx={2} fill="#1f2937" />
+
+      <DeviceTerminals {...props} hideLabel={() => true} />
     </g>
   );
 };

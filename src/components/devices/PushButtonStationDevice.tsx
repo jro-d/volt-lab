@@ -2,8 +2,8 @@ import React from 'react';
 import { DeviceComponentProps, DeviceTerminals, momentaryPress } from './DeviceTerminals';
 
 /**
- * 2-hole 22mm operator station: green START (momentary NO 3-4) above red STOP (momentary NC 1-2).
- * Top terminal strip carries the START contact block, bottom strip the STOP contact block.
+ * EduVolt-style 2-button 22mm operator station: START (momentary NO 3-4) above STOP (momentary NC 1-2).
+ * Embedded top/bottom contact block silkscreen bands prevent label overlap.
  */
 export const PushButtonStationDevice: React.FC<DeviceComponentProps> = (props) => {
   const { device, onToggleState, onPatchState } = props;
@@ -11,8 +11,6 @@ export const PushButtonStationDevice: React.FC<DeviceComponentProps> = (props) =
   const isStartPressed = !!device.state.startPressed;
   const isStopPressed = !!device.state.stopPressed;
   const cx = x + width / 2;
-  const startCy = y + height * 0.43;
-  const stopCy = y + height * 0.75;
 
   const press = (e: React.MouseEvent, key: 'startPressed' | 'stopPressed') => {
     if (onPatchState) momentaryPress(e, device.id, key, onPatchState);
@@ -22,101 +20,66 @@ export const PushButtonStationDevice: React.FC<DeviceComponentProps> = (props) =
     }
   };
 
-  const Button = ({
-    cy,
-    pressed,
-    cap,
-    capDown,
-    ring,
-    keyName,
-    title,
-    children,
-  }: {
-    cy: number;
-    pressed: boolean;
-    cap: string;
-    capDown: string;
-    ring: string;
-    keyName: 'startPressed' | 'stopPressed';
-    title: string;
-    children: React.ReactNode;
-  }) => (
-    <g
-      transform={`translate(${cx}, ${cy})`}
-      className="cursor-pointer"
-      onMouseDown={(e) => press(e, keyName)}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <title>{title}</title>
-      {/* chrome bezel */}
-      <circle r={17} fill="#e5e7eb" stroke="#9ca3af" strokeWidth={1.1} />
-      <circle r={14.5} fill="#1f2937" />
-      <circle
-        r={pressed ? 10.5 : 12.5}
-        fill={pressed ? capDown : cap}
-        stroke={ring}
-        strokeWidth={1}
-        filter={pressed ? undefined : 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))'}
-        style={{ transition: 'r 80ms' }}
-      />
-      <ellipse cx={-3} cy={-4} rx={6} ry={3.5} fill="#ffffff" opacity={pressed ? 0.08 : 0.22} />
-      {children}
-    </g>
-  );
-
   return (
-    <g id={`device-${device.id}`}>
-      {/* Enclosure base + cover */}
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={8}
-        fill="#9ca3af"
-        stroke="#4b5563"
-        strokeWidth={1.4}
-        filter="drop-shadow(0 6px 14px rgba(15,23,42,0.2))"
-      />
-      <rect x={x + 3} y={y + 20} width={width - 6} height={height - 40} rx={6} fill="#e5e7eb" stroke="#9ca3af" strokeWidth={0.8} />
-      {/* Contact-block terminal strips */}
-      <rect x={x + 3} y={y + 2} width={width - 6} height={16} rx={3} fill="#1f2937" />
-      <rect x={x + 3} y={y + height - 18} width={width - 6} height={16} rx={3} fill="#1f2937" />
+    <g id={`device-${device.id}`} className="select-none">
+      {/* Subtle CAD shadow */}
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="rgba(15,23,42,0.16)" />
 
-      {/* Legend plates */}
-      <rect x={cx - 21} y={y + 31} width={42} height={10} rx={1.5} fill="#14532d" />
-      <text x={cx} y={y + 38.4} textAnchor="middle" fontSize="6.2" fontWeight="900" fill="#f0fdf4" fontFamily="ui-sans-serif, system-ui">
+      {/* Outer Enclosure Housing */}
+      <rect x={x} y={y} width={width} height={height} rx={5} fill="#cbd5e1" stroke="#0f172a" strokeWidth={1.3} />
+
+      {/* Top Contact Block Pocket + Embedded Labels */}
+      <rect x={x + 3} y={y + 2} width={width - 6} height={17} rx={2} fill="#1f2937" />
+      <rect x={x + 3} y={y + 19} width={width - 6} height={7.5} fill="#0f172a" />
+      <text x={x + width * 0.22} y={y + 24.4} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#6ee7b7">
+        3 NO
+      </text>
+      <text x={x + width * 0.78} y={y + 24.4} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#6ee7b7">
+        4 NO
+      </text>
+
+      {/* Main Front Plate */}
+      <rect x={x + 4} y={y + 27.5} width={width - 8} height={height - 55} rx={3} fill="#e5e7eb" stroke="#64748b" strokeWidth={0.9} />
+
+      {/* START Legend + 22mm Flush Actuator */}
+      <rect x={cx - 19} y={y + 30} width={38} height={8.5} rx={1.5} fill="#14532d" />
+      <text x={cx} y={y + 36} textAnchor="middle" fontSize="5.2" fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#f0fdf4">
         START
       </text>
-      <rect x={cx - 21} y={y + height * 0.59 - 5} width={42} height={10} rx={1.5} fill="#7f1d1d" />
-      <text x={cx} y={y + height * 0.59 + 2.4} textAnchor="middle" fontSize="6.2" fontWeight="900" fill="#fef2f2" fontFamily="ui-sans-serif, system-ui">
+      <g transform={`translate(${cx}, ${y + 53})`} className="cursor-pointer" onMouseDown={(e) => press(e, 'startPressed')} onClick={(e) => e.stopPropagation()}>
+        <title>START — momentary Normally Open 3-4 (hold to press)</title>
+        <circle r={13.5} fill="#cbd5e1" stroke="#0f172a" strokeWidth={1} />
+        <circle r={11.5} fill="#1f2937" />
+        <circle r={isStartPressed ? 8.5 : 10} fill={isStartPressed ? '#15803d' : '#22c55e'} stroke="#14532d" strokeWidth={0.9} />
+        <text x={0} y={3.4} textAnchor="middle" fontSize="9.5" fontWeight="900" fill="#ffffff">
+          I
+        </text>
+      </g>
+
+      {/* STOP Legend + 22mm Flush Actuator */}
+      <rect x={cx - 19} y={y + 72} width={38} height={8.5} rx={1.5} fill="#7f1d1d" />
+      <text x={cx} y={y + 78} textAnchor="middle" fontSize="5.2" fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#fef2f2">
         STOP
       </text>
+      <g transform={`translate(${cx}, ${y + 95})`} className="cursor-pointer" onMouseDown={(e) => press(e, 'stopPressed')} onClick={(e) => e.stopPropagation()}>
+        <title>STOP — momentary Normally Closed 1-2 (hold to open)</title>
+        <circle r={13.5} fill="#cbd5e1" stroke="#0f172a" strokeWidth={1} />
+        <circle r={11.5} fill="#1f2937" />
+        <circle r={isStopPressed ? 8.5 : 10} fill={isStopPressed ? '#b91c1c' : '#ef4444'} stroke="#7f1d1d" strokeWidth={0.9} />
+        <circle r={3.6} fill="none" stroke="#ffffff" strokeWidth={1.7} />
+      </g>
 
-      <Button
-        cy={startCy}
-        pressed={isStartPressed}
-        cap="#22c55e"
-        capDown="#15803d"
-        ring="#14532d"
-        keyName="startPressed"
-        title="START — momentary Normally Open 3-4 (hold to press)"
-      >
-        <text x={0} y={4} textAnchor="middle" fontSize="11" fontWeight="900" fill="#ffffff">I</text>
-      </Button>
-      <Button
-        cy={stopCy}
-        pressed={isStopPressed}
-        cap="#ef4444"
-        capDown="#b91c1c"
-        ring="#7f1d1d"
-        keyName="stopPressed"
-        title="STOP — momentary Normally Closed 1-2 (hold to open)"
-      >
-        <circle r={4.5} fill="none" stroke="#ffffff" strokeWidth={2} />
-      </Button>
+      {/* Bottom Embedded Labels + Contact Block Pocket */}
+      <rect x={x + 3} y={y + height - 26.5} width={width - 6} height={7.5} fill="#0f172a" />
+      <text x={x + width * 0.22} y={y + height - 21} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#fcd34d">
+        1 NC
+      </text>
+      <text x={x + width * 0.78} y={y + height - 21} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#fcd34d">
+        2 NC
+      </text>
+      <rect x={x + 3} y={y + height - 19} width={width - 6} height={17} rx={2} fill="#1f2937" />
 
-      <DeviceTerminals {...props} labelColor={(t) => (t.type === 'no' ? '#6ee7b7' : '#fcd34d')} />
+      <DeviceTerminals {...props} hideLabel={() => true} />
     </g>
   );
 };
