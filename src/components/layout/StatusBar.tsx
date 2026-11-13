@@ -67,6 +67,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
       <div className="hidden xl:flex items-center gap-2 text-[10px] text-stone-400 truncate" title="Keyboard shortcuts">
         {[
+          ['Drag', 'select'],
+          ['Dbl-click', 'inspect'],
           ['F', 'fit'],
           ['R', 'rotate'],
           ['Del', 'delete'],

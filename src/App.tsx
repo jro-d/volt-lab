@@ -98,7 +98,12 @@ export const App: React.FC = () => {
   // Selection state (selectedGroupIds = Shift+click multi-selection, first entry is the alignment anchor)
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
-  const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
+  // Wires can be multi-selected too (marquee / Shift+click); the last one is the primary selection
+  const [selectedWireIds, setSelectedWireIds] = useState<string[]>([]);
+  const selectedWireId = selectedWireIds.length > 0 ? selectedWireIds[selectedWireIds.length - 1] : null;
+  const setSelectedWireId = (id: string | null) => setSelectedWireIds(id ? [id] : []);
+  // The inspector only opens on double-click, so a plain click can select / drag without a panel popping up
+  const [inspectorOpen, setInspectorOpen] = useState(false);
 
   // Select a device (plain click) or toggle it in the multi-selection (Shift+click)
   const handleSelectDevice = (id: string | null, additive: boolean = false) => {
@@ -121,6 +126,35 @@ export const App: React.FC = () => {
       setSelectedGroupIds([...base, id]);
       setSelectedDeviceId(id);
     }
+  };
+
+  const handleSelectWire = (wire: ElectricalWire | null, additive: boolean = false) => {
+    if (!wire) {
+      setSelectedWireIds([]);
+      return;
+    }
+    if (additive) {
+      setSelectedWireIds(prev => (prev.includes(wire.id) ? prev.filter(id => id !== wire.id) : [...prev, wire.id]));
+      return;
+    }
+    if (selectedWireIds.length > 1 && selectedWireIds.includes(wire.id)) {
+      // Clicking a member of the current wire selection keeps the selection (make it primary)
+      setSelectedWireIds(prev => [...prev.filter(id => id !== wire.id), wire.id]);
+      return;
+    }
+    setSelectedWireIds([wire.id]);
+    setSelectedDeviceId(null);
+    setSelectedGroupIds([]);
+  };
+
+  // Rubber-band selection result (devices + wires inside the box)
+  const handleMarqueeSelect = (deviceIds: string[], wireIds: string[], additive: boolean) => {
+    const baseDevs = selectedGroupIds.length > 0 ? selectedGroupIds : selectedDeviceId ? [selectedDeviceId] : [];
+    const devs = additive ? [...baseDevs, ...deviceIds.filter(id => !baseDevs.includes(id))] : deviceIds;
+    const wires = additive ? [...selectedWireIds, ...wireIds.filter(id => !selectedWireIds.includes(id))] : wireIds;
+    setSelectedGroupIds(devs);
+    setSelectedDeviceId(devs.length > 0 ? devs[devs.length - 1] : null);
+    setSelectedWireIds(wires);
   };
 
   // Undo / Redo History Stacks
@@ -546,46 +580,16 @@ export const App: React.FC = () => {
     prev: ElectricalProject,
     moves: { id: string; x: number; y: number }[]
   ): ElectricalProject => {
+    // Wire routes are stored untouched: WireRenderer re-anchors them to the terminals with 90-degree bends only
     let devices = prev.devices;
-    let wires = prev.wires;
+    const wires = prev.wires;
 
     for (const move of moves) {
       const dev = devices.find(d => d.id === move.id);
       if (!dev) continue;
-      const dx = move.x - dev.x;
-      const dy = move.y - dev.y;
-      if (dx === 0 && dy === 0) continue;
+      if (move.x === dev.x && move.y === dev.y) continue;
 
       devices = devices.map(d => (d.id === move.id ? { ...d, x: move.x, y: move.y } : d));
-      wires = wires.map(w => {
-        if (!w.waypoints || w.waypoints.length === 0) return w;
-        const fromMoved = w.fromDeviceId === move.id;
-        const toMoved = w.toDeviceId === move.id;
-        if (!fromMoved && !toMoved) return w;
-
-        if (fromMoved && toMoved) {
-          return {
-            ...w,
-            waypoints: w.waypoints.map(p => ({ x: p.x + dx, y: p.y + dy }))
-          };
-        }
-
-        const pts = w.waypoints.map(p => ({ ...p }));
-        if (fromMoved) {
-          pts[0] = { x: pts[0].x + dx, y: pts[0].y + dy };
-          if (pts.length > 2) {
-            pts[1] = { x: pts[1].x + dx, y: pts[1].y + dy };
-          }
-        }
-        if (toMoved) {
-          const last = pts.length - 1;
-          pts[last] = { x: pts[last].x + dx, y: pts[last].y + dy };
-          if (pts.length > 2) {
-            pts[last - 1] = { x: pts[last - 1].x + dx, y: pts[last - 1].y + dy };
-          }
-        }
-        return { ...w, waypoints: pts };
-      });
     }
 
     return { ...prev, devices, wires };
@@ -691,6 +695,16 @@ export const App: React.FC = () => {
     }));
   };
 
+  // Apply the same change (colour, gauge / mm2, ...) to several wires as ONE undo step
+  const handleUpdateWiresProperty = (wireIds: string[], updates: Partial<ElectricalWire>) => {
+    if (isEditBlocked() || wireIds.length === 0) return;
+    pushUndoSnapshot();
+    setProject(prev => ({
+      ...prev,
+      wires: prev.wires.map(w => (wireIds.includes(w.id) ? { ...w, ...updates } : w)),
+    }));
+  };
+
   // Rewire one endpoint of an existing wire to another terminal without deleting/recreating it
   const handleRewireWire = (wireId: string, moveEnd: 'from' | 'to', newDeviceId: string, newTerminalId: string) => {
     if (isEditBlocked()) return;
@@ -764,26 +778,21 @@ export const App: React.FC = () => {
 
   // Delete selected wire or device(s)
   const handleDeleteSelected = () => {
-    if (!selectedWireId && !selectedDeviceId) return;
+    const doomedWires = selectedWireIds;
+    const doomedDevs = selectedGroupIds.length > 0 ? selectedGroupIds : selectedDeviceId ? [selectedDeviceId] : [];
+    if (doomedWires.length === 0 && doomedDevs.length === 0) return;
     if (isEditBlocked()) return;
-    if (selectedWireId) {
-      pushUndoSnapshot();
-      setProject(prev => ({
-        ...prev,
-        wires: prev.wires.filter(w => w.id !== selectedWireId)
-      }));
-      setSelectedWireId(null);
-    } else if (selectedDeviceId) {
-      const doomed = selectedGroupIds.length > 1 ? selectedGroupIds : [selectedDeviceId];
-      pushUndoSnapshot();
-      setProject(prev => ({
-        ...prev,
-        devices: prev.devices.filter(d => !doomed.includes(d.id)),
-        wires: prev.wires.filter(w => !doomed.includes(w.fromDeviceId) && !doomed.includes(w.toDeviceId))
-      }));
-      setSelectedDeviceId(null);
-      setSelectedGroupIds([]);
-    }
+    pushUndoSnapshot();
+    setProject(prev => ({
+      ...prev,
+      devices: prev.devices.filter(d => !doomedDevs.includes(d.id)),
+      wires: prev.wires.filter(
+        w => !doomedWires.includes(w.id) && !doomedDevs.includes(w.fromDeviceId) && !doomedDevs.includes(w.toDeviceId)
+      ),
+    }));
+    setSelectedWireIds([]);
+    setSelectedDeviceId(null);
+    setSelectedGroupIds([]);
   };
 
   // Global Keyboard Shortcuts (Undo, Redo, Copy, Paste, Rotate, Delete)
@@ -800,6 +809,16 @@ export const App: React.FC = () => {
         } else {
           handleUndo();
         }
+      } else if (isCtrlOrCmd && e.key.toLowerCase() === 'a' && viewMode === 'realistic') {
+        e.preventDefault();
+        const ids = project.devices.map(d => d.id);
+        setSelectedGroupIds(ids);
+        setSelectedDeviceId(ids.length ? ids[ids.length - 1] : null);
+        setSelectedWireIds(project.wires.map(w => w.id));
+      } else if (e.key === 'Escape') {
+        setSelectedDeviceId(null);
+        setSelectedGroupIds([]);
+        setSelectedWireIds([]);
       } else if (isCtrlOrCmd && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         handleRedo();
@@ -829,7 +848,7 @@ export const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedDeviceId, selectedWireId, clipboardDevice, project, undoStack, redoStack]);
+  }, [selectedDeviceId, selectedGroupIds, selectedWireIds, clipboardDevice, project, undoStack, redoStack, viewMode]);
 
   // Reset simulation: re-arm tripped breakers / RCDs and clear injected earth faults
   const handleResetSimulation = () => {
@@ -1035,14 +1054,21 @@ export const App: React.FC = () => {
     if (viol.affectedDeviceId) {
       handleSelectDevice(viol.affectedDeviceId);
       setSelectedWireId(null);
+      setInspectorOpen(true);
     } else if (viol.affectedWireId) {
       setSelectedWireId(viol.affectedWireId);
+      setInspectorOpen(true);
       setSelectedDeviceId(null);
       setSelectedGroupIds([]);
     }
   };
 
   const selectedDevice = project.devices.find(d => d.id === selectedDeviceId) || null;
+  const hasSelection = !!selectedDeviceId || selectedWireIds.length > 0;
+  useEffect(() => {
+    if (!hasSelection) setInspectorOpen(false);
+  }, [hasSelection]);
+  const multiWires = selectedWireIds.length > 1 ? project.wires.filter(w => selectedWireIds.includes(w.id)) : [];
 
   // Dual View right-pane switch (Ladder ⇄ SLD)
   const dualSwitch = (
@@ -1150,8 +1176,11 @@ export const App: React.FC = () => {
         <main className="flex-1 flex overflow-hidden relative">
           {/* Interactive Device & Conductor Inspector Panel */}
           <DevicePropertiesPanel
-            device={selectedDevice}
-            wire={project.wires.find(w => w.id === selectedWireId) || null}
+            device={inspectorOpen && multiWires.length === 0 ? selectedDevice : null}
+            wire={inspectorOpen && multiWires.length === 0 ? project.wires.find(w => w.id === selectedWireId) || null : null}
+            wires={inspectorOpen ? multiWires : []}
+            groupDeviceCount={selectedGroupIds.length}
+            onUpdateWiresProperty={handleUpdateWiresProperty}
             devices={project.devices}
             standard={standard}
             onUpdateDeviceProperty={handleUpdateDeviceProperty}
@@ -1165,9 +1194,7 @@ export const App: React.FC = () => {
             }}
             onDisconnectWire={handleDeleteWire}
             onClose={() => {
-              setSelectedDeviceId(null);
-              setSelectedGroupIds([]);
-              setSelectedWireId(null);
+              setInspectorOpen(false);
             }}
             isLibraryOpen={isLibraryOpen}
           />
@@ -1184,17 +1211,14 @@ export const App: React.FC = () => {
               selectedDeviceId={selectedDeviceId}
               selectedDeviceIds={selectedGroupIds}
               selectedWireId={selectedWireId}
+              selectedWireIds={selectedWireIds}
+              onMarqueeSelect={handleMarqueeSelect}
+              onOpenInspector={() => setInspectorOpen(true)}
               isSimulating={isSimulating}
               snapSize={snapSize}
               onBlockedEdit={handleBlockedEdit}
               onSelectDevice={handleSelectDevice}
-              onSelectWire={(w) => {
-                setSelectedWireId(w ? w.id : null);
-                if (w) {
-                  setSelectedDeviceId(null);
-                  setSelectedGroupIds([]);
-                }
-              }}
+              onSelectWire={handleSelectWire}
               onUpdateDevicePosition={handleUpdateDevicePosition}
               onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
               dmmMode={dmmMode}
@@ -1257,17 +1281,14 @@ export const App: React.FC = () => {
                   selectedDeviceId={selectedDeviceId}
                   selectedDeviceIds={selectedGroupIds}
                   selectedWireId={selectedWireId}
+                  selectedWireIds={selectedWireIds}
+                  onMarqueeSelect={handleMarqueeSelect}
+                  onOpenInspector={() => setInspectorOpen(true)}
                   isSimulating={isSimulating}
                   snapSize={snapSize}
                   onBlockedEdit={handleBlockedEdit}
                   onSelectDevice={handleSelectDevice}
-                  onSelectWire={(w) => {
-                    setSelectedWireId(w ? w.id : null);
-                    if (w) {
-                      setSelectedDeviceId(null);
-                      setSelectedGroupIds([]);
-                    }
-                  }}
+                  onSelectWire={handleSelectWire}
                   onUpdateDevicePosition={handleUpdateDevicePosition}
               onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
               dmmMode={dmmMode}

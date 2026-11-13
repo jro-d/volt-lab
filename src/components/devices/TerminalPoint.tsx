@@ -69,6 +69,7 @@ export const TerminalPoint: React.FC<TerminalPointProps> = ({
 
   return (
     <g
+      data-terminal="1"
       transform={`translate(${x}, ${y})`}
       className="cursor-crosshair group"
       onMouseDown={onMouseDown}

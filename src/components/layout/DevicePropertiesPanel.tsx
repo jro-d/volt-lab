@@ -16,6 +16,11 @@ import {
 interface DevicePropertiesPanelProps {
   device: ElectricalDevice | null;
   wire: ElectricalWire | null;
+  /** Several conductors selected: bulk colour / gauge editor */
+  wires?: ElectricalWire[];
+  /** Number of devices in the current multi-selection (info only) */
+  groupDeviceCount?: number;
+  onUpdateWiresProperty?: (wireIds: string[], updates: Partial<ElectricalWire>) => void;
   standard: CodeStandard;
   onUpdateDeviceProperty: (deviceId: string, key: string, value: any) => void;
   onUpdateWireProperty: (wireId: string, updates: Partial<ElectricalWire>) => void;
@@ -49,6 +54,9 @@ const holdProps = (
 export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   device,
   wire,
+  wires = [],
+  groupDeviceCount = 0,
+  onUpdateWiresProperty,
   standard,
   onUpdateDeviceProperty,
   onUpdateWireProperty,
@@ -64,7 +72,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 }) => {
   const patchState = (key: string, value: any) =>
     device && (onPatchDeviceState ? onPatchDeviceState(device.id, { [key]: value }) : onUpdateDeviceProperty(device.id, key, value));
-  if (!device && !wire) return null;
+  if (!device && !wire && wires.length < 2) return null;
 
   const wireStandards = getWireStandards(standard);
   const colors = COLOR_STANDARDS[standard];
@@ -82,10 +90,10 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
           <div>
             <span className="text-[9px] font-mono font-bold text-rose-400 uppercase tracking-widest block">
-              {device ? 'DEVICE INSPECTOR' : 'CONDUCTOR INSPECTOR'}
+              {device ? 'DEVICE INSPECTOR' : wires.length > 1 ? 'MULTI-WIRE INSPECTOR' : 'CONDUCTOR INSPECTOR'}
             </span>
             <div className="text-xs font-bold text-slate-100 truncate max-w-[170px]">
-              {device ? device.name : `Wire: ${wire?.wireGauge}`}
+              {device ? device.name : wires.length > 1 ? `${wires.length} conductors selected` : `Wire: ${wire?.wireGauge}`}
             </div>
           </div>
         </div>
@@ -1233,6 +1241,102 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </span>
         </div>
       )}
+
+      {/* --- BULK WIRE EDITOR (several conductors selected) --- */}
+      {wires.length > 1 && (() => {
+        const gauges = Array.from(new Set(wires.map((w) => w.wireGauge)));
+        const colorSet = Array.from(new Set(wires.map((w) => w.color)));
+        const commonGauge = gauges.length === 1 ? gauges[0] : '';
+        const ids = wires.map((w) => w.id);
+        const apply = (u: Partial<ElectricalWire>) => onUpdateWiresProperty?.(ids, u);
+        const swatches = [
+          { color: colors.phase1, name: 'Phase 1' },
+          { color: colors.phase2, name: 'Phase 2' },
+          { color: colors.phase3, name: 'Phase 3' },
+          { color: colors.neutral, name: 'Neutral' },
+          { color: colors.earth, name: 'Earth' },
+          { color: colors.switched, name: 'Switched' },
+        ];
+        return (
+          <div className="space-y-3">
+            <div className="text-[11px] text-slate-300 leading-snug">
+              Changes below apply to <strong className="text-sky-300">all {wires.length} selected conductors</strong>
+              {groupDeviceCount > 1 ? ` (${groupDeviceCount} devices are also selected)` : ''}.
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                Conductor Cross-Section / Gauge (AWG + mm²)
+              </label>
+              <select
+                value={commonGauge}
+                onChange={(e) => e.target.value && apply({ wireGauge: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono focus:outline-none focus:border-rose-500"
+              >
+                {commonGauge === '' && <option value="">Mixed ({gauges.length} sizes) - pick one to apply to all</option>}
+                {wireStandards.map((ws) => (
+                  <option key={ws.id} value={ws.name}>
+                    {ws.name} (Max {ws.maxBreakerAmps}A)
+                  </option>
+                ))}
+              </select>
+              {gauges.length > 1 && (
+                <div className="mt-1 text-[10px] font-mono text-slate-500 leading-snug">Now: {gauges.join(' | ')}</div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                Insulation Color
+              </label>
+              <div className="grid grid-cols-6 gap-1.5">
+                {swatches.map((swatch, i) => (
+                  <button
+                    key={i}
+                    onClick={() => apply({ color: swatch.color })}
+                    style={{ backgroundColor: swatch.color }}
+                    className={`h-6 rounded border transition-transform ${
+                      colorSet.length === 1 && colorSet[0] === swatch.color
+                        ? 'border-sky-400 scale-110 shadow-md ring-2 ring-sky-400/40'
+                        : 'border-slate-600 hover:scale-105'
+                    }`}
+                    title={swatch.name}
+                  />
+                ))}
+              </div>
+              <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+                <span className="font-bold uppercase tracking-wider">Custom</span>
+                <input
+                  type="color"
+                  value={colorSet.length === 1 && /^#[0-9a-fA-F]{6}$/.test(colorSet[0]) ? colorSet[0] : '#444444'}
+                  onChange={(e) => apply({ color: e.target.value })}
+                  className="h-6 w-10 bg-transparent border border-slate-600 rounded cursor-pointer"
+                />
+                {colorSet.length > 1 && <span className="font-mono text-slate-500">{colorSet.length} colors now</span>}
+              </label>
+            </div>
+
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Selected conductors</div>
+              <div className="max-h-24 overflow-y-auto space-y-0.5">
+                {wires.map((w) => {
+                  const a = devices.find((d) => d.id === w.fromDeviceId);
+                  const b = devices.find((d) => d.id === w.toDeviceId);
+                  return (
+                    <div key={w.id} className="flex items-center gap-1.5 text-[10px] font-mono text-slate-300">
+                      <span className="inline-block w-2.5 h-2.5 rounded-sm border border-slate-600" style={{ backgroundColor: w.color }} />
+                      <span className="truncate">
+                        {a?.name?.split(' ')[0] || 'Dev'} {'\u2192'} {b?.name?.split(' ')[0] || 'Dev'}
+                      </span>
+                      <span className="ml-auto text-slate-500 shrink-0">{w.wireGauge.split(' ')[0]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* --- WIRE PROPERTIES --- */}
       {wire && (
