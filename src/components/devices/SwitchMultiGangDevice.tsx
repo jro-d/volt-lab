@@ -23,7 +23,7 @@ export const SwitchMultiGangDevice: React.FC<DeviceProps> = (props) => {
       <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
         <WallPlate w={W} h={H} />
         <Bay x={8} y={H * 0.15 - 8} w={W - 16} h={16} />
-        <Silk x={cx} y={H * 0.33} size={4.4} anchor="middle" bold fill="var(--brand)">ROYU</Silk>
+        <Silk x={cx} y={H * 0.33} size={4.2} anchor="middle" bold muted>250V~</Silk>
         <Mono x={cx} y={H * 0.33 + 5.5} size={3.6} anchor="middle" muted>LED DIMMER 200W</Mono>
         {/* level scale */}
         {Array.from({ length: 11 }).map((_, i) => {

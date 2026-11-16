@@ -60,7 +60,7 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     else if (d.type === 'push_button_estop') symbol = 'estop';
     else if (d.type === 'pilot_light_indicator') symbol = 'pilot';
     else if (d.type === 'plc_micro_controller') symbol = 'plc';
-    else if (d.type.includes('switch') || d.type === 'royu_modular_combo_plate') symbol = 'switch';
+    else if (d.type.includes('switch') || d.type === 'modular_combo_plate') symbol = 'switch';
     else if (d.type.includes('bulb')) symbol = 'light';
     else if (d.type.includes('socket')) symbol = 'socket';
     else if (d.type.includes('earth') || d.type.includes('pit')) symbol = 'earth';
@@ -69,8 +69,8 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     else if (d.type === 'appliance_ac') symbol = 'ac';
     else if (d.type === 'appliance_water_heater') symbol = 'heater';
     else if (d.type.includes('junction_box') || d.type === 'utility_box_surface_pvc') symbol = 'junction';
-    else if (d.type.includes('splice') || d.type.includes('wago')) symbol = 'splice';
-    else if (d.type === 'royu_safety_breaker_2p') symbol = 'breaker';
+    else if (d.type.includes('splice') || d.type.includes('lever')) symbol = 'splice';
+    else if (d.type === 'safety_breaker_2p') symbol = 'breaker';
 
     return {
       id: d.id,

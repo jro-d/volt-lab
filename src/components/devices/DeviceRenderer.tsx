@@ -21,10 +21,10 @@ import { EstopDevice } from './EstopDevice';
 import { PilotLightDevice } from './PilotLightDevice';
 import { PlcDevice } from './PlcDevice';
 import { IndustrialMotorDevice } from './IndustrialMotorDevice';
-import { RoyuSafetyBreakerDevice } from './RoyuSafetyBreakerDevice';
+import { SafetyBreakerDevice } from './SafetyBreakerDevice';
 import { DinRailTrackDevice } from './DinRailTrackDevice';
 import { UtilityBoxSurfacePvcDevice } from './UtilityBoxSurfacePvcDevice';
-import { RoyuModularComboPlateDevice } from './RoyuModularComboPlateDevice';
+import { ModularComboPlateDevice } from './ModularComboPlateDevice';
 import { ThermalOverloadDevice } from './ThermalOverloadDevice';
 import { ControlTransformerDevice } from './ControlTransformerDevice';
 import { ThreePhaseSourceDevice } from './ThreePhaseSourceDevice';
@@ -131,7 +131,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'junction_box_octagonal_orange':
         return <JunctionBoxDevice {...commonProps} />;
       case 'splice_wire_nut':
-      case 'wago_connector_3p':
+      case 'lever_connector_3p':
         return <SpliceNutDevice {...commonProps} />;
       case 'industrial_relay_dpdt':
         return <IndustrialRelayDevice {...commonProps} />;
@@ -148,14 +148,14 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'motor_ac_industrial':
       case 'motor_6lead_star_delta':
         return <IndustrialMotorDevice {...commonProps} />;
-      case 'royu_safety_breaker_2p':
-        return <RoyuSafetyBreakerDevice {...commonProps} />;
+      case 'safety_breaker_2p':
+        return <SafetyBreakerDevice {...commonProps} />;
       case 'din_rail_track':
         return <DinRailTrackDevice {...commonProps} />;
       case 'utility_box_surface_pvc':
         return <UtilityBoxSurfacePvcDevice {...commonProps} />;
-      case 'royu_modular_combo_plate':
-        return <RoyuModularComboPlateDevice {...commonProps} />;
+      case 'modular_combo_plate':
+        return <ModularComboPlateDevice {...commonProps} />;
       case 'thermal_overload_relay':
         return <ThermalOverloadDevice {...commonProps} />;
       case 'control_transformer':

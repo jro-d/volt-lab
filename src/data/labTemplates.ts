@@ -20,25 +20,25 @@ export const LAB_LESSONS: LabLesson[] = [
   // Phase 3: Marine & Industrial Motor Control Trainer (440V / 220V)
   ...MOTOR_CONTROL_LABS,
 
-  // 0. ROYU PHILIPPINE HARDWARE ECOSYSTEM LAB
+  // 0. PHILIPPINE RESIDENTIAL BRANCH CIRCUIT (standard devices)
   {
-    id: 'lab-royu-residential-ecosystem',
-    title: '🇵🇭 ROYU Residential Branch Circuit: ACU Safety Breaker & Modular Switch-Outlet Combo',
+    id: 'lab-ph-residential-acu-combo',
+    title: '🇵🇭 Residential Branch Circuit: ACU Safety Breaker & Modular Switch-Outlet Combo',
     subtitle: 'PEC 2017 Art. 4.40 & Art. 4.4 / 4.6 Philippine Residential Installation',
     category: 'residential',
-    badge: '🇵🇭 ROYU Hardware',
+    badge: '🇵🇭 PEC Residential',
     difficulty: 'Intermediate',
-    description: 'A realistic Philippine residential branch circuit featuring standard ROYU hardware: 2P Main Breaker on DIN rail, Octagonal Orange PVC Junction Box distributing to a 2P 30A ROYU Enclosed Safety Breaker for a 1.5 HP Inverter Air Conditioner (PEC Art. 4.40), and a ROYU Wide-Series Combo Plate (1-Way Switch controlling a ceiling light + Neon Red Pilot Lamp + Universal 3-Prong Grounded Outlet).',
+    description: 'A realistic Philippine residential branch circuit built from standard (brand-neutral) devices: 2P Main Breaker on DIN rail, Octagonal Orange PVC Junction Box distributing to a 2P 30A Enclosed Safety Breaker for a 1.5 HP Inverter Air Conditioner (PEC Art. 4.40), and a Wide-Series Combo Plate (1-Way Switch controlling a ceiling light + Neon Red Pilot Lamp + Universal 3-Prong Grounded Outlet).',
     objectives: [
       'Understand how Philippine residential installations use 2-pole breakers for 230V line-to-line electrical systems.',
-      'Inspect the ROYU 2P 30A Safety Breaker local disconnect installed within sight of the 1.5 HP Air Conditioner (PEC 4.40.2.1).',
-      'Examine the ROYU Wide-Series Combo Plate in Rear View and trace the common live jumper strap across the switch, pilot lamp, and convenience receptacle.',
+      'Inspect the 2P 30A Safety Breaker local disconnect installed within sight of the 1.5 HP Air Conditioner (PEC 4.40.2.1).',
+      'Examine the Wide-Series Combo Plate in Rear View and trace the common live jumper strap across the switch, pilot lamp, and convenience receptacle.',
       'Toggle the Safety Breaker cover open/closed to inspect the internal 2P bolt-on breaker mechanism, copper lugs, and equipment grounding.',
     ],
     project: {
-      id: 'proj_royu_ecosystem',
-      title: 'ROYU Residential Installation: ACU Disconnect & Modular Combo',
-      description: 'Philippine 230V residential installation with ROYU 2P Breakers, Safety Disconnect, Octagonal Box, and Wide-Series Combo.',
+      id: 'proj_ph_residential_acu_combo',
+      title: 'Residential Installation: ACU Disconnect & Modular Combo',
+      description: 'Philippine 230V residential installation with 2P Breakers, Safety Disconnect, Octagonal Box, and Wide-Series Combo.',
       codeStandard: 'PEC',
       gridVoltage: 230,
       gridFrequency: 60,
@@ -51,12 +51,11 @@ export const LAB_LESSONS: LabLesson[] = [
         },
         {
           ...createDeviceFromCatalog('mcb_2p', 80, 50, 'mcb_main'),
-          name: 'Main 2P 30A ROYU Breaker',
-          brand: 'ROYU',
-          modelNumber: 'ROYU RCB220',
+          name: 'Main 2P 30A Breaker',
+          modelNumber: 'MCB 2P Bolt-On',
           kaRating: 10,
           mountingType: 'bolt_on',
-          state: { closed: true, tripped: false, ratedAmps: 30, tripCurve: 'C', breakerProfile: 'royu_bolt_on' }
+          state: { closed: true, tripped: false, ratedAmps: 30, tripCurve: 'C', breakerProfile: 'bolt_on' }
         },
         {
           ...createDeviceFromCatalog('earth_busbar', 80, 200, 'pe_bar'),
@@ -68,13 +67,12 @@ export const LAB_LESSONS: LabLesson[] = [
         },
         {
           ...createDeviceFromCatalog('junction_box_octagonal_orange', 270, 70, 'jbox_main'),
-          name: 'ROYU Octagonal Orange Box'
+          name: 'Octagonal Orange Box'
         },
         {
-          ...createDeviceFromCatalog('royu_safety_breaker_2p', 470, 50, 'acu_safety'),
-          name: 'ROYU 2P 30A Safety Breaker (ACU)',
-          brand: 'ROYU',
-          modelNumber: 'ROYU RSB230',
+          ...createDeviceFromCatalog('safety_breaker_2p', 470, 50, 'acu_safety'),
+          name: '2P 30A Safety Breaker (ACU)',
+          modelNumber: 'Enclosed 2P 30A Safety Breaker',
           kaRating: 10,
           state: { closed: true, tripped: false, ratedAmps: 30, tripCurve: 'C', enclosureCoverOpen: false }
         },
@@ -85,13 +83,12 @@ export const LAB_LESSONS: LabLesson[] = [
         },
         {
           ...createDeviceFromCatalog('utility_box_surface_pvc', 280, 270, 'util_box'),
-          name: 'ROYU 2"x4" Utility Box'
+          name: '2"x4" Utility Box'
         },
         {
-          ...createDeviceFromCatalog('royu_modular_combo_plate', 470, 250, 'combo_plate'),
-          name: 'ROYU Wide Combo Plate',
-          brand: 'ROYU',
-          modelNumber: 'ROYU RWS103',
+          ...createDeviceFromCatalog('modular_combo_plate', 470, 250, 'combo_plate'),
+          name: 'Wide Combo Plate',
+          modelNumber: 'Combo Plate 3-Module',
           mountingType: 'flush_utility',
           state: {
             viewMode: 'front',
@@ -942,10 +939,10 @@ export const LAB_LESSONS: LabLesson[] = [
     category: 'residential',
     badge: 'Master Reference',
     difficulty: 'Advanced',
-    description: 'The complete residential distribution model featuring a digital kWh meter, 2P main service disconnect, a single home earthing pit beside the panelbox, 30mA RCD, surge arrester (SPD), DIN-rail branch breakers, ceiling junction box, switched lamp, ventilation fan, duplex outlet with TV, instant water heater, and 1.5 HP ACU with ROYU safety disconnect.',
+    description: 'The complete residential distribution model featuring a digital kWh meter, 2P main service disconnect, a single home earthing pit beside the panelbox, 30mA RCD, surge arrester (SPD), DIN-rail branch breakers, ceiling junction box, switched lamp, ventilation fan, duplex outlet with TV, instant water heater, and 1.5 HP ACU with a 2P safety disconnect.',
     objectives: [
       'Trace conductors from the utility service entrance into the kWh meter, 2P main disconnect, 30mA RCD, and single earth busbar beside the panelbox.',
-      'Inspect dedicated high-load circuits: 3.5 kW instant shower heater (12 AWG, 20A MCB) and 1.5 HP Inverter AC with local ROYU 2P safety disconnect.',
+      'Inspect dedicated high-load circuits: 3.5 kW instant shower heater (12 AWG, 20A MCB) and 1.5 HP Inverter AC with a local 2P safety disconnect.',
       'Examine how the octagonal junction box distributes paired Live, Neutral, and PE to the wall switch, ceiling lamp, and ventilation fan.',
       'Test the RCD push-to-test button or ground leakage fault on the water heater and observe instant shock protection.'
     ],
@@ -976,7 +973,7 @@ export const LAB_LESSONS: LabLesson[] = [
         { ...createDeviceFromCatalog('socket_duplex', 430, 425, 'socket_01'), name: 'Duplex Receptacle', state: { viewMode: 'front', hasPluggedLoad: true } },
         { ...createDeviceFromCatalog('appliance_tv', 445, 575, 'tv_01'), name: 'Smart TV (120W)', state: { wattage: 120, powered: true } },
         { ...createDeviceFromCatalog('appliance_water_heater', 585, 425, 'heater_01'), name: 'Instant Shower Water Heater (3.5kW)', state: { wattage: 3500, powered: true, hasEarthFault: false } },
-        { ...createDeviceFromCatalog('royu_safety_breaker_2p', 745, 515, 'ac_disc_01'), name: 'ROYU 2P 30A ACU Disconnect', state: { closed: true, tripped: false, ratedAmps: 30, tripCurve: 'C', enclosureCoverOpen: false, breakerProfile: 'royu_bolt_on' } },
+        { ...createDeviceFromCatalog('safety_breaker_2p', 745, 515, 'ac_disc_01'), name: '2P 30A ACU Disconnect', state: { closed: true, tripped: false, ratedAmps: 30, tripCurve: 'C', enclosureCoverOpen: false, breakerProfile: 'bolt_on' } },
         { ...createDeviceFromCatalog('appliance_ac', 875, 525, 'ac_01'), name: 'Air Conditioner (1.5 HP Inverter)', state: { wattage: 1200, powered: true, setTemp: 21 } }
       ],
       wires: [
@@ -1012,7 +1009,7 @@ export const LAB_LESSONS: LabLesson[] = [
         { id: 'w27', fromDeviceId: 'mcb_heater', fromTerminalId: 'out', toDeviceId: 'heater_01', toTerminalId: 'line', wireGauge: '12 AWG (3.5 mm²)', color: '#dc2626', lengthMeters: 4.5, conductorRole: 'feed_live' },
         { id: 'w28', fromDeviceId: 'n_bar_main', fromTerminalId: 'n_3', toDeviceId: 'heater_01', toTerminalId: 'neutral', wireGauge: '12 AWG (3.5 mm²)', color: '#0f172a', lengthMeters: 4.5, conductorRole: 'return_neutral' },
         { id: 'w29', fromDeviceId: 'pe_bar_main', fromTerminalId: 'pe_3', toDeviceId: 'heater_01', toTerminalId: 'ground', wireGauge: '12 AWG (3.5 mm²)', color: '#16a34a', lengthMeters: 4.5, conductorRole: 'earth_ground' },
-        // Branch 4: Dedicated Air Conditioner via ROYU 2P Safety Disconnect
+        // Branch 4: Dedicated Air Conditioner via 2P Safety Disconnect
         { id: 'w30', fromDeviceId: 'mcb_ac', fromTerminalId: 'out', toDeviceId: 'ac_disc_01', toTerminalId: 'in_l', wireGauge: '10 AWG (5.5 mm²)', color: '#dc2626', lengthMeters: 4.0, conductorRole: 'feed_live' },
         { id: 'w31', fromDeviceId: 'n_bar_main', fromTerminalId: 'n_4', toDeviceId: 'ac_disc_01', toTerminalId: 'in_n', wireGauge: '10 AWG (5.5 mm²)', color: '#0f172a', lengthMeters: 4.0, conductorRole: 'return_neutral' },
         { id: 'w32', fromDeviceId: 'pe_bar_main', fromTerminalId: 'pe_4', toDeviceId: 'ac_disc_01', toTerminalId: 'pe', wireGauge: '10 AWG (5.5 mm²)', color: '#16a34a', lengthMeters: 4.0, conductorRole: 'earth_ground' },

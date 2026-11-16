@@ -66,7 +66,7 @@ export const SocketDevice: React.FC<DeviceProps> = (props) => {
         <g>
           <WallPlate w={W} h={H} />
           {outletX.map(outlet)}
-          <Silk x={W / 2} y={12} size={4.2} anchor="middle" bold fill="var(--brand)">ROYU</Silk>
+          <Silk x={W / 2} y={12} size={4} anchor="middle" bold muted>15A 250V~</Silk>
         </g>
       )}
 

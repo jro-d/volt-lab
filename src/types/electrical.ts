@@ -71,7 +71,7 @@ export type DeviceType =
   | 'junction_box_4way'
   | 'junction_box_octagonal_orange'
   | 'splice_wire_nut'
-  | 'wago_connector_3p'
+  | 'lever_connector_3p'
   | 'industrial_relay_dpdt'
   | 'contactor_3p'
   | 'push_button_station'
@@ -79,11 +79,11 @@ export type DeviceType =
   | 'pilot_light_indicator'
   | 'plc_micro_controller'
   | 'motor_ac_industrial'
-  // Phase 2: ROYU Philippine Electrical Hardware Ecosystem
-  | 'royu_safety_breaker_2p'
+  // Phase 2: Philippine residential hardware (brand-neutral standard devices)
+  | 'safety_breaker_2p'
   | 'din_rail_track'
   | 'utility_box_surface_pvc'
-  | 'royu_modular_combo_plate'
+  | 'modular_combo_plate'
   // Phase 3: Marine & Industrial Motor Control Trainer
   | 'thermal_overload_relay'
   | 'control_transformer'
@@ -112,8 +112,9 @@ export interface ElectricalDevice {
   width: number;
   height: number;
   rotation?: number; // 0, 90, 180, 270 degrees
-  // Real Manufacturer Engineering Specs
-  brand?: 'ROYU' | 'Schneider' | 'Siemens' | 'Generic';
+  // Standard (brand-neutral) engineering specs
+  /** Product standard the device is modelled on, e.g. 'IEC 60898-1' */
+  productStandard?: string;
   modelNumber?: string;
   kaRating?: number; // Interrupting capacity in kA (e.g. 6kA or 10kA)
   mountingType?: 'bolt_on' | 'plug_in' | 'din_rail' | 'flush_utility' | 'surface_nema3r';
@@ -138,10 +139,10 @@ export interface ElectricalDevice {
     mccbStyle?: 'din_rail' | 'industrial_black';
     tabBroken?: boolean; // for duplex outlets with split brass tab
     topologyMode?: 'pigtail' | 'daisy_chain'; // for educational templates
-    // ROYU Hardware Ecosystem states
-    breakerProfile?: 'royu_bolt_on' | 'royu_din_rail' | 'generic_iec';
-    enclosureCoverOpen?: boolean; // for ROYU safety breaker
-    comboSlot2?: 'pilot' | 'switch2'; // for ROYU wide-series combo plate
+    // Residential hardware states
+    breakerProfile?: 'bolt_on' | 'din_rail';
+    enclosureCoverOpen?: boolean; // enclosed safety breaker cover
+    comboSlot2?: 'pilot' | 'switch2'; // wide-series combo plate middle module
     switchClosed?: boolean;
     switch2Closed?: boolean;
     pilotLit?: boolean;

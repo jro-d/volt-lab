@@ -1,172 +1,184 @@
-# VoltLab — Interactive Electrical Installation & Automation Simulator
-**Physical Wiring Workbench • Single-Line Diagrams (SLD) • PEC 2017 & IEC 60364 Code Inspector**
+# VoltLab — Interactive Electrical Installation & Motor Control Simulator
+**Physical Wiring Workbench • Ladder Logic • Single-Line Diagrams (SLD) • PEC 2017 & IEC 60364 Code Inspector**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-6.0-646cff.svg)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6-646cff.svg)](https://vitejs.dev/)
 
 ---
 
 ## ⚡ Overview
-**VoltLab** is an interactive, browser-based electrical installation modeler, circuit solver, and industrial automation simulator designed for electrical engineering students, licensed electricians, and automation technicians. It bridges the gap between theoretical single-line diagrams and hands-on physical electrical wiring.
+**VoltLab** is a browser-based electrical installation workbench, circuit solver and motor-control trainer for electrical engineering students, electricians and automation technicians. It connects what you wire by hand to the diagrams you study: every conductor you route on the workbench is solved live, audited against the Philippine Electrical Code or IEC 60364, and redrawn as a ladder diagram and a single-line diagram.
 
-Users can place realistic electrical distribution equipment, route physical conductors with 90° orthogonal Manhattan paths, test switches and momentary pushbuttons, and trigger real-time physics simulations with magnetic short-circuit trips, thermal overcurrent, and 30mA residual current (GFCI/RCD) protection.
+Place distribution and control equipment, route conductors with clean 90° paths, operate switches and momentary push buttons, then press **▶ Simulate** to energize the grid and watch breakers trip on short circuits and overloads, RCDs trip on 30 mA leakage, contactors seal in, and three-phase motors spin forward or reverse.
+
+### Brand-neutral standard devices
+Every device in VoltLab is a **generic model of a standard device**, not a particular manufacturer's product. Each one is described by the product standard it follows (for example *IEC 60898-1* miniature breakers, *IEC 60947-4-1* contactors and overload relays, *IEC 60669-1* wall switches) and a generic catalogue designation, shown in the device inspector's datasheet card. Projects saved by older versions that used branded device types or model numbers are upgraded automatically when imported.
 
 ---
 
 ## 🚀 Key Capabilities
 
-### 1. Dual-View Synchronization (Physical & Schematic)
-- **Photorealistic Vector Workbench**: Detailed front-elevation vector equipment with realistic screw terminals, copper windings, DIN-rail clips, busbars, conduit boxes, and ground inspection pits.
-- **Single-Line Diagram (SLD) / Engineering Schematic**: Automatically synchronizes physical wiring into standard IEC 60617 / IEEE electrical symbols with real-time Manhattan routing, pan, and cursor-anchored zoom controls.
-- **Split Dual-View**: View physical distribution equipment and the theoretical single-line schematic side-by-side in real time.
+### 1. Four synchronized views
+Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schematic**.
+- **Realistic workbench**: front-elevation vector drawings of each device (screw terminals, DIN clips, levers, trip flags, nameplates, enclosures) in one consistent device language, with **light and dark themes** (saved per browser).
+- **Ladder Logic**: the wired control circuit parsed into a live two-rail ladder diagram (see §4).
+- **SLD / Engineering Schematic**: the physical wiring redrawn with IEC 60617 / IEEE symbols, with pan and cursor-anchored zoom.
+- **Dual View**: the workbench beside the live ladder or the SLD; hovering a ladder symbol glows the matching device.
 
-### 2. Dual Code Compliance Engines (PEC vs. IEC)
-- **🇵🇭 Philippine Electrical Code (PEC 2017) / NEC**:
-  - 60 Hz grid frequency, 230V single-phase / 220V & 440V three-phase systems.
-  - Conductor sizing in AWG and dual metric mm² (14 AWG / 2.0 mm², 12 AWG / 3.5 mm², 10 AWG / 5.5 mm², 8 AWG / 8.0 mm²).
-  - Standard wire color schemes (Black/Red Phase, White Neutral, Green Ground).
-  - Overcurrent protection rules per PEC Table 3.10.2.6 & PEC 2.40.1.4(D).
-- **🌐 International Electrotechnical Commission (IEC 60364)**:
-  - 50 Hz grid frequency, 230V single-phase / 400V three-phase systems.
-  - Conductor sizing in metric mm² (1.5 mm², 2.5 mm², 4.0 mm², 6.0 mm², 10.0 mm²).
-  - Standard European wire colors (Brown L1, Black L2, Grey L3, Blue Neutral N, Green/Yellow PE).
+### 2. Dual code compliance engines (PEC vs. IEC)
+- **🇵🇭 Philippine Electrical Code (PEC 2017)**: 60 Hz; 230 V single-phase, 220 V / 440 V three-phase; AWG with metric mm² (14 AWG / 2.0 mm², 12 AWG / 3.5 mm², 10 AWG / 5.5 mm², 8 AWG / 8.0 mm²); PEC colour scheme; overcurrent rules per PEC Table 3.10.2.6 and 2.40.1.4(D).
+- **🌐 IEC 60364**: 50 Hz; 230 V / 400 V; metric conductors (1.5 – 10 mm²); Brown L1, Black L2, Grey L3, Blue N, Green/Yellow PE.
+- Switching standards keeps a 440 V three-phase project at its feeder voltage.
 
-### 3. Industrial Controls & Motor Automation
-- **3-Pole Power Contactor**: AC-3 rated magnetic contactor with 3 power poles ($L_1-T_1, L_2-T_2, L_3-T_3$), auxiliary NO contact ($13-14$) for seal-in circuits, $230\text{V}$ AC coil terminals ($A_1-A_2$), and moving mechanical armature plunger.
-- **Dual Start-Stop Push Button Station**: IP65 enclosure with green momentary flush START button (Normally Open, terminals 3-4) and red flush STOP button (Normally Closed, terminals 1-2).
-- **Emergency Stop Mushroom Button**: 40mm red twist-to-release safety actuator with NC safety contacts.
-- **Industrial DPDT Control Relay**: 8-pin ice-cube relay with Form-C contacts (Common 11/21, NC 12/22, NO 14/24), coil indicator LED, and manual test button.
-- **Micro PLC (Programmable Logic Controller)**: DIN-rail micro PLC featuring 4 digital inputs ($I_1..I_4$), 4 isolated relay outputs ($Q_1..Q_4$), real-time status LCD screen, and RUN/STOP CPU switch.
-- **3-Phase AC Induction Motor**: High-torque motor with cast-iron stator cooling fins, conduit terminal box, and spinning keyed drive shaft.
-- **22mm Panel Pilot Indicator Lights**: Multi-color panel lamps (Green Running, Red Standby, Amber Fault, Blue Info) with jeweled fresnel lens bloom.
+### 3. Device library
+- **Service entrance & grounding**: digital kWh meter, 2P service disconnect, ground pit and earth rod, earth and neutral busbars, surge protective device (Type 2).
+- **Panelboards & breakers**: 1P / 2P / 3P MCBs with two form factors — **Bolt-On (UL 489 style)** and **DIN-Rail (IEC 60898-1)** — 30 mA RCD, 2P enclosed safety breaker (ACU disconnect), automatic transfer switch, panelboard frame, DIN rail, digital panel meter.
+- **Residential wiring devices (PEC)**: 1-gang / 2-gang / 3-gang switches, 3-way and 4-way switches, rotary dimmer, duplex and Schuko receptacles, wide-series combo plate (switch + pilot + outlet) with front / rear wiring view.
+- **Boxes & splices**: PVC utility box, octagonal junction boxes, 4-way junction box, twist-on wire nut, lever-clamp splice connector.
+- **Motor control**: 440 V three-phase feeder, 440/220 V control transformer, 3-pole AC-3 contactor (13-14 NO and 21-22 NC auxiliaries, **X-ray cutaway**), Class 10 thermal overload relay (dial, TEST, RESET, 95-96 / 97-98), on-delay timer relay, DPDT control relay, Start/Stop, FWD/REV/STOP and E-stop stations, HOA selector, roller limit switch, 22 mm pilot lights.
+- **Motors & drives**: TEFC 3-phase induction motor with CW / CCW rotation badge, 6-lead Wye-Delta motor, VFD, micro PLC (4 inputs, 4 relay outputs).
+- **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
-### 3b. ⚓ Marine & Industrial Motor Control Trainer (Phase 3)
-- **440V 60Hz 3-Phase Feeder**: L1 / L2 / L3 / PE supply block with phase-presence lamps, rotary main isolator and phase-sequence indicator. The solver tracks each line's identity through breakers, contactors and overload relays.
-- **Motor Rotation by Phase Sequence**: U1-V1-W1 = L1-L2-L3 spins the motor **CW (FORWARD)**; swapping any two lines spins it **CCW (REVERSE)** with a live direction badge on the shaft. One missing line shows a **single-phasing** fault.
-- **Upgraded 3-Pole Contactor (LC1D / 3RT style)**: 1NO + 1NC auxiliary block (13-14 seal-in, 21-22 interlock) and a **🔍 X-ray cutaway** revealing the A1-A2 coil, laminated armature, return springs and copper contact bridges that pull down when energized.
-- **Thermal Overload Relay (3RU / LRD style)**: pass-through main poles, 95-96 NC trip and 97-98 NO alarm contacts, rotary ampere dial, TEST slider and RESET button. Trips automatically when motor current exceeds the dial setting.
-- **440V / 220V Control Transformer**: H1-H2 primary across two phases; X1 becomes the 220V control hot, X2 the control return.
-- **Forward / Reverse / Stop Station** and momentary (hold-to-press) push buttons.
-- **Phase-to-Phase Short Detection**: closing FOR and REV together bolts L1 to L3 — the solver fires a phase-to-phase arc flash at the contactor and trips the upstream 3-pole MCB.
+### 4. Marine & industrial motor control trainer
+- **Phase tracking**: the solver follows L1 / L2 / L3 through breakers, contactors and overload relays. U1-V1-W1 = L1-L2-L3 spins the motor **clockwise (FORWARD)**; swapping two lines spins it **counter-clockwise (REVERSE)**. A missing line shows a **single-phasing** fault.
+- **Control transformer**: H1-H2 across two phases; X1 is the 220 V control hot, X2 the control return.
+- **Phase-to-phase shorts**: closing FOR and REV together bolts L1 to L3 — an arc flash fires at the contactor and the upstream 3-pole MCB trips.
+- **Overload protection**: the thermal overload relay trips when motor current exceeds its dial setting.
+- **Ladder Logic view**:
+  - **Live Sync** — rungs built from your wiring, energized paths in green, blocking contacts in red; hold START / STOP / FWD / REV symbols to operate the circuit.
+  - **Lab Target** — the active lab's reference ladder, live-highlighted.
+  - **Rung Builder** — draw rungs with `| |`, `|/|`, `||`, `( )` and `(*)` linked to workbench devices, then **Verify Against Physical Wiring** for diagnostics such as *"Missing KM1 13-14 Seal-In across START"*.
 
-### 3c. Control Ladder Diagram (Ladder Logic view)
-- **Live Sync**: the wired control circuit between X1 and X2 is parsed into NEMA / IEC 2-rail ladder rungs (series contacts, parallel seal-in branches, coils and pilot lamps) with energized paths in green and blocking contacts in red. Hold START / STOP / FWD / REV symbols to operate the circuit; click OLR to TEST / RESET.
-- **Lab Target**: the active lab's reference ladder, live-highlighted.
-- **Rung Builder**: draw rungs with `| |`, `|/|`, `||`, `( )` and `(*)` symbols linked to workbench devices, then **Verify Against Physical Wiring** to get diagnostics such as *"Missing KM1 13-14 Seal-In across START"* or *"Missing REV 21-22 NC Electrical Interlock before KM1/FOR coil"*.
-- **Dual View** shows the physical workbench beside the live ladder (or SLD); hovering a ladder symbol glows the matching device.
+### 5. Real-time circuit solver & fault physics
+- Node-voltage and branch-current solution across all devices and conductors, including cascaded control logic (push button → PLC input → relay output → contactor coil → motor).
+- **Magnetic trip** on phase-to-neutral, phase-to-earth and phase-to-phase shorts, with arc-flash sparks and synthesized audio.
+- **Thermal trip** when a breaker's own conducted current exceeds its rating.
+- **RCD earth-leakage protection** on differential current ≥ 30 mA.
+- Wye-Delta changeover timing, motor inrush, open-neutral effects.
+- **Digital multimeter & clamp meter (DMM)**: probe two terminals for volts, click a wire for amps.
 
-### 4. Real-Time Circuit Solver & Fault Physics
-- **Kirchhoff Nodal Engine**: Solves node voltages and branch currents dynamically across all connected devices and conductors.
-- **Multi-Stage Dynamic Evaluation**: Simulates cascading logic loops (e.g., Push Button $\to$ PLC Input $\to$ PLC Relay Output $\to$ Contactor Coil $\to$ Motor).
-- **Magnetic Instantaneous Trip**: Dead shorts (Phase-to-Neutral or Phase-to-Earth) instantly trip the closest upstream circuit breaker with visual arc flash sparks and procedural audio discharges.
-- **Thermal Overload Trip**: Evaluates continuous branch load current against breaker ampacity (e.g., 25A continuous load on a 16A breaker) and trips the breaker with diagnostic messaging.
-- **RCD Earth Leakage Protection**: Continuously computes differential current $|I_{\text{phase}} - I_{\text{neutral}}|$. Leakage $\ge 30\,\text{mA}$ trips the RCD within milliseconds.
-- **Procedural Web Audio Engine**: Realistic synthesized audio for wall switch clicks, breaker snaps, and electrical arcing without external audio files.
+### 6. CAD-style editing
+- **Orthogonal wiring**: click a terminal, then another, to route a clean 90° conductor. Drag the handle on a selected wire's middle segments to reshape it; **Reset to Auto** restores automatic routing.
+- **Wires stay square when devices move**: a hand-routed wire lengthens or shortens to keep its 90° bends instead of turning diagonal.
+- **Selection**: click to select, **drag on empty canvas** to box-select devices and wires, **Shift / Ctrl-click** to add or remove, **Ctrl+A** to select everything. Selected devices move together; **Align H / Align V** line them up.
+- **Inspector on double-click**: double-click a device or wire to open its properties, so a single click never gets in the way of dragging.
+- **Bulk wire editing**: select several wires, double-click one, and set **insulation colour** and **gauge (AWG + mm²)** for all of them in one undo step.
+- Rotate (`R`), duplicate, copy / paste, lock position, grid snap (10 / 5 px / off), undo / redo, wire tags, rewire or disconnect a wire end without deleting it.
+- **Fit to view** (`F`) and 1:1 zoom; a lab auto-fits when it loads.
 
-### 5. Smart Orthogonal Wire Routing & Free Dragging
-- Click a source terminal and destination terminal to automatically route clean 90-degree orthogonal wires with terminal lead-out drop clearance under devices.
-- **Interactive Wire Dragging**: Click any wire segment to select it; grab the floating handle to slide vertical segments left/right or horizontal segments up/down freely with 5px grid snapping.
-- **Reset to Auto**: Instantly restore custom shifted paths back to automatic collision-free routing from the Inspector panel.
-- **Device Rotation & Terminal Preservation**: Rotate devices 90° (`R` shortcut) while connected wires automatically track rotated pin positions.
-
-### 6. Live Code Compliance & Fatal Electrocution Hazard Engine
-- **Fatal Shock Hazard Alerts**: Detects deadly wiring practices such as **Switched Neutral** (PEC 4.4.1.2 / 4.10.10.2) where turning a wall switch OFF leaves the lamp holder screw shell live at 230V during bulb replacement.
-- **Ungrounded Metal Chassis Detection** (PEC 2.50.6.13): Flags high-power loads (Water Heaters, ACs, Motors) energized without an Equipment Grounding Conductor (EGC).
-- **Reversed Polarity Detector** (PEC 2.0.1.10): Alerts when Line and Neutral are inverted on receptacles.
-- **% Voltage Drop Calculator**: Displays branch voltage drop with conductor length adjustment slider ($V_d \le 3\%$ branch limit, $\le 5\%$ feeder limit).
-- **Conduit Fill % Meter**: Computes total wire volume inside 3/4" EMT/PVC conduits against the 40% maximum code limit.
+### 7. Live code compliance & hazard engine
+- **Switched neutral** (PEC 4.4.1.2 / 4.10.10.2): flags a switch on the neutral that leaves a lamp shell live at 230 V.
+- **Ungrounded metal chassis** (PEC 2.50.6.13) on heaters, ACs and motors.
+- **Reversed polarity** on receptacles.
+- **Motor circuits**: motor without an overload relay, overload relay 95-96 not wired into the control circuit, reversing contactors without an electrical interlock, motor frame not grounded.
+- **Voltage drop** (≤ 3 % branch, ≤ 5 % feeder) with a conductor length slider, and **conduit fill** against the 40 % limit.
 
 ---
 
-## 📚 Interactive Curriculum Labs
+## 📚 Example Wirings & Learning Labs
+Open **Examples** in the ribbon. VoltLab starts on a blank canvas; each lab loads de-energized in Edit Mode — press **▶ Simulate** to energize it.
 
-VoltLab opens to a clean, blank canvas by default and features an **"Example Wirings"** curriculum library accessible from the top navigation bar:
+### Motor control (440 V / 220 V)
+1. **⚓ Marine / Industrial DOL Motor Starter** — 440 V feeder → 3P MCB → contactor KM1 → thermal overload F2 → motor, with a 440/220 V control transformer, OLR 95-96 → STOP → START + 13-14 seal-in, and RUN / FAULT pilots.
+2. **🔄 Forward-Reverse Starter with Electrical Interlocking** — FOR / REV contactors with T1/T3 phase reversal, 21-22 NC cross-interlocks, overload relay and FWD / REV / STOP station.
+3. **Wye-Delta (Y-Δ) Reduced-Voltage Starter** — 6-lead 7.5 HP motor, line / star / delta contactors, 5 s on-delay timer changeover and interlocks.
+4. **DOL Motor Starter with 3-Wire Seal-In Control** — Start NO, Stop NC, auxiliary 13-14 seal-in and running pilot.
+5. **Industrial Control Relay: Run / Standby Annunciation** — DPDT Form-C relay swapping red and green pilot lamps.
+6. **Micro PLC Automated Motor Controller** — inputs I1 (Start) and I2 (E-Stop) driving relay output Q1.
 
-### Sockets & GFCI
-1. **Socket Outlet with GFCI / RCD Shock Protection (PEC 2.10.1.8)**: 2P MCB $\to$ 30mA RCD $\to$ Duplex Outlet with full Green Equipment Grounding Conductor (EGC).
-2. **Socket Outlet WITHOUT GFCI (Ungrounded Shock Hazard)**: 2-Wire ungrounded circuit demonstrating PEC compliance audit alerts.
-3. **Outlet Wiring: Daisy-Chain System (System B)**: Terminal screw feed-through showing downstream neutral interruption risks.
+### Residential (PEC)
+7. **🇵🇭 Residential Branch Circuit: ACU Safety Breaker & Modular Switch-Outlet Combo**
+8. **Socket Outlet with GFCI / RCD Shock Protection** (PEC 2.10.1.8)
+9. **Socket Outlet WITHOUT GFCI** — ungrounded shock-hazard demonstration
+10. **Single Lamp Lighting Circuit (1-Way Switch)**
+11. **Wiring Mistake: Switched Neutral Electrocution Hazard**
+12. **Staircase 2-Way Switching (Two 3-Way Switches)**
+13. **Multi-Location Switching (Two 3-Ways + One 4-Way)**
+14. **Multiple Ceiling Lamps in Parallel**
+15. **Splice Tutorial: Junction Box & Wire Nut Branching**
+16. **Outlet Wiring: Pigtail Splice System (System A)**
+17. **Outlet Wiring: Daisy-Chain System (System B)**
+18. **Air Conditioner (1.5 HP Inverter) Dedicated Circuit** (PEC Art. 4.40)
+19. **Electric Ventilation Fan with Wall Switch Control**
+20. **Complete Residential Installation (Master Reference)** — kWh meter, main disconnect, earth pit, 30 mA RCD, SPD, branch breakers, junction box, lamp, fan, outlet + TV, water heater and ACU with safety disconnect.
 
-### Lighting & Switches
-4. **Single Lamp Lighting Circuit (1-Way Switch)**: Standard switch drop with continuous neutral return.
-5. **Wiring Mistake: Switched Neutral Electrocution Hazard (PEC 4.4.1.2)**: Switch mistakenly on neutral; demonstrates why the bulb illuminates yet creates a lethal 230V touch hazard at the screw base when off.
-6. **Staircase 2-Way Switching (Two 3-Way Switches)**: Controlling a lamp independently from downstairs and upstairs via dual traveler conductors.
-7. **Multi-Location Switching (Two 3-Ways + One 4-Way Intermediate)**: Controlling a corridor luminaire from 3 separate locations.
-8. **Multiple Ceiling Lamps in Parallel**: 3 lamps receiving equal 230V potential from a single master switch.
+---
 
-### Splice Tutorials
-9. **Splice Tutorial: Junction Box & Wire Nut Branching**: Demonstrates how to use an octagonal PVC junction box and twist-on wire nuts to split a feeder run safely into multiple branches (Electric Fan + Wall Outlet).
-10. **Outlet Wiring: Pigtail Splice System (System A - PEC Compliant)**: Continuous feeder cable with wire nut T-tap drops so downstream devices do not depend on upstream receptacle screws (PEC 3.0.1.13(B)).
+## ⌨️ Keyboard & Mouse
 
-### Industrial & Motor Controls
-11. **DOL Motor Starter (Contactor + 3-Wire Seal-In Control)**: Start NO, Stop NC, aux NO $13-14$ seal-in loop, 3 HP motor, and green running pilot.
-12. **Industrial Control Relay: Run / Standby Annunciation**: DPDT Form-C relay swapping between Red Standby (NC 12) and Green Running (NO 14) lamps.
-13. **Micro PLC Automated Machine Starter**: PLC reading pushbuttons on digital input $I_1$ and driving relay output $Q_1$ to pull in the motor contactor.
-14. **⚓ Marine / Industrial DOL Motor Starter (440V/220V)**: 440V feeder $	o$ 3P MCB $	o$ contactor $	o$ thermal overload relay $	o$ 3-phase motor, with a 2P control MCB, 440/220V control transformer, OLR 95-96 $	o$ STOP $	o$ START + 13-14 latch $	o$ A1-A2, and RUN / FAULT pilots.
-15. **🔄 Forward-Reverse Motor Starter with Electrical Interlocking**: FOR / REV contactors with T1/T3 phase reversal, 21-22 NC cross-interlocks, overload relay and FWD / REV / STOP station.
+| Action | Shortcut |
+| --- | --- |
+| Box-select devices and wires | Drag on empty canvas |
+| Add / remove from selection | Shift-click or Ctrl-click |
+| Select all | Ctrl+A |
+| Open the inspector | Double-click a device or wire |
+| Clear selection / cancel wiring | Esc |
+| Delete selection | Del / Backspace |
+| Rotate device | R |
+| Fit drawing to view | F |
+| Undo / Redo | Ctrl+Z / Ctrl+Y (or Ctrl+Shift+Z) |
+| Copy / Paste device | Ctrl+C / Ctrl+V |
+| Pan | Space+drag, middle or right drag, Alt+drag |
+| Zoom | Mouse wheel |
 
-### Appliances & Interactive Loads
-14. **Electric Ventilation Fan Circuit**: Switch-controlled fan with smooth 60fps aerodynamic blade rotation animation.
-15. **Air Conditioner (1.5 HP Inverter) Dedicated Circuit (PEC 4.40)**: High-load compressor branch circuit with glowing "16°C COOL" digital LED readout and motorized airflow louvers.
+---
 
-### Full System
-16. **Complete Residential Installation (VoltLab Master Reference)**: Digital kWh meter, main disconnect, dual earth pits, 30mA RCD, SPD, 3 branch breakers, junction box, switch, lamp, socket, and TV.
+## 💾 Saving & Sharing
+- **Export / Import** — save the project as JSON and reopen it later (older saves are upgraded automatically).
+- **Save HTML** — downloads a single self-contained offline HTML file that opens straight to your wiring.
+- **`VoltLab-Standalone.html`** — the whole app as one offline file, built with `npm run build:standalone`.
 
 ---
 
 ## 🛠️ Getting Started
 
 ### Prerequisites
-- Node.js (v18+) and npm
+- Node.js 18+ and npm
 
-### Installation & Local Run
+### Run locally
 ```bash
-# Clone the repository
 git clone https://github.com/jro-d/volt-lab.git
 cd volt-lab
-
-# Install dependencies
 npm install
-
-# Start Vite development server
 npm run dev
 ```
-Open **`http://localhost:5173/`** in your browser.
+Open the URL Vite prints (default **`http://localhost:5173/`**).
 
-### Production Build
+### Build
 ```bash
-npm run build
+npm run build              # type-check + production build into dist/
+npm run build:standalone   # also writes VoltLab-Standalone.html (single offline file)
 ```
-Creates an optimized standalone production build in `dist/`, ready for deployment on GitHub Pages, Vercel, Netlify, or any static host.
+Pushes to `main` are built and deployed to GitHub Pages by the included GitHub Actions workflow. A development-only device gallery is available at `/?gallery`.
 
 ---
 
-## 📁 Directory Structure
+## 📁 Project Structure
 ```text
 volt-lab/
 ├── index.html
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── tailwind.config.js
-├── LICENSE                             <-- MIT License
+├── VoltLab-Standalone.html      <-- single-file offline build
+├── scripts/                     <-- standalone HTML builder
 └── src/
-    ├── main.tsx                        <-- React entry mount
-    ├── App.tsx                         <-- Root layout & state coordinator
-    ├── index.css                       <-- Tailwind & current animation keyframes
-    ├── types/                          <-- Electrical, Code & Simulation types
-    ├── core/                           <-- Circuit solver, wire router, code rules & schematic
-    ├── data/                           <-- PEC/IEC standards, component catalog & labs
+    ├── App.tsx                  <-- root layout & state coordinator
+    ├── types/                   <-- electrical, ladder & code types
+    ├── core/                    <-- circuit solver, wire router, ladder engine, code rules, schematic
+    ├── data/                    <-- PEC/IEC standards, device catalogue, labs
+    ├── styles/                  <-- design tokens (light/dark) & conductor colours
     ├── components/
-    │   ├── devices/                    <-- Photorealistic vector SVG interactive devices
-    │   ├── canvas/                     <-- WiringCanvas, SchematicCanvas & WireRenderer
-    │   └── layout/                     <-- TopNavBar, ComponentDrawer, CodeInspectorHUD, LabModal
-    └── utils/                          <-- Procedural Web Audio engine & JSON export
+    │   ├── devices/             <-- interactive SVG devices + shared drawing kit
+    │   ├── canvas/              <-- WiringCanvas, LadderCanvas, SchematicCanvas, WireRenderer
+    │   └── layout/              <-- ribbon, library, inspector, code HUD, lab selector, status bar
+    ├── utils/                   <-- audio, device state, legacy-project migration
+    └── dev/                     <-- device gallery (dev only)
 ```
 
 ---
 
+## 👤 Author
+Developed by **John Ray O. Dalida** (EE – 2022102981), Mapúa University — Instructor: Engr. Nathaniel Sedilla.
+
 ## 📄 License
-This project is open-source under the [MIT License](LICENSE).
+Open-source under the [MIT License](LICENSE).

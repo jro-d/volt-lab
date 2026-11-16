@@ -2,11 +2,11 @@ import React from 'react';
 import { DeviceProps, Led, Mono, Pill, Rocker, Screw, Silk, Strap, Terminals, TermIds, WallPlate, act, makePatch } from './kit';
 
 /**
- * ROYU wide-series combination plate: switch (top), pilot neon or second switch (middle),
+ * Wide-series combination plate: switch (top), pilot neon or second switch (middle),
  * duplex-style receptacle (bottom). Front shows the modules; rear shows the snap-in strap and
  * each module's terminals. Click a rocker to switch; REAR / FRONT flips the view.
  */
-export const RoyuModularComboPlateDevice: React.FC<DeviceProps> = (props) => {
+export const ModularComboPlateDevice: React.FC<DeviceProps> = (props) => {
   const { device } = props;
   const { width: W, height: H } = device;
   const patch = makePatch(props);
@@ -73,7 +73,7 @@ export const RoyuModularComboPlateDevice: React.FC<DeviceProps> = (props) => {
           <rect x={cx + 5.3} y={m3 - 18} width={2.2} height={9} rx={0.6} fill="var(--mat-line)" />
           <path d={`M${cx - 2.4} ${m3 - 6}a2.4 2.4 0 0 1 4.8 0v2h-4.8z`} fill="var(--mat-line)" />
           {recPowered && <circle cx={cx + 10} cy={m3 - 4} r={1.2} fill="var(--lamp-green-on)" />}
-          <Silk x={cx} y={7.6} size={4.2} anchor="middle" bold fill="var(--brand)">ROYU</Silk>
+          <Silk x={cx} y={7.6} size={4} anchor="middle" bold muted>250V~</Silk>
         </g>
       )}
       <Pill cx={W - 15} cy={H - 4} w={18} label={isRearView ? 'FRONT' : 'REAR'} active={isRearView} title="Flip between the plate and the rear snap-in strap" onToggle={() => patch({ viewMode: isRearView ? 'front' : 'rear' })} />

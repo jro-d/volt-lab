@@ -69,7 +69,7 @@ const BREAKER_TYPES = new Set([
   'mcb_2p',
   'mcb_3p',
   'service_disconnect_2p',
-  'royu_safety_breaker_2p',
+  'safety_breaker_2p',
 ]);
 
 /** Positive (CW) 3-phase rotation sequences */
@@ -174,7 +174,7 @@ export function solveCircuit(
         addEdge(terminalKey(dev.id, 'in_l2'), terminalKey(dev.id, 'out_l2'));
         addEdge(terminalKey(dev.id, 'in_l3'), terminalKey(dev.id, 'out_l3'));
       }
-    } else if (dev.type === 'royu_safety_breaker_2p') {
+    } else if (dev.type === 'safety_breaker_2p') {
       if (dev.state.closed && !dev.state.tripped) {
         addEdge(terminalKey(dev.id, 'in_l'), terminalKey(dev.id, 'out_l'));
         addEdge(terminalKey(dev.id, 'in_n'), terminalKey(dev.id, 'out_n'));
@@ -184,7 +184,7 @@ export function solveCircuit(
       addEdge(terminalKey(dev.id, 'l_in'), terminalKey(dev.id, 'l_out'));
       addEdge(terminalKey(dev.id, 'n_in'), terminalKey(dev.id, 'n_out'));
       addEdge(terminalKey(dev.id, 'pe_in'), terminalKey(dev.id, 'pe_out'));
-    } else if (dev.type === 'royu_modular_combo_plate') {
+    } else if (dev.type === 'modular_combo_plate') {
       // Slot 1: Switch 1
       if (dev.state.switchClosed !== false && dev.state.closed !== false) {
         addEdge(terminalKey(dev.id, 'sw_in'), terminalKey(dev.id, 'sw_out'));
@@ -243,8 +243,8 @@ export function solveCircuit(
       if (pe1 && pe2) {
         addEdge(terminalKey(dev.id, pe1.id), terminalKey(dev.id, pe2.id));
       }
-    } else if (dev.type === 'splice_wire_nut' || dev.type === 'wago_connector_3p') {
-      // All terminals on a standalone wire nut or WAGO lever splice are bonded together
+    } else if (dev.type === 'splice_wire_nut' || dev.type === 'lever_connector_3p') {
+      // All terminals on a standalone wire nut or lever-clamp splice are bonded together
       for (let i = 0; i < dev.terminals.length; i++) {
         for (let j = i + 1; j < dev.terminals.length; j++) {
           addEdge(terminalKey(dev.id, dev.terminals[i].id), terminalKey(dev.id, dev.terminals[j].id));
@@ -891,7 +891,7 @@ export function solveCircuit(
         dev.state.plcPowered = true;
         totalWatts += 15; // 15W internal CPU power
       }
-    } else if (dev.type === 'royu_modular_combo_plate') {
+    } else if (dev.type === 'modular_combo_plate') {
       const plPot = nodePotentials[terminalKey(dev.id, 'pilot_l')];
       const pnPot = nodePotentials[terminalKey(dev.id, 'pilot_n')];
       const isPilotLit = (plPot === 'live' && pnPot === 'neutral') || (pnPot === 'live' && plPot === 'neutral');
@@ -1094,7 +1094,7 @@ export function solveCircuit(
       const liveT = plPot === 'live' ? 'p_l' : 'p_n';
       const neutT = plPot === 'live' ? 'p_n' : 'p_l';
       traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), 15 / gridVoltage);
-    } else if (dev.type === 'royu_modular_combo_plate') {
+    } else if (dev.type === 'modular_combo_plate') {
       if (dev.state.pilotLit && dev.state.comboSlot2 !== 'switch2') {
         const plPot = nodePotentials[terminalKey(dev.id, 'pilot_l')];
         const liveT = plPot === 'live' ? 'pilot_l' : 'pilot_n';

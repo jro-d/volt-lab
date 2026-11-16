@@ -15,7 +15,7 @@ export const SpliceNutDevice: React.FC<DeviceProps> = (props) => {
   const { width: W, height: H } = device;
   const ports = device.terminals.map((t) => ({ x: W * t.relX, y: H * t.relY }));
 
-  if (device.type === 'wago_connector_3p') {
+  if (device.type === 'lever_connector_3p') {
     const bodyY = 2;
     const bodyH = ports[0].y - 6;
     return (
