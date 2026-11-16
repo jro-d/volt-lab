@@ -5,6 +5,7 @@ import { DeviceRenderer } from '../components/devices/DeviceRenderer';
 /**
  * Dev-only sheet of every device in the catalogue, drawn by the real renderers.
  * Open http://localhost:5174/?gallery (add &dark for the dark theme, &scale=3 to zoom).
+ * Add &state={"motorRunning":true} to merge JSON into every device state.
  * Not included in production builds.
  */
 export const DeviceGallery: React.FC = () => {
@@ -13,6 +14,12 @@ export const DeviceGallery: React.FC = () => {
   const only = params.get('only');
   const pad = 24;
   const cols = Number(params.get('cols') || 6);
+  let extraState: Record<string, unknown> = {};
+  try {
+    extraState = JSON.parse(params.get("state") || "{}");
+  } catch {
+    extraState = {};
+  }
   const items = COMPONENT_CATALOG.filter((c) => !only || only.split(',').some((o) => c.type.includes(o)));
 
   React.useEffect(() => {
@@ -42,7 +49,8 @@ export const DeviceGallery: React.FC = () => {
     <div style={{ width: '100vw', height: '100vh', overflow: 'auto', background: 'var(--canvas)' }}>
       <svg width={W * scale} height={H * scale} viewBox={`0 0 ${W} ${H}`}>
         {rows.map(({ def, x: dx, y: dy }) => {
-          const device = createDeviceFromCatalog(def.type, dx, dy, `g-${def.type}`);
+          const base = createDeviceFromCatalog(def.type, dx, dy, `g-${def.type}`);
+          const device = { ...base, state: { ...base.state, ...extraState } };
           return (
             <g key={def.type}>
               <text x={dx} y={dy - 6} fontSize={8} fill="var(--ink-muted)" fontFamily="var(--font-mono)">

@@ -37,6 +37,20 @@
   }
 }
 
+/* Motor coupling hub: rotates about its own local origin; speed/direction/pause set inline. */
+@keyframes motor-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.motor-rotor {
+  animation-name: motor-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  transform-origin: 0 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0s !important;
