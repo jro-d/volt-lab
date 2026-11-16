@@ -1,98 +1,58 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals } from './DeviceTerminals';
+import { Bay, DeviceProps, DinClip, Face, Housing, Mono, Nameplate, Silk, Terminals, TermIds, deviceTag } from './kit';
 
 /**
- * EduVolt-style Type 2 Surge Protective Device (SPD 1P+N 40kA).
- * Crisp flat CAD housing with pluggable L-N / N-PE cartridges and non-overlapping labels.
+ * Type 2 surge protective device: base with two plug-in MOV cartridges (L–N, N–PE).
+ * Each cartridge has a status window: green = protecting, red = replace.
  */
-export const SpdDevice: React.FC<DeviceComponentProps> = (props) => {
+export const SpdDevice: React.FC<DeviceProps> = (props) => {
   const { device } = props;
-  const { x, y, width, height } = device;
-  const isHealthy = device.state.healthy !== false;
-  const cx = x + width / 2;
+  const { width: W, height: H } = device;
+  const healthy = device.state.healthy !== false;
+  const uc = device.state.ucVolts || 275;
+  const tTop = H * (device.terminals[0]?.relY ?? 0.08);
+  const bayH = tTop * 2 - 1.5;
+  const botBayY = H - 2 - bayH;
+  const cartY = 2 + bayH + 11;
+  const cartH = botBayY - 16 - cartY;
+  const cw = (W - 9) / 2;
 
   return (
-    <g className="select-none">
-      {/* Subtle CAD shadow */}
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="transparent" />
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      <DinClip cx={W / 2} y={H} />
+      <Housing w={W} h={H} m="shade" />
+      <Bay x={3} y={2} w={W - 6} h={bayH} />
+      <Bay x={3} y={botBayY} w={W - 6} h={bayH} />
+      <Nameplate x={3} y={2 + bayH + 1.5} w={W - 6} h={7} tag={deviceTag(device)} text="T2" size={4.6} />
 
-      {/* Outer Dark DIN Base Housing */}
-      <rect x={x} y={y} width={width} height={height} rx={4} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-      {/* Top Terminal Bay (L / N) */}
-      <rect x={x + 2} y={y + 2} width={width - 4} height={17} rx={2} fill="var(--mat-housing-dark)" />
-      <line x1={cx} y1={y + 2} x2={cx} y2={y + 19} stroke="var(--silk-muted)" strokeWidth={0.8} />
-
-      {/* Embedded Top Silkscreen Strip */}
-      <rect x={x + 2} y={y + 19} width={width - 4} height={8} fill="var(--mat-line)" />
-      <text x={x + width * 0.35} y={y + 25} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-red-on)">
-        L
-      </text>
-      <text x={x + width * 0.65} y={y + 25} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-        N
-      </text>
-
-      {/* Two Pluggable MOV / GDT Cartridges */}
-      {[0, 1].map((idx) => {
-        const cw = (width - 10) / 2;
-        const x0 = x + 4 + idx * (cw + 2);
-        const isLine = idx === 0;
-        const cartCx = x0 + cw / 2;
+      {/* Plug-in cartridges */}
+      {[0, 1].map((i) => {
+        const x0 = 3 + i * (cw + 3);
+        const ccx = x0 + cw / 2;
         return (
-          <g key={`cart-${idx}`}>
-            <rect
-              x={x0}
-              y={y + 29}
-              width={cw}
-              height={height - 58}
-              rx={2.5}
-              fill="var(--mat-housing)"
-              stroke="var(--mat-line)"
-              strokeWidth={1}
-            />
-            {/* Color Header Band */}
-            <rect x={x0 + 0.5} y={y + 29.5} width={cw - 1} height={11} rx={1.5} fill={isLine ? 'var(--cond-red)' : 'var(--cond-green)'} />
-            <text x={cartCx} y={y + 37} textAnchor="middle" fontSize="4.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-              {isLine ? 'L-N' : 'N-PE'}
-            </text>
-
-            {/* Health Window Flag */}
-            <rect
-              x={cartCx - 6.5}
-              y={y + 45}
-              width={13}
-              height={7.5}
-              rx={1}
-              fill={isHealthy ? 'var(--cond-green)' : 'var(--cond-red)'}
-              stroke="var(--mat-line)"
-              strokeWidth={0.8}
-            />
-            <text x={cartCx} y={y + 58} textAnchor="middle" fontSize="3.6" fontWeight="900" fontFamily="var(--font-mono)" fill={isHealthy ? 'var(--cond-green)' : 'var(--cond-red)'}>
-              {isHealthy ? 'OK' : 'FAULT'}
-            </text>
-
-            {/* Compact Surge Symbol & Rating */}
-            <path
-              d={`M ${cartCx + 1} ${y + 62} L ${cartCx - 3} ${y + 68} L ${cartCx} ${y + 68} L ${cartCx - 1.5} ${y + 74} L ${cartCx + 3.5} ${y + 67} L ${cartCx + 0.5} ${y + 67} Z`}
-              fill={isLine ? 'var(--mat-pvc-orange)' : 'var(--cond-green)'}
-            />
-            <text x={cartCx} y={y + 84} textAnchor="middle" fontSize="4.3" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-              40kA
-            </text>
+          <g key={i} className="pointer-events-none">
+            <rect className="d-face" x={x0} y={cartY} width={cw} height={cartH} rx={2} />
+            {/* release grip ribs */}
+            <path className="d-seam" d={`M${x0 + 3} ${cartY + 2.5}h${cw - 6}M${x0 + 3} ${cartY + 4.5}h${cw - 6}`} />
+            <Silk x={ccx} y={cartY + 12} size={4.6} anchor="middle" bold>{i === 0 ? 'L–N' : 'N–PE'}</Silk>
+            {/* status window */}
+            <rect x={ccx - 5} y={cartY + 15} width={10} height={6} rx={1} fill="var(--mat-line)" />
+            <rect x={ccx - 4} y={cartY + 16} width={8} height={4} rx={0.6} fill={healthy ? 'var(--flag-off)' : 'var(--flag-on)'} />
+            {/* MOV / GDT symbol: varistor box with slash */}
+            <path className="d-sym" d={`M${ccx} ${cartY + 25}v3M${ccx - 2.5} ${cartY + 28}h5v8h-5zM${ccx - 4} ${cartY + 37}l8 -10M${ccx} ${cartY + 36}v3`} />
+            <Mono x={ccx} y={cartY + cartH - 4} size={3.4} anchor="middle" muted>{i === 0 ? 'MOV' : 'GDT'}</Mono>
           </g>
         );
       })}
 
-      {/* Embedded Bottom Silkscreen Strip (PE) */}
-      <rect x={x + 2} y={y + height - 28} width={width - 4} height={8.5} fill="var(--mat-line)" />
-      <text x={cx} y={y + height - 22} textAnchor="middle" fontSize="4.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-on)">
-        PE / EARTH
-      </text>
+      <Mono x={W / 2} y={botBayY - 9.5} size={3.8} anchor="middle">{`Uc ${uc}V~`}</Mono>
+      <Mono x={W / 2} y={botBayY - 4} size={3.4} anchor="middle" muted>In 20kA Imax 40kA</Mono>
+      {!healthy && (
+        <Silk x={W / 2} y={cartY - 2} size={4} anchor="middle" bold fill="var(--danger)">REPLACE</Silk>
+      )}
 
-      {/* Bottom Ground Terminal Bay */}
-      <rect x={x + 2} y={y + height - 19.5} width={width - 4} height={17.5} rx={2} fill="var(--mat-housing-dark)" />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4.6} side={(t) => (t.relY > 0.5 ? 'right' : t.relX < 0.5 ? 'left' : 'right')} />
+      <Terminals {...props} local />
     </g>
   );
 };

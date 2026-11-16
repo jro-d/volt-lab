@@ -1,252 +1,116 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import { Bay, DeviceProps, Mono, Pill, Rocker, Screw, Silk, Strap, Terminals, TermIds, WallPlate, act, makePatch } from './kit';
 
 /**
- * EduVolt-style ROYU Wide-Series 1-Way / 3-Way / 4-Way Flush Wall Switch.
- * Pure flat architectural CAD plate with embedded [FRONT / REAR] toggle inside trim band
- * and non-overlapping terminal silkscreen labels.
+ * Wall switches: 1-gang 1-way (SPST), 3-way (SPDT, COM → T1/T2) and 4-way intermediate (crossover).
+ * Front: plate with rocker. Rear: the mechanism with its internal contacts drawn between the real
+ * terminal positions, so students can see which screws are joined. Click the rocker to operate.
  */
-export const WallSwitchDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height, type, terminals } = device;
+export const WallSwitchDevice: React.FC<DeviceProps> = (props) => {
+  const { device } = props;
+  const { width: W, height: H, type } = device;
+  const patch = makePatch(props);
   const isClosed = !!device.state.closed;
   const position3Way = device.state.position || 'A';
   const cross4Way = !!device.state.crossState;
   const isRearView = device.state.viewMode === 'rear';
-  const cx = x + width / 2;
-  const cy = y + height / 2;
   const hasTopTerms = type === 'switch_3way' || type === 'switch_4way';
+  const isActive = type === 'switch_1gang' ? isClosed : type === 'switch_3way' ? position3Way === 'A' : cross4Way;
 
-  const isActive =
-    type === 'switch_1gang' ? isClosed : type === 'switch_3way' ? position3Way === 'A' : cross4Way;
-
-  const patch = (p: Record<string, any>) => {
-    if (onPatchState) onPatchState(device.id, p);
-    else {
-      Object.assign(device.state, p);
-      onToggleState?.({ ...device, state: { ...device.state, ...p } });
-    }
-  };
-
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggle = () => {
     if (type === 'switch_1gang') patch({ closed: !isClosed });
     else if (type === 'switch_3way') patch({ position: position3Way === 'A' ? 'B' : 'A' });
     else patch({ crossState: !cross4Way });
   };
+  const pt = (id: string) => {
+    const t = device.terminals.find((x) => x.id === id);
+    return { x: W * (t?.relX ?? 0), y: H * (t?.relY ?? 0) };
+  };
+  const botY = H * 0.88;
+  const topY = H * 0.12;
+  const name = type === 'switch_1gang' ? '1-WAY' : type === 'switch_3way' ? '3-WAY' : '4-WAY';
+  const mark: [string, string] = type === 'switch_3way' ? ['A', 'B'] : type === 'switch_4way' ? ['╳', '‖'] : ['I', 'O'];
 
-  const handleFlipView = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    patch({ viewMode: isRearView ? 'front' : 'rear' });
+  // Internal contact paths between terminals (rear view)
+  const contacts = () => {
+    if (type === 'switch_1gang') {
+      const a = pt('l_in');
+      const b = pt('sw_out');
+      const my = H * 0.5;
+      return (
+        <g>
+          <Strap d={`M${a.x} ${a.y - 7}V${my + 6}`} live />
+          <Strap d={`M${b.x} ${b.y - 7}V${my + 6}`} live={isClosed} />
+          <Strap d={isClosed ? `M${a.x} ${my + 6}L${b.x} ${my + 6}` : `M${a.x} ${my + 6}L${b.x - 6} ${my - 6}`} live w={2} />
+          <circle cx={a.x} cy={my + 6} r={1.6} fill="var(--mat-steel)" />
+          <circle cx={b.x} cy={my + 6} r={1.6} fill="var(--mat-steel)" />
+        </g>
+      );
+    }
+    if (type === 'switch_3way') {
+      const c = pt('com');
+      const t1 = pt('t1');
+      const t2 = pt('t2');
+      const my = H * 0.56;
+      const tgt = position3Way === 'A' ? t1 : t2;
+      return (
+        <g>
+          <Strap d={`M${c.x} ${c.y + 7}V${H * 0.38}`} live />
+          <Strap d={`M${t1.x} ${t1.y - 7}V${my}`} live={position3Way === 'A'} />
+          <Strap d={`M${t2.x} ${t2.y - 7}V${my}`} live={position3Way === 'B'} />
+          <Strap d={`M${c.x} ${H * 0.38}L${tgt.x} ${my}`} live w={2} />
+          <circle cx={t1.x} cy={my} r={1.6} fill="var(--mat-steel)" />
+          <circle cx={t2.x} cy={my} r={1.6} fill="var(--mat-steel)" />
+        </g>
+      );
+    }
+    const i1 = pt('in_1');
+    const i2 = pt('in_2');
+    const o1 = pt('out_1');
+    const o2 = pt('out_2');
+    return cross4Way ? (
+      <g>
+        <Strap d={`M${i1.x} ${i1.y + 7}L${o2.x} ${o2.y - 7}`} live w={2} />
+        <Strap d={`M${i2.x} ${i2.y + 7}L${o1.x} ${o1.y - 7}`} live w={2} />
+      </g>
+    ) : (
+      <g>
+        <Strap d={`M${i1.x} ${i1.y + 7}V${o1.y - 7}`} live w={2} />
+        <Strap d={`M${i2.x} ${i2.y + 7}V${o2.y - 7}`} live w={2} />
+      </g>
+    );
   };
 
-  const tagText = type === 'switch_1gang' ? '1-WAY' : type === 'switch_3way' ? '3-WAY' : '4-WAY';
-  const headerY = hasTopTerms ? y + 26 : y + 4;
-  const bodyTop = hasTopTerms ? y + 41 : y + 19;
-  const bodyBot = y + height - 29;
-  const bodyH = bodyBot - bodyTop;
-
   return (
-    <g className="select-none">
-      {/* Subtle CAD shadow */}
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="transparent" />
-
-      {/* Wallplate Frame */}
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={5}
-        fill={isRearView ? 'var(--silk-muted)' : 'var(--mat-housing)'}
-        stroke="var(--mat-line)"
-        strokeWidth={1.3}
-      />
-
-      {/* Top Terminal Bay & Embedded Silkscreen Labels (for 3-way / 4-way) */}
-      {hasTopTerms && (
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      {isRearView ? (
         <g>
-          <rect x={x + 3} y={y + 2} width={width - 6} height={17} rx={2} fill="var(--mat-housing-dark)" />
-          <rect x={x + 3} y={y + 19} width={width - 6} height={7} fill="var(--mat-line)" />
-          {terminals
-            .filter((t) => t.relY < 0.5)
-            .map((t) => (
-              <text
-                key={`wt-${t.id}`}
-                x={x + t.relX * width}
-                y={y + 24.3}
-                textAnchor="middle"
-                fontSize="4.4"
-                fontWeight="900"
-                fontFamily="var(--font-mono)"
-                fill="var(--lamp-amber-on)"
-              >
-                {t.label}
-              </text>
-            ))}
-        </g>
-      )}
-
-      {/* Embedded Top Branding & Flip Chip (No floating external pill) */}
-      <rect x={x + 4} y={headerY} width={width - 8} height={13} rx={2} fill="var(--mat-line)" />
-      <text x={x + 8} y={headerY + 8.6} fontSize="5" fontWeight="900" fontFamily="var(--font-display)" fill="var(--act-red)">
-        ROYU
-      </text>
-      <g onMouseDown={stopCanvas} onClick={handleFlipView} className="cursor-pointer">
-        <title>Flip between Front Wallplate and Rear Terminal Schematic</title>
-        <rect
-          x={x + width - 33}
-          y={headerY + 1.5}
-          width={26}
-          height={10}
-          rx={2}
-          fill={isRearView ? 'var(--act-blue)' : 'var(--mat-housing-dark-face)'}
-          stroke="var(--lamp-blue-on)"
-          strokeWidth={0.5}
-        />
-        <text
-          x={x + width - 20}
-          y={headerY + 8.2}
-          textAnchor="middle"
-          fontSize="4"
-          fontWeight="900"
-          fontFamily="var(--font-mono)"
-          fill="var(--silk-on-dark)"
-        >
-          {isRearView ? 'FRONT' : 'REAR'}
-        </text>
-      </g>
-
-      {!isRearView ? (
-        /* Front Architectural Rocker Actuator */
-        <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
-          <title>Click switch rocker to toggle contact state</title>
-          <rect x={x + 8} y={bodyTop} width={width - 16} height={bodyH} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-housing-dark-face)" strokeWidth={1.1} />
-          <rect
-            x={x + 11}
-            y={bodyTop + (isActive ? 3 : 2)}
-            width={width - 22}
-            height={bodyH - 5}
-            rx={2}
-            fill={isActive ? 'var(--mat-housing)' : 'var(--mat-housing-shade)'}
-            stroke="var(--mat-line-soft)"
-            strokeWidth={0.8}
-          />
-          <rect
-            x={cx - 10}
-            y={isActive ? bodyTop + 7 : bodyBot - 10}
-            width={20}
-            height={3.2}
-            rx={1.5}
-            fill={type === 'switch_1gang' ? (isClosed ? 'var(--cond-green)' : 'var(--mat-line-soft)') : 'var(--act-blue)'}
-          />
-          <text
-            x={cx}
-            y={bodyTop + bodyH * 0.48}
-            textAnchor="middle"
-            fontSize="6"
-            fontWeight="900"
-            fontFamily="var(--font-mono)"
-            fill="var(--silk)"
-          >
-            {type === 'switch_1gang'
-              ? isClosed
-                ? 'ON'
-                : 'OFF'
-              : type === 'switch_3way'
-              ? `POS ${position3Way}`
-              : cross4Way
-              ? 'CROSS'
-              : 'STRAIGHT'}
-          </text>
-          <text
-            x={cx}
-            y={bodyTop + bodyH * 0.68}
-            textAnchor="middle"
-            fontSize="4.2"
-            fontWeight="800"
-            fontFamily="var(--font-mono)"
-            fill="var(--silk-muted)"
-          >
-            {tagText} 16A
-          </text>
+          {/* Rear: steel strap + moulded mechanism body */}
+          <rect className="d-steel" x={W / 2 - 9} y={0} width={18} height={H} rx={2} />
+          <rect className="d-dark" x={7} y={hasTopTerms ? 6 : 18} width={W - 14} height={hasTopTerms ? H - 12 : H - 24} rx={3} />
+          <Mono x={W / 2} y={H * 0.3} size={4.4} anchor="middle" onDark>{name}</Mono>
+          <Mono x={W / 2} y={H * 0.3 + 5.5} size={3.6} anchor="middle" onDark>16A 250V~</Mono>
+          {contacts()}
         </g>
       ) : (
-        /* Rear Polyamide Terminal Block & Live Contact Schematic */
-        <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
-          <title>Click rear mechanism to toggle contact path</title>
-          <rect x={x + 7} y={bodyTop} width={width - 14} height={bodyH} rx={3} fill="var(--nameplate)" stroke="var(--mat-line)" strokeWidth={1} />
-          {type === 'switch_1gang' && (
-            <g strokeWidth={1.8} strokeLinecap="round">
-              <circle cx={x + width * 0.30} cy={bodyTop + bodyH * 0.5} r={2.5} fill="var(--lamp-amber-on)" />
-              <circle cx={x + width * 0.70} cy={bodyTop + bodyH * 0.5} r={2.5} fill="var(--lamp-amber-on)" />
-              <line
-                x1={x + width * 0.30}
-                y1={bodyTop + bodyH * 0.5}
-                x2={isClosed ? x + width * 0.70 : cx + 6}
-                y2={isClosed ? bodyTop + bodyH * 0.5 : bodyTop + bodyH * 0.25}
-                stroke={isClosed ? 'var(--lamp-green-on)' : 'var(--mat-steel)'}
-              />
-            </g>
-          )}
-          {type === 'switch_3way' && (
-            <g strokeWidth={1.6} strokeLinecap="round">
-              <circle cx={cx} cy={bodyTop + bodyH * 0.28} r={2.5} fill="var(--lamp-amber-on)" />
-              <circle cx={x + width * 0.30} cy={bodyTop + bodyH * 0.72} r={2.3} fill="var(--lamp-blue-on)" />
-              <circle cx={x + width * 0.70} cy={bodyTop + bodyH * 0.72} r={2.3} fill="var(--lamp-blue-on)" />
-              <line
-                x1={cx}
-                y1={bodyTop + bodyH * 0.28}
-                x2={position3Way === 'A' ? x + width * 0.30 : x + width * 0.70}
-                y2={bodyTop + bodyH * 0.72}
-                stroke="var(--lamp-green-on)"
-              />
-            </g>
-          )}
-          {type === 'switch_4way' && (
-            <g strokeWidth={1.6} strokeLinecap="round">
-              <line
-                x1={x + width * 0.30}
-                y1={bodyTop + bodyH * 0.25}
-                x2={cross4Way ? x + width * 0.70 : x + width * 0.30}
-                y2={bodyTop + bodyH * 0.75}
-                stroke="var(--lamp-green-on)"
-              />
-              <line
-                x1={x + width * 0.70}
-                y1={bodyTop + bodyH * 0.25}
-                x2={cross4Way ? x + width * 0.30 : x + width * 0.70}
-                y2={bodyTop + bodyH * 0.75}
-                stroke="var(--lamp-blue-on)"
-              />
-            </g>
-          )}
+        <g>
+          <WallPlate w={W} h={H} />
+          {!hasTopTerms && <Screw cx={W / 2} cy={11} r={1.8} />}
+          <g {...act(toggle)}>
+            <title>{`Click the rocker to switch (${name})`}</title>
+            <Rocker x={W / 2 - 16} y={H * 0.3} w={32} h={H * 0.38} on={isActive} mark={mark} />
+          </g>
+          <Silk x={W / 2} y={H * 0.28 - 2} size={4.4} anchor="middle" bold fill="var(--brand)">ROYU</Silk>
         </g>
       )}
 
-      {/* Embedded Bottom Silkscreen Strip */}
-      <rect x={x + 3} y={y + height - 27} width={width - 6} height={7} fill="var(--mat-line)" />
-      {terminals
-        .filter((t) => t.relY >= 0.5)
-        .map((t) => (
-          <text
-            key={`wb-${t.id}`}
-            x={x + t.relX * width}
-            y={y + height - 21.8}
-            textAnchor="middle"
-            fontSize="4.4"
-            fontWeight="900"
-            fontFamily="var(--font-mono)"
-            fill={t.type === 'phase' ? 'var(--lamp-red-on)' : t.type === 'switched' ? 'var(--mat-pvc-orange)' : 'var(--nameplate-tag)'}
-          >
-            {t.label}
-          </text>
-        ))}
+      {/* Terminal bays (back-wired screws stay reachable in both views) */}
+      {hasTopTerms && <Bay x={8} y={topY - 8} w={W - 16} h={16} />}
+      <Bay x={8} y={botY - 8} w={W - 16} h={16} />
+      <Pill cx={W - 13} cy={isRearView ? H * 0.75 + 7 : H * 0.72 + 6} w={18} label={isRearView ? 'FRONT' : 'REAR'} active={isRearView} title="Flip between the faceplate and the rear mechanism" onToggle={() => patch({ viewMode: isRearView ? 'front' : 'rear' })} />
 
-      {/* Bottom Terminal Bay */}
-      <rect x={x + 3} y={y + height - 20} width={width - 6} height={18} rx={2} fill="var(--mat-housing-dark)" />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4.4} onDark={isRearView} side={(t) => (t.relX < 0.45 ? 'left' : t.relX > 0.55 ? 'right' : 'right')} />
+      <Terminals {...props} local />
     </g>
   );
 };

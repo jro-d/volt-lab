@@ -122,3 +122,35 @@ html, body, #root {
     box-shadow: none;
   }
 }
+
+/* ── Device drawing materials (VoltLab v2 device language) ──────────────────
+   Five layers: housing → bays → face + nameplate → state → terminals.
+   Classes mirror the design system's components/bundle.css. */
+@layer components {
+  .d-housing { fill: var(--mat-housing); stroke: var(--mat-line); stroke-width: var(--stroke-housing); }
+  .d-shade { fill: var(--mat-housing-shade); stroke: var(--mat-line); stroke-width: var(--stroke-detail); }
+  .d-dark { fill: var(--mat-housing-dark); stroke: var(--mat-line); stroke-width: var(--stroke-housing); }
+  .d-dark-face { fill: var(--mat-housing-dark-face); stroke: var(--mat-line); stroke-width: var(--stroke-detail); }
+  .d-face { fill: var(--mat-housing); stroke: var(--mat-line); stroke-width: var(--stroke-face); }
+  .d-seam { fill: none; stroke: var(--mat-line-soft); stroke-width: var(--stroke-detail); }
+  .d-line { fill: none; stroke: var(--mat-line); stroke-width: var(--stroke-face); }
+  .d-steel { fill: var(--mat-steel); stroke: var(--mat-steel-dark); stroke-width: var(--stroke-detail); }
+  .d-copper { fill: var(--mat-copper); stroke: var(--mat-copper-dark); stroke-width: var(--stroke-detail); }
+  .d-brass { fill: var(--mat-brass); stroke: var(--mat-copper-dark); stroke-width: var(--stroke-detail); }
+  .d-pvc { fill: var(--mat-pvc-orange); stroke: var(--mat-pvc-orange-dark); stroke-width: var(--stroke-housing); }
+  .d-cast { fill: var(--mat-cast); stroke: var(--mat-line); stroke-width: var(--stroke-housing); }
+  .d-porcelain { fill: var(--mat-porcelain); stroke: var(--mat-line); stroke-width: var(--stroke-housing); }
+  .d-rubber { fill: var(--mat-rubber); stroke: var(--mat-line); stroke-width: var(--stroke-detail); }
+  .d-nameplate { fill: var(--nameplate); }
+  .d-lcd { fill: var(--lcd-bg); stroke: var(--mat-line); stroke-width: var(--stroke-detail); }
+  .d-console { fill: var(--console); stroke: var(--mat-line); stroke-width: var(--stroke-detail); }
+  .d-sym { fill: none; stroke: var(--silk); stroke-width: 0.7; stroke-linecap: round; stroke-linejoin: round; }
+  .d-sym-dark { fill: none; stroke: var(--silk-on-dark); stroke-width: 0.7; stroke-linecap: round; stroke-linejoin: round; }
+  .t-silk { font-family: var(--font-display); font-weight: 600; font-size: 6px; letter-spacing: 0.02em; fill: var(--silk); }
+  .t-silk-lg { font-family: var(--font-display); font-weight: 700; font-size: 8px; letter-spacing: 0.02em; fill: var(--silk); }
+  .t-mono { font-family: var(--font-mono); font-weight: 700; fill: var(--silk); }
+  .t-muted { fill: var(--silk-muted); }
+  .t-on-dark { fill: var(--silk-on-dark); }
+  .t-tag { font-family: var(--font-mono); font-weight: 700; font-size: 6px; fill: var(--nameplate-tag); }
+  .t-lcd { font-family: var(--font-mono); font-weight: 700; fill: var(--lcd-ink); }
+}

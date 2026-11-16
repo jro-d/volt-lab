@@ -1,19 +1,16 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, momentaryPress } from './DeviceTerminals';
+import { Bay, DeviceProps, Housing, LegendPlate, Mono, Nameplate, PushButton, Screw, SymNC, SymNO, Terminals, TermIds, deviceTag, momentaryPress } from './kit';
 
 const BUTTONS = [
-  { key: 'stopPressed', rel: 0.18, topTxt: '1NC', botTxt: '2NC', legend: 'STOP', sub: 'NC 1-2', cap: 'var(--act-red)', capDown: 'var(--act-red)', ring: 'var(--lamp-red-off)', glyph: 'O', lblFill: 'var(--lamp-amber-on)' },
-  { key: 'fwdPressed', rel: 0.50, topTxt: '3NO', botTxt: '4NO', legend: 'FWD', sub: 'NO 3-4', cap: 'var(--lamp-green-on)', capDown: 'var(--cond-green)', ring: 'var(--lamp-green-off)', glyph: '▶', lblFill: 'var(--lamp-green-on)' },
-  { key: 'revPressed', rel: 0.82, topTxt: '5NO', botTxt: '6NO', legend: 'REV', sub: 'NO 5-6', cap: 'var(--lamp-amber-on)', capDown: 'var(--mat-copper)', ring: 'var(--mat-copper-dark)', glyph: '◀', lblFill: 'var(--lamp-green-on)' },
-] as const;
+  { key: 'stopPressed', legend: 'STOP', mark: 'O', color: 'red' as const, rel: 0.18, nc: true, sub: 'NC 1-2' },
+  { key: 'fwdPressed', legend: 'FWD', mark: 'I', color: 'green' as const, rel: 0.5, nc: false, sub: 'NO 3-4' },
+  { key: 'revPressed', legend: 'REV', mark: 'II', color: 'blue' as const, rel: 0.82, nc: false, sub: 'NO 5-6' },
+];
 
-/**
- * EduVolt-style 3-button Forward/Reverse/Stop pendant station.
- */
-export const PushButtonFwdRevDevice: React.FC<DeviceComponentProps> = (props) => {
+/** Three-button reversing station: STOP (NC 1-2), FORWARD (NO 3-4), REVERSE (NO 5-6). Hold to press. */
+export const PushButtonFwdRevDevice: React.FC<DeviceProps> = (props) => {
   const { device, onPatchState, onToggleState } = props;
-  const { x, y, width, height } = device;
-
+  const { width: W, height: H } = device;
   const press = (e: React.MouseEvent, key: string) => {
     if (onPatchState) momentaryPress(e, device.id, key, onPatchState);
     else {
@@ -21,61 +18,39 @@ export const PushButtonFwdRevDevice: React.FC<DeviceComponentProps> = (props) =>
       onToggleState?.({ ...device, state: { ...device.state, [key]: !device.state[key] } });
     }
   };
+  const tTop = H * (device.terminals[0]?.relY ?? 0.07);
+  const topBayY = tTop - 7.8;
+  const botBayY = H - tTop - 8.2;
+  const by = H * 0.56;
 
   return (
-    <g id={`device-${device.id}`} className="select-none">
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="transparent" />
-      <rect x={x} y={y} width={width} height={height} rx={5} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-      {/* Top Terminal Bay + Silkscreen Band */}
-      <rect x={x + 3} y={y + 2} width={width - 6} height={16} rx={2} fill="var(--mat-housing-dark)" />
-      <rect x={x + 3} y={y + 18} width={width - 6} height={7.5} fill="var(--mat-line)" />
-
-      {/* Center Aluminum/Gray Faceplate */}
-      <rect x={x + 4} y={y + 26.5} width={width - 8} height={height - 53} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-line-soft)" strokeWidth={0.9} />
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      <Housing w={W} h={H} m="shade" rx={4} />
+      <Bay x={3} y={topBayY} w={W - 6} h={16} />
+      <Bay x={3} y={botBayY} w={W - 6} h={16} />
+      <rect className="d-face" x={5} y={topBayY + 21} width={W - 10} height={botBayY - topBayY - 26} rx={3} />
+      {[10, W - 10].map((sx) => [topBayY + 26, botBayY - 6].map((sy) => <Screw key={`${sx}-${sy}`} cx={sx} cy={sy} r={1.8} />))}
+      <Nameplate x={18} y={topBayY + 22.5} w={W - 36} h={7} tag={deviceTag(device) || 'S'} center="REVERSING" text="3×Ø22" size={4.4} />
 
       {BUTTONS.map((b) => {
-        const cx = x + width * b.rel;
-        const cy = y + 60;
+        const cx = W * b.rel;
         const pressed = !!device.state[b.key];
         return (
           <g key={b.key}>
-            <text x={cx} y={y + 23.5} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill={b.lblFill}>
-              {b.topTxt}
-            </text>
-            <text x={cx} y={y + height - 20} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill={b.lblFill}>
-              {b.botTxt}
-            </text>
-
-            {/* Legend Plate */}
-            <rect x={cx - 15} y={y + 30} width={30} height={10} rx={1.5} fill="var(--nameplate)" />
-            <text x={cx} y={y + 37.2} textAnchor="middle" fontSize="5.4" fontWeight="900" fontFamily="var(--font-display)" fill="var(--mat-housing)">
-              {b.legend}
-            </text>
-
-            {/* Pushbutton Bezel & Plunger */}
-            <g transform={`translate(${cx}, ${cy})`} className="cursor-pointer" onMouseDown={(e) => press(e, b.key)} onClick={(e) => e.stopPropagation()}>
-              <title>{b.legend} ({b.sub}) — momentary, hold to press</title>
-              <circle r={13.5} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1} />
-              <circle r={11.5} fill="var(--mat-housing-dark)" />
-              <circle r={pressed ? 8.5 : 10} fill={pressed ? b.capDown : b.cap} stroke={b.ring} strokeWidth={0.9} />
-              <text x={0} y={2.8} textAnchor="middle" fontSize="7.2" fontWeight="900" fill="var(--silk-on-dark)">
-                {b.glyph}
-              </text>
+            <LegendPlate cx={cx} y={by - 21} w={28} text={b.legend} />
+            <g onMouseDown={(e) => press(e, b.key)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+              <title>{`${b.legend} (${b.sub}): momentary, hold to press`}</title>
+              <PushButton cx={cx} cy={by} r={9} color={b.color} pressed={pressed} legend={b.mark} guard={b.nc} />
             </g>
-
-            <text x={cx} y={y + 84} textAnchor="middle" fontSize="4.3" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk)">
-              {b.sub}
-            </text>
+            {b.nc ? <SymNC x={cx + 1} y={by + 15} s={0.9} /> : <SymNO x={cx} y={by + 15} s={0.9} />}
+            <Mono x={cx} y={by + 30.5} size={3.6} anchor="middle" muted>{b.sub}</Mono>
           </g>
         );
       })}
+      <path className="d-sym" strokeDasharray="1.2 1" d={`M${W * 0.5 + 2.3} ${by + 19.5}H${W * 0.82 + 2.3}`} />
 
-      {/* Bottom Silkscreen Band + Contact Terminal Pocket */}
-      <rect x={x + 3} y={y + height - 25.5} width={width - 6} height={7.5} fill="var(--mat-line)" />
-      <rect x={x + 3} y={y + height - 18} width={width - 6} height={16} rx={2} fill="var(--mat-housing-dark)" />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4.4} side={() => 'left'} text={(t) => (t.label || t.id).split(' ')[0]} />
+      <Terminals {...props} local />
     </g>
   );
 };

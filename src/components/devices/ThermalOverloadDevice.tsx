@@ -1,235 +1,127 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import { Bay, DeviceProps, Face, Housing, Mono, Nameplate, Seams, Silk, SymNC, SymNO, SymThermal, Terminals, TermIds, act, deviceTag, makePatch } from './kit';
 
 const FLA_STEPS = [2.5, 4, 6, 10, 16];
 
 /**
- * EduVolt-style Thermal Overload Relay (SIRIUS 3RU class).
- * Top copper busbar stabs (1/L1, 3/L2, 5/L3), rotary FLA dial, TEST/STOP/RESET controls,
- * integrated 95-96 NC & 97-98 NO auxiliary block, and embedded non-overlapping labels.
+ * Thermal overload relay (bimetal, class 10) with 95-96 NC / 97-98 NO auxiliary contacts.
+ * Click the FLA dial to set the trip current, STOP or TEST to trip, RESET to re-arm.
  */
-export const ThermalOverloadDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height } = device;
+export const ThermalOverloadDevice: React.FC<DeviceProps> = (props) => {
+  const { device } = props;
+  const { width: W, height: H } = device;
+  const patch = makePatch(props);
   const tripped = !!device.state.tripped;
   const tripAmps = device.state.tripAmps || 6;
   const measuredAmps = device.state.measuredAmps || 0;
-  const mainW = width * 0.69;
-  const auxX = x + width * 0.70;
-  const auxW = width * 0.30;
-
-  const dialX = x + 23;
-  const dialY = y + 52;
   const dialIdx = Math.max(0, FLA_STEPS.indexOf(tripAmps));
-  const dialAngle = -115 + dialIdx * 57.5;
+  const loadPct = Math.min(1.2, measuredAmps / tripAmps);
 
-  const patch = (p: Record<string, any>) => {
-    if (onPatchState) onPatchState(device.id, p);
-    else onToggleState?.({ ...device, state: { ...device.state, ...p } });
-  };
-
-  const cycleFla = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const next = FLA_STEPS[(dialIdx + 1) % FLA_STEPS.length];
-    patch({ tripAmps: next });
-  };
-
-  const testTrip = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    patch({ tripped: !tripped });
-  };
-
-  const resetRelay = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (tripped) patch({ tripped: false });
-  };
+  const mainW = W * 0.69;
+  const auxX = mainW + 1.5;
+  const auxW = W - auxX;
+  const poleX = [31, 50.8, 70.7].map((v) => (v / 124) * W);
+  const tTop = H * (device.terminals[0]?.relY ?? 0.07);
+  const bayH = 16;
+  const topBayY = tTop - 7.8;
+  const botBayY = H - tTop - 7.2;
+  const faceY = topBayY + bayH + 1;
+  const faceH = botBayY - 1 - faceY;
+  const dial = { cx: 19, cy: faceY + 33, r: 11 };
+  const angFor = (i: number) => -120 + (240 / (FLA_STEPS.length - 1)) * i;
+  const ptr = ((angFor(dialIdx) - 90) * Math.PI) / 180;
 
   return (
-    <g className="select-none">
-      {/* Subtle architectural CAD shadow */}
-      <rect x={x + 2} y={y + 18} width={width} height={height - 16} rx={4} fill="transparent" />
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      {/* ── Main body (dark, mounts under the contactor) ── */}
+      <Housing w={mainW} h={H} m="dark" />
+      <Bay x={3} y={topBayY} w={mainW - 6} h={bayH} dark />
+      <Bay x={3} y={botBayY} w={mainW - 6} h={bayH} dark />
+      <Seams xs={[(poleX[0] + poleX[1]) / 2, (poleX[1] + poleX[2]) / 2]} y1={botBayY} y2={botBayY + bayH} />
+      <Face x={3} y={faceY} w={mainW - 6} h={faceH} />
+      <Nameplate x={3} y={faceY + 6} w={mainW - 6} h={8} tag={deviceTag(device) || 'F'} text={`LRD ${tripAmps}A`} />
 
-      {/* Top Copper Busbar Stab Prongs (1/L1, 3/L2, 5/L3) */}
-      {[0.25, 0.41, 0.57].map((rel, idx) => {
-        const px = x + width * rel;
-        return (
-          <g key={`stab-${idx}`}>
-            <rect x={px - 2.6} y={y + 1} width={5.2} height={17} rx={1} fill="var(--mat-pvc-orange-dark)" stroke="var(--mat-pvc-orange-dark)" strokeWidth={0.7} />
-            <rect x={px - 1.3} y={y + 1} width={2.6} height={15} fill="var(--mat-pvc-orange)" />
-          </g>
-        );
-      })}
-
-      {/* Main Enclosure (starts cleanly below top screw clearance at y+17) */}
-      <rect x={x} y={y + 17} width={mainW} height={height - 17} rx={4} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-      {/* Right Integrated Aux Contact Module (95-96 NC, 97-98 NO) */}
-      <rect x={auxX} y={y + 1} width={auxW} height={height - 1} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.2} />
-      <rect x={auxX + 1.5} y={y + 2} width={auxW - 3} height={15} rx={2} fill="var(--mat-housing-dark)" />
-      <line x1={x + width * 0.855} y1={y + 2} x2={x + width * 0.855} y2={y + 17} stroke="var(--mat-line-soft)" strokeWidth={0.8} />
-
-      {/* Top Aux Silkscreen Labels (below top screws) */}
-      <rect x={auxX + 1.5} y={y + 17.5} width={auxW - 3} height={8.5} fill="var(--mat-housing)" />
-      <text x={x + width * 0.78} y={y + 23.6} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--mat-copper)">
-        95NC
-      </text>
-      <text x={x + width * 0.93} y={y + 23.6} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-off)">
-        97NO
-      </text>
-
-      {/* Top Dark EduVolt Brand & Specs Header */}
-      <rect x={x + 1.5} y={y + 18.5} width={mainW - 3} height={12.5} rx={1.5} fill="var(--nameplate)" />
-      <text x={x + 5} y={y + 26.8} fontSize="5.2" fontWeight="900" fontFamily="var(--font-display)" fill="var(--silk-on-dark)">
-        VoltLab
-      </text>
-      <text x={x + mainW - 4} y={y + 26.8} textAnchor="end" fontSize="4.8" fontWeight="900" fontFamily="var(--font-mono)" fill={tripped ? 'var(--lamp-red-on)' : 'var(--nameplate-tag)'}>
-        {device.state.tag || 'F2'} {measuredAmps > 0 ? `${measuredAmps.toFixed(1)}A` : `≤${tripAmps}A`}
-      </text>
-
-      <rect x={auxX + 1.5} y={y + 26.5} width={auxW - 3} height={9.5} fill="var(--mat-housing-dark-face)" />
-      <text x={auxX + auxW / 2} y={y + 33} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-        95-98 AUX
-      </text>
-
-      {/* Left Control Column: Rotary FLA Trip Dial */}
-      <g onMouseDown={stopCanvas} onClick={cycleFla} className="cursor-pointer">
-        <title>{`FLA Trip Dial: ${tripAmps}A — click to cycle (2.5 / 4 / 6 / 10 / 16 A)`}</title>
-        <circle cx={dialX} cy={dialY} r={12.5} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={1.1} />
-        {[-115, -57.5, 0, 57.5, 115].map((ang, i) => {
-          const rad = ((ang - 90) * Math.PI) / 180;
+      {/* FLA dial */}
+      <g {...act(() => patch({ tripAmps: FLA_STEPS[(dialIdx + 1) % FLA_STEPS.length] }))}>
+        <title>{`FLA setting ${tripAmps} A: click to step (2.5 / 4 / 6 / 10 / 16 A)`}</title>
+        <circle cx={dial.cx} cy={dial.cy} r={dial.r + 2.5} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={0.8} />
+        {FLA_STEPS.map((v, i) => {
+          const a = ((angFor(i) - 90) * Math.PI) / 180;
           return (
-            <line
-              key={i}
-              x1={dialX + Math.cos(rad) * 10}
-              y1={dialY + Math.sin(rad) * 10}
-              x2={dialX + Math.cos(rad) * 12.2}
-              y2={dialY + Math.sin(rad) * 12.2}
-              stroke="var(--silk-muted)"
-              strokeWidth={0.9}
-            />
+            <g key={v}>
+              <path d={`M${dial.cx + Math.cos(a) * (dial.r - 1)} ${dial.cy + Math.sin(a) * (dial.r - 1)}L${dial.cx + Math.cos(a) * (dial.r + 1.5)} ${dial.cy + Math.sin(a) * (dial.r + 1.5)}`} stroke="var(--silk)" strokeWidth={0.6} />
+            </g>
           );
         })}
-        <g transform={`rotate(${dialAngle}, ${dialX}, ${dialY})`}>
-          <circle cx={dialX} cy={dialY} r={7.5} fill="var(--mat-housing-shade)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} />
-          <line x1={dialX} y1={dialY + 4} x2={dialX} y2={dialY - 6.5} stroke="var(--mat-line)" strokeWidth={1.5} strokeLinecap="round" />
+        <circle cx={dial.cx} cy={dial.cy} r={dial.r - 2} fill="var(--act-blue)" stroke="var(--mat-line)" strokeWidth={0.9} />
+        <path d={`M${dial.cx} ${dial.cy}L${dial.cx + Math.cos(ptr) * (dial.r - 3)} ${dial.cy + Math.sin(ptr) * (dial.r - 3)}`} stroke="#fff" strokeWidth={1.6} strokeLinecap="round" />
+        <path d={`M${dial.cx - 4} ${dial.cy}h8`} stroke="var(--mat-line)" strokeWidth={1.4} strokeLinecap="round" opacity={0.5} />
+        <Mono x={dial.cx} y={dial.cy + dial.r + 8} size={4.6} anchor="middle">{`${tripAmps} A`}</Mono>
+      </g>
+
+      {/* Trip indicator window */}
+      <rect x={38} y={faceY + 21} width={18} height={9} rx={1.2} fill="var(--mat-line)" />
+      <rect x={39} y={faceY + 22} width={16} height={7} rx={0.8} fill={tripped ? 'var(--flag-trip)' : 'var(--mat-housing-shade)'} />
+      <Mono x={47} y={faceY + 27.3} size={4} anchor="middle" fill={tripped ? 'var(--mat-line)' : 'var(--silk-muted)'}>{tripped ? 'TRIP' : 'O.K.'}</Mono>
+
+      {/* STOP (red) + RESET (blue) */}
+      <g {...act(() => patch({ tripped: !tripped }))}>
+        <title>STOP: trip the relay by hand (opens 95-96, closes 97-98)</title>
+        <rect x={38} y={faceY + 35} width={9} height={9} rx={1.5} fill="var(--act-red)" stroke="var(--mat-line)" strokeWidth={0.9} />
+        <Silk x={42.5} y={faceY + 49} size={3.8} anchor="middle" muted>STOP</Silk>
+      </g>
+      <g {...act(() => tripped && patch({ tripped: false }))}>
+        <title>RESET: re-arm after the bimetal cools</title>
+        <circle cx={58} cy={faceY + 39.5} r={5} fill="var(--act-blue)" stroke="var(--mat-line)" strokeWidth={0.9} />
+        <Silk x={58} y={faceY + 41.4} size={4.4} anchor="middle" bold fill="var(--on-act)">R</Silk>
+        <Silk x={58} y={faceY + 49} size={3.8} anchor="middle" muted>RESET</Silk>
+      </g>
+      {/* TEST slot */}
+      <g {...act(() => patch({ tripped: !tripped }))}>
+        <title>TEST: simulate a thermal overload trip</title>
+        <rect x={mainW - 15} y={faceY + 21} width={9} height={5} rx={1} fill="var(--act-red)" stroke="var(--mat-line)" strokeWidth={0.7} />
+        <Silk x={mainW - 10.5} y={faceY + 31} size={3.6} anchor="middle" muted>TEST</Silk>
+      </g>
+
+      {/* Load bar: measured current vs setting */}
+      <rect x={38} y={faceY + 53} width={mainW - 44} height={3} rx={1.5} fill="var(--mat-housing-shade)" />
+      <rect x={38} y={faceY + 53} width={(mainW - 44) * Math.min(1, loadPct)} height={3} rx={1.5} fill={loadPct > 1 ? 'var(--danger)' : loadPct > 0.85 ? 'var(--warning-fill)' : 'var(--ok)'} />
+      <Mono x={38} y={faceY + 61.5} size={3.8} muted>{measuredAmps > 0 ? `I ${measuredAmps.toFixed(1)} A` : 'I — A'}</Mono>
+
+      {/* Printed symbol: three thermal elements under the load terminals */}
+      {poleX.map((px) => (
+        <SymThermal key={px} x={px} y={faceY + 66} s={1} />
+      ))}
+      <path className="d-sym" strokeDasharray="1.2 1" d={`M${poleX[0] + 2} ${faceY + 71}H${poleX[2] + 2}`} />
+      <Mono x={mainW / 2} y={faceY + 81} size={3.4} anchor="middle" muted>CLASS 10A · IEC 60947-4-1</Mono>
+
+      {/* ── Aux contacts 95-96 NC / 97-98 NO ── */}
+      <Housing x={auxX} w={auxW} h={H} m="dark" />
+      <Bay x={auxX + 2.5} y={topBayY} w={auxW - 5} h={bayH} dark />
+      <Bay x={auxX + 2.5} y={botBayY} w={auxW - 5} h={bayH} dark />
+      <Face x={auxX + 2.5} y={faceY} w={auxW - 5} h={faceH} />
+      <Nameplate x={auxX + 2.5} y={faceY + 6} w={auxW - 5} h={8} center="AUX" size={4.4} />
+      {[
+        { cx: auxX + auxW * 0.27, nc: true, closed: !tripped, label: '95-96' },
+        { cx: auxX + auxW * 0.73, nc: false, closed: tripped, label: '97-98' },
+      ].map((c) => (
+        <g key={c.label} className="pointer-events-none">
+          <rect className="d-shade" x={c.cx - 6.5} y={faceY + 20} width={13} height={22} rx={1.5} />
+          <path
+            d={`M${c.cx} ${faceY + 22.5}v5.5M${c.cx} ${faceY + 34}v5.5M${c.cx} ${faceY + 34}L${c.closed ? c.cx : c.cx + (c.nc ? -3.4 : 3.4)} ${faceY + 28}`}
+            fill="none"
+            stroke={c.closed ? 'var(--ok)' : 'var(--silk)'}
+            strokeWidth={1.1}
+            strokeLinecap="round"
+          />
+          <Mono x={c.cx} y={faceY + 48} size={3.8} anchor="middle">{c.label}</Mono>
         </g>
-        <rect x={dialX - 15} y={y + 68} width={30} height={10} rx={1.5} fill="var(--mat-housing-dark)" />
-        <text x={dialX} y={y + 75} textAnchor="middle" fontSize="5" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--nameplate-tag)">
-          {tripAmps.toFixed(1)}A
-        </text>
-        <text x={dialX} y={y + 85.5} textAnchor="middle" fontSize="3.8" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk-muted)">
-          {(tripAmps * 0.7).toFixed(1)}–{(tripAmps * 1.3).toFixed(0)}A
-        </text>
-      </g>
-
-      {/* Center-Right Column: Status Flag + TEST Slider (left) | STOP + RESET (right) */}
-      {/* TEST Slide Actuator + Status Flag */}
-      <g onMouseDown={stopCanvas} onClick={testTrip} className="cursor-pointer">
-        <title>TEST — trigger thermal overload trip (opens 95-96, closes 97-98)</title>
-        <text x={x + 51} y={y + 39} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-          TEST
-        </text>
-        <rect x={x + 42} y={y + 42} width={18} height={8} rx={2} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={0.6} />
-        <rect
-          x={tripped ? x + 51 : x + 43.5}
-          y={y + 43.5}
-          width={7.5}
-          height={5}
-          rx={1}
-          fill={tripped ? 'var(--act-red)' : 'var(--lamp-green-on)'}
-        />
-        <text x={x + 51} y={y + 57} textAnchor="middle" fontSize="4" fontWeight="900" fontFamily="var(--font-mono)" fill={tripped ? 'var(--cond-red)' : 'var(--cond-green)'}>
-          {tripped ? 'TRIP' : 'OK'}
-        </text>
-      </g>
-
-      {/* Red Square STOP Actuator */}
-      <g onMouseDown={stopCanvas} onClick={testTrip} className="cursor-pointer">
-        <title>STOP — manually trip 95-96 control interlock</title>
-        <text x={x + mainW - 12} y={y + 39} textAnchor="middle" fontSize="4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--act-red)">
-          STOP
-        </text>
-        <rect x={x + mainW - 18.5} y={y + 42} width={13} height={11} rx={1.5} fill="var(--cond-red)" stroke="var(--lamp-red-off)" strokeWidth={0.9} />
-        <rect x={x + mainW - 16} y={y + 44.5} width={8} height={2.5} rx={0.5} fill="var(--lamp-red-on)" opacity={0.5} />
-      </g>
-
-      {/* Blue RESET Pushbutton (well clear horizontally & vertically) */}
-      <g onMouseDown={stopCanvas} onClick={resetRelay} className="cursor-pointer">
-        <title>RESET — re-arm thermal bimetal relay after cooling</title>
-        <circle cx={x + mainW - 12} cy={y + 72} r={7.2} fill="var(--lamp-blue-off)" stroke="var(--mat-line)" strokeWidth={0.9} />
-        <circle
-          cx={x + mainW - 12}
-          cy={y + 72}
-          r={tripped ? 5.6 : 4.8}
-          fill="var(--cond-blue)"
-          stroke="var(--lamp-blue-on)"
-          strokeWidth={0.6}
-          className={tripped ? 'animate-pulse' : undefined}
-        />
-        <text x={x + mainW - 12} y={y + 74} textAnchor="middle" fontSize="5" fontWeight="900" fill="var(--silk-on-dark)">
-          R
-        </text>
-        <text x={x + mainW - 12} y={y + 85.5} textAnchor="middle" fontSize="3.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--act-blue)">
-          RESET
-        </text>
-      </g>
-
-      {/* Aux Trip Contact Mimic Windows (95-96 NC / 97-98 NO) */}
-      {[
-        { relX: 0.78, nc: true },
-        { relX: 0.925, nc: false },
-      ].map(({ relX, nc }) => {
-        const cx = x + width * relX;
-        const cy = y + 62;
-        const closed = nc ? !tripped : tripped;
-        const col = closed ? 'var(--cond-green)' : nc ? 'var(--cond-red)' : 'var(--silk-muted)';
-        return (
-          <g key={`auxw-${nc ? 'nc' : 'no'}`}>
-            <rect x={cx - 6} y={cy - 15} width={12} height={28} rx={1.5} fill="var(--mat-housing)" stroke="var(--silk-muted)" strokeWidth={0.8} />
-            <line x1={cx} y1={cy - 12} x2={cx} y2={cy - 4} stroke={col} strokeWidth={1.1} />
-            <line x1={cx} y1={cy + 4} x2={cx} y2={cy + 12} stroke={col} strokeWidth={1.1} />
-            <line x1={cx} y1={cy + 4} x2={closed ? cx : cx + (nc ? 4 : -4)} y2={cy - 4} stroke={col} strokeWidth={1.3} />
-            {nc && <line x1={cx - 3} y1={cy - 4} x2={cx + 3} y2={cy - 4} stroke={col} strokeWidth={0.9} />}
-            <text x={cx} y={cy + 20} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-              {nc ? 'NC' : 'NO'}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* Embedded Bottom Silkscreen Strip */}
-      <rect x={x + 1.5} y={y + height - 29} width={mainW - 3} height={9} fill="var(--mat-housing)" />
-      <rect x={auxX + 1.5} y={y + height - 29} width={auxW - 3} height={9} fill="var(--mat-housing)" />
-      {[
-        { relX: 0.25, text: '2/T1', color: 'var(--mat-line)' },
-        { relX: 0.41, text: '4/T2', color: 'var(--mat-line)' },
-        { relX: 0.57, text: '6/T3', color: 'var(--mat-line)' },
-        { relX: 0.78, text: '96NC', color: 'var(--mat-copper)' },
-        { relX: 0.93, text: '98NO', color: 'var(--lamp-green-off)' },
-      ].map((lbl) => (
-        <text
-          key={`torb-${lbl.text}`}
-          x={x + width * lbl.relX}
-          y={y + height - 22.5}
-          textAnchor="middle"
-          fontSize="4.5"
-          fontWeight="900"
-          fontFamily="var(--font-mono)"
-          fill={lbl.color}
-        >
-          {lbl.text}
-        </text>
       ))}
+      <SymNC x={auxX + auxW * 0.27} y={faceY + 55} s={0.9} />
+      <SymNO x={auxX + auxW * 0.73} y={faceY + 55} s={0.9} />
 
-      {/* Bottom Terminal Bay */}
-      <rect x={x + 1.5} y={y + height - 19} width={mainW - 3} height={17.5} rx={2} fill="var(--mat-housing-dark)" />
-      <rect x={auxX + 1.5} y={y + height - 19} width={auxW - 3} height={17.5} rx={2} fill="var(--mat-housing-dark)" />
-      {[0.33, 0.49].map((r) => (
-        <line key={`td-${r}`} x1={x + width * r} y1={y + height - 19} x2={x + width * r} y2={y + height - 2} stroke="var(--mat-line-soft)" strokeWidth={0.8} />
-      ))}
-      <line x1={x + width * 0.855} y1={y + height - 19} x2={x + width * 0.855} y2={y + height - 2} stroke="var(--mat-line-soft)" strokeWidth={0.8} />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4.4} gap={2.6} onDark={false} />
+      <Terminals {...props} local />
     </g>
   );
 };

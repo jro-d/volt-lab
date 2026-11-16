@@ -1,58 +1,38 @@
 import React from 'react';
-import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
-import { TerminalPoint } from './TerminalPoint';
+import {
+  Bay, DeviceProps, DinClip, Face, Flag, FlagState, Housing, Lever, Mono, Nameplate, SealHole, Seams, Silk, SymBreaker,
+  Terminals, TermIds, click, deviceTag,
+} from './kit';
 
-interface McbDeviceProps {
-  device: ElectricalDevice;
-  isSelected?: boolean;
-  selectedTerminalId?: string | null;
-  hoveredTerminalId?: string | null;
-  onTerminalMouseDown?: (device: ElectricalDevice, terminal: DeviceTerminal, e: React.MouseEvent) => void;
-  setHoveredTerminalId?: (id: string | null) => void;
-  onToggleState?: (device: ElectricalDevice) => void;
-}
-
-export const McbDevice: React.FC<McbDeviceProps> = ({
-  device,
-  selectedTerminalId,
-  hoveredTerminalId,
-  onTerminalMouseDown,
-  setHoveredTerminalId,
-  onToggleState,
-}) => {
-  const { width, height, terminals } = device;
+/**
+ * Miniature circuit breakers (1P / 2P / 3P) and the 2P main service disconnect.
+ * v2 construction: bays → face + nameplate → per-pole lever with tie bar → I/O/TRIP flag → terminals.
+ * Click the lever to switch (or reset a trip), the nameplate to cycle the profile, T to trip-test.
+ */
+export const McbDevice: React.FC<DeviceProps> = (props) => {
+  const { device, onToggleState } = props;
+  const { width: W, height: H } = device;
   const isClosed = !!device.state.closed && !device.state.tripped;
   const isTripped = !!device.state.tripped;
   const ratedAmps = device.state.ratedAmps || 16;
   const curve = device.state.tripCurve || 'C';
   const is2P = device.type === 'mcb_2p' || device.type === 'service_disconnect_2p';
   const is3P = device.type === 'mcb_3p';
-  const isServiceDisc = device.type === 'service_disconnect_2p';
+  const isMain = device.type === 'service_disconnect_2p';
+  const poles = is3P ? 3 : is2P ? 2 : 1;
 
   const profile: 'royu_bolt_on' | 'royu_din_rail' | 'generic_iec' =
     device.state.breakerProfile ||
-    (device.state.mccbStyle === 'industrial_black'
-      ? 'royu_bolt_on'
-      : is2P && !isServiceDisc
-        ? 'royu_bolt_on'
-        : 'royu_din_rail');
-
+    (device.state.mccbStyle === 'industrial_black' ? 'royu_bolt_on' : is2P && !isMain ? 'royu_bolt_on' : 'royu_din_rail');
   const isBoltOn = profile === 'royu_bolt_on';
-  const isRoyuDin = profile === 'royu_din_rail';
-  const poles = is3P ? 3 : is2P ? 2 : 1;
 
+  // ROYU bolt-on handles are colour-coded by rating; DIN breakers use a black lever.
   const ampColors: Record<number, string> = {
-    15: 'var(--cond-blue)',
-    20: 'var(--cond-red)',
-    30: 'var(--cond-green)',
-    40: 'var(--mat-pvc-orange)',
-    60: 'var(--silk-muted)',
-    63: 'var(--silk-muted)',
+    15: 'var(--act-blue)', 20: 'var(--act-red)', 30: 'var(--act-green)', 40: 'var(--mat-pvc-orange)',
   };
-  const handleAccent = isBoltOn ? ampColors[ratedAmps] || 'var(--mat-housing-dark)' : 'var(--nameplate)';
+  const leverColor = isMain ? 'var(--act-red)' : isBoltOn ? ampColors[ratedAmps] || 'var(--act-black)' : 'var(--act-black)';
 
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggle = () => {
     if (isTripped) {
       device.state.tripped = false;
       device.state.closed = true;
@@ -61,302 +41,126 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
     }
     onToggleState?.(device);
   };
-
-  const handleCycleStyle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const order: ('royu_bolt_on' | 'royu_din_rail' | 'generic_iec')[] = [
-      'royu_bolt_on',
-      'royu_din_rail',
-      'generic_iec',
-    ];
+  const cycleProfile = () => {
+    const order = ['royu_bolt_on', 'royu_din_rail', 'generic_iec'] as const;
     const next = order[(order.indexOf(profile) + 1) % order.length];
     device.state.breakerProfile = next;
     device.state.mccbStyle = next === 'royu_bolt_on' ? 'industrial_black' : 'din_rail';
     onToggleState?.(device);
   };
-
-  const handleManualTripTest = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const tripTest = () => {
     device.state.tripped = !device.state.tripped;
-    if (device.state.tripped) {
-      device.state.closed = false;
-    }
+    if (device.state.tripped) device.state.closed = false;
     onToggleState?.(device);
   };
 
-  const cx = width / 2;
-  const cy = height / 2;
-  const padX = 3;
-  const innerW = width - padX * 2;
-  const poleW = innerW / poles;
+  // Geometry from the terminal rows so every size keeps its catalogue terminal positions.
+  const tTop = H * (device.terminals[0]?.relY ?? 0.08);
+  const bayH = tTop * 2 - 1.5;
+  const botBayY = H - 2 - bayH;
+  const faceY = 2 + bayH + 2;
+  const faceH = botBayY - 2 - faceY;
+  const pw = (W - 6) / poles;
+  const poleCx = (i: number) => 3 + pw * i + pw / 2;
+  const seamXs = Array.from({ length: poles - 1 }, (_, i) => 3 + pw * (i + 1));
 
-  // Vertical bands scaled strictly from height so zero text can collide
-  const topBayH = Math.round(height * 0.22); // ~24px
-  const botBayY = Math.round(height * 0.78); // ~86px
-  const botBayH = height - botBayY;
-  const faceY = topBayH + 1;
-  const faceH = botBayY - faceY - 1;
-  const brandBarH = 11;
-  const flagY = faceY + brandBarH + 3;
-  const handleY = flagY + 12;
-  const specY = faceY + faceH - 3.5;
+  const plateY = faceY;
+  const slotY = plateY + 10.5;
+  const slotH = Math.min(26, faceH * 0.4);
+  const leverPos = isTripped ? 0.5 : isClosed ? 0 : 1;
+  const flagY = slotY + slotH + 3;
+  const flagState: FlagState = isTripped ? 'trip' : isClosed ? 'on' : 'off';
+  const lowerY = flagY + 9;
+  const leverW = Math.min(15, pw - 7);
 
-  const topPairs = ['1/2', '3/4', '5/6'];
-  const botPairs = ['2/1', '4/3', '6/5'];
-
-  // Crisp DIN rail silhouette behind DIN breakers OR copper stabs for Bolt-On
-  const bodyBg = isBoltOn ? 'var(--mat-housing-dark)' : 'var(--mat-housing)';
-  const shroudBg = isBoltOn ? 'var(--mat-line)' : 'var(--mat-housing-shade)';
-  const strokeCol = isBoltOn ? 'var(--mat-line)' : 'var(--mat-housing-dark)';
-  const faceBg = isBoltOn ? 'var(--mat-housing-dark-face)' : 'var(--mat-housing)';
-  const textCol = isBoltOn ? 'var(--mat-housing)' : 'var(--mat-line)';
-  const subTextCol = isBoltOn ? 'var(--mat-housing-shade)' : 'var(--silk-muted)';
+  const body = isBoltOn ? 'dark' : 'light';
+  const onDark = isBoltOn;
+  const tag = deviceTag(device);
+  const brand = isMain ? 'MAIN' : isBoltOn ? 'ROYU' : profile === 'royu_din_rail' ? 'ROYU' : 'IEC';
+  const kA = device.kaRating || (is3P ? 10 : 6);
 
   return (
     <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-      {/* Mounting Stabs (Bolt-On) or DIN Rail Clips */}
-      {isBoltOn ? (
-        Array.from({ length: poles }).map((_, idx) => {
-          const sx = padX + poleW * idx + poleW / 2;
-          return (
-            <rect
-              key={`stab-${idx}`}
-              x={sx - 6}
-              y={-4}
-              width={12}
-              height={5}
-              rx={1}
-              fill="var(--mat-copper)"
-              stroke="var(--mat-copper-dark)"
-              strokeWidth={0.9}
-            />
-          );
-        })
-      ) : (
-        <g>
-          <rect x={-3} y={cy - 11} width={4} height={22} rx={1} fill="var(--mat-steel)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} />
-          <rect x={width - 1} y={cy - 11} width={4} height={22} rx={1} fill="var(--mat-steel)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} />
-        </g>
-      )}
+      {/* Mounting: copper bus stabs (bolt-on) or a DIN clip */}
+      {isBoltOn
+        ? Array.from({ length: poles }).map((_, i) => (
+            <rect key={i} className="d-copper" x={poleCx(i) - 5} y={-3.5} width={10} height={4.5} rx={1} />
+          ))
+        : <DinClip cx={W / 2} y={H} />}
 
-      {/* Main EduVolt Flat CAD Housing */}
-      <rect
-        x={0}
-        y={0}
-        width={width}
-        height={height}
-        rx={4}
-        fill={bodyBg}
-        stroke={strokeCol}
-        strokeWidth={1.4}
-      />
+      {/* 1 Housing */}
+      <Housing w={W} h={H} m={body} />
+      {/* moulded side ribs */}
+      <path className="d-seam" d={`M1.6 ${faceY + 4}V${botBayY - 4}M${W - 1.6} ${faceY + 4}V${botBayY - 4}`} />
 
-      {/* Top & Bottom Modular Terminal Pocket Bays */}
-      <rect x={padX} y={2} width={innerW} height={topBayH - 2} rx={2} fill={shroudBg} stroke={strokeCol} strokeWidth={0.9} />
-      <rect x={padX} y={botBayY} width={innerW} height={botBayH - 2} rx={2} fill={shroudBg} stroke={strokeCol} strokeWidth={0.9} />
+      {/* 2 Bays + pole seams */}
+      <Bay x={3} y={2} w={W - 6} h={bayH} dark={onDark} />
+      <Bay x={3} y={botBayY} w={W - 6} h={bayH} dark={onDark} />
+      <Seams xs={seamXs} y1={2} y2={H - 2} />
 
-      {/* Per-pole Divider Lines + Top/Bottom Silkscreen Numbers (1/2, 3/4, 5/6) */}
-      {Array.from({ length: poles }).map((_, idx) => {
-        const px = padX + poleW * idx;
-        const pcx = px + poleW / 2;
-        return (
-          <g key={`pole-${idx}`}>
-            {idx > 0 && (
-              <>
-                <line x1={px} y1={2} x2={px} y2={topBayH} stroke={strokeCol} strokeWidth={0.9} />
-                <line x1={px} y1={botBayY} x2={px} y2={height - 2} stroke={strokeCol} strokeWidth={0.9} />
-                <line x1={px} y1={faceY} x2={px} y2={botBayY - 1} stroke={isBoltOn ? 'var(--mat-housing-dark-face)' : 'var(--mat-housing-shade)'} strokeWidth={0.8} />
-              </>
-            )}
-            <text
-              x={pcx}
-              y={topBayH - 1.5}
-              textAnchor="middle"
-              fontSize={poles === 1 ? 5.2 : 5.5}
-              fontWeight="800"
-              fontFamily="var(--font-mono)"
-              fill={subTextCol}
-            >
-              {topPairs[idx]}
-            </text>
-            <text
-              x={pcx}
-              y={botBayY + 6.5}
-              textAnchor="middle"
-              fontSize={poles === 1 ? 5.2 : 5.5}
-              fontWeight="800"
-              fontFamily="var(--font-mono)"
-              fill={subTextCol}
-            >
-              {botPairs[idx]}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* Center Raised Faceplate Escutcheon */}
-      <rect
-        x={padX}
-        y={faceY}
-        width={innerW}
-        height={faceH}
-        rx={2}
-        fill={faceBg}
-        stroke={strokeCol}
-        strokeWidth={1}
-      />
-
-      {/* Embedded Header Band (click to cycle Bolt-On / ROYU DIN / IEC DIN) */}
-      <g onClick={handleCycleStyle} className="cursor-pointer">
-        <title>Click header band to cycle breaker profile (Bolt-On / ROYU DIN / IEC DIN)</title>
-        <rect
-          x={padX}
-          y={faceY}
-          width={innerW}
-          height={brandBarH}
-          rx={1.5}
-          fill={isServiceDisc ? 'var(--lamp-red-off)' : isRoyuDin ? 'var(--lamp-blue-off)' : 'var(--nameplate)'}
-        />
-        <text
-          x={cx}
-          y={faceY + 7.8}
-          textAnchor="middle"
-          fontSize={poles === 1 ? 5.4 : 6.2}
-          fontWeight="900"
-          fontFamily="var(--font-display)"
-          fill="var(--silk-on-dark)"
-          letterSpacing="0.4"
-        >
-          {isServiceDisc ? 'MAIN' : isBoltOn ? 'ROYU' : isRoyuDin ? 'VoltLab' : 'IEC DIN'}
-        </text>
+      {/* 3 Face + nameplate (click to cycle bolt-on / ROYU DIN / IEC DIN) */}
+      <Face x={3} y={faceY} w={W - 6} h={faceH} dark={onDark} />
+      <g onClick={click(cycleProfile)} className="cursor-pointer">
+        <title>Click the nameplate to cycle the breaker profile (bolt-on / ROYU DIN / IEC DIN)</title>
+        <Nameplate x={3} y={plateY} w={W - 6} h={8} tag={tag} text={`${curve}${ratedAmps}`} size={poles === 1 ? 4.8 : 5.4} />
       </g>
 
-      {/* Rating & Multi-Pole Flag Windows Band (never touches handle!) */}
-      <text
-        x={poles === 1 ? padX + 4 : padX + 5}
-        y={flagY + 6.5}
-        fontSize={poles === 1 ? 6 : 6.8}
-        fontWeight="900"
-        fontFamily="var(--font-mono)"
-        fill={textCol}
-      >
-        {curve}{ratedAmps}
-      </text>
-
-      {/* Per-pole Status Window (Green O / Red I / Amber TRIP) */}
-      {Array.from({ length: poles }).map((_, idx) => {
-        const winW = poles === 1 ? 10 : 11;
-        const wx = poles === 1 ? width - padX - winW - 3 : padX + poleW * idx + poleW / 2 - winW / 2;
-        const wy = poles === 1 ? flagY + 0.5 : flagY;
-        const winFill = isTripped ? 'var(--lamp-amber-on)' : isClosed ? 'var(--cond-red)' : 'var(--lamp-green-on)';
-        return (
-          <g key={`win-${idx}`}>
-            {poles > 1 && idx === 0 && null}
-            <rect
-              x={poles === 1 ? wx : Math.max(padX + (idx === 0 ? 22 : 0), wx)}
-              y={wy}
-              width={winW}
-              height={6}
-              rx={1}
-              fill={winFill}
-              stroke="var(--mat-line)"
-              strokeWidth={0.7}
-            />
-          </g>
-        );
-      })}
-
-      {/* EduVolt Crisp Bridged Toggle Lever Slot & Interactive Handle */}
-      <g onClick={handleToggle} className="cursor-pointer">
-        <title>Click handle to toggle breaker {isClosed ? 'OFF' : 'ON'}</title>
-        <rect
-          x={padX + 4}
-          y={handleY}
-          width={innerW - 8}
-          height={18}
-          rx={2}
-          fill={isBoltOn ? 'var(--mat-line)' : 'var(--mat-housing-shade)'}
-          stroke="var(--mat-line)"
-          strokeWidth={0.8}
-        />
-        {/* Sliding Bridged Handle */}
-        <rect
-          x={padX + 6}
-          y={isTripped ? handleY + 4.5 : isClosed ? handleY + 1.5 : handleY + 8.5}
-          width={innerW - 12}
-          height={8}
-          rx={1.5}
-          fill={handleAccent}
-          stroke="var(--mat-line)"
-          strokeWidth={0.9}
-        />
-        <line
-          x1={padX + 8}
-          y1={(isTripped ? handleY + 4.5 : isClosed ? handleY + 1.5 : handleY + 8.5) + 2.5}
-          x2={width - padX - 8}
-          y2={(isTripped ? handleY + 4.5 : isClosed ? handleY + 1.5 : handleY + 8.5) + 2.5}
-          stroke="rgba(255,255,255,0.45)"
-          strokeWidth={0.9}
-        />
-        <text
-          x={cx}
-          y={(isTripped ? handleY + 4.5 : isClosed ? handleY + 1.5 : handleY + 8.5) + 6.4}
-          textAnchor="middle"
-          fontSize={4.8}
-          fontWeight="900"
-          fontFamily="var(--font-mono)"
-          fill="var(--silk-on-dark)"
-        >
-          {isTripped ? 'TRIP' : isClosed ? 'ON' : 'OFF'}
-        </text>
-      </g>
-
-      {/* Bottom Embedded Rating & Mount Spec Line */}
-      <text
-        x={poles > 1 ? padX + 5 : cx}
-        y={specY}
-        textAnchor={poles > 1 ? 'start' : 'middle'}
-        fontSize={poles === 1 ? 4.4 : 4.8}
-        fontWeight="800"
-        fontFamily="var(--font-mono)"
-        fill={subTextCol}
-      >
-        {poles === 1 ? `${isBoltOn ? 'BOLT' : 'DIN'} 10kA` : `${poles}P ${isBoltOn ? 'BOLT-ON' : 'DIN'} ${is3P ? '400V' : '240V'}`}
-      </text>
-
-      {/* Compact Flush Trip-Test Button inside faceplate (no overlapping!) */}
-      {(is2P || is3P) && (
-        <g onClick={handleManualTripTest} className="cursor-pointer">
-          <title>Simulate manual trip test</title>
-          <circle cx={width - padX - 7} cy={specY - 2} r={3.5} fill="var(--mat-line)" stroke="var(--mat-line-soft)" strokeWidth={0.7} />
-          <text x={width - padX - 7} y={specY - 0.5} textAnchor="middle" fontSize={4.2} fontWeight="900" fill="var(--lamp-amber-on)">
-            T
-          </text>
-        </g>
-      )}
-
-      {/* Terminals */}
-      {terminals.map((t) => {
-        const tx = width * t.relX;
-        const ty = height * t.relY;
-        const termId = `${device.id}:${t.id}`;
-        return (
-          <TerminalPoint
-            key={t.id}
-            terminal={t}
-            x={tx}
-            y={ty}
-            isSelected={selectedTerminalId === termId}
-            isHovered={hoveredTerminalId === termId}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onTerminalMouseDown?.(device, t, e);
-            }}
-            onMouseEnter={() => setHoveredTerminalId?.(termId)}
-            onMouseLeave={() => setHoveredTerminalId?.(null)}
+      {/* 4 State: levers (one per pole, tied), flag window */}
+      <g onClick={click(toggle)} className="cursor-pointer">
+        <title>{isTripped ? 'Tripped: click the lever to reset' : `Click the lever to switch ${isClosed ? 'OFF' : 'ON'}`}</title>
+        {Array.from({ length: poles }).map((_, i) => (
+          <Lever key={i} cx={poleCx(i)} y={slotY} slotH={slotH} w={leverW} pos={leverPos} color={leverColor} />
+        ))}
+        {poles > 1 && (
+          <rect
+            x={poleCx(0)}
+            y={slotY + 2 + (slotH - 13) * leverPos + 3}
+            width={pw * (poles - 1)}
+            height={3}
+            rx={1}
+            fill="var(--mat-housing-dark-face)"
+            stroke="var(--mat-line)"
+            strokeWidth={0.6}
           />
-        );
-      })}
+        )}
+        {/* ON / OFF arrows printed beside the slot */}
+        <Silk x={3 + 2.2} y={slotY + 4.5} size={3.8} onDark={onDark} muted={!onDark}>I</Silk>
+        <Silk x={3 + 2.2} y={slotY + slotH - 1} size={3.8} onDark={onDark} muted={!onDark}>O</Silk>
+      </g>
+      <Flag cx={W / 2} y={flagY} state={flagState} />
+
+      {/* Silkscreen: breaker symbol, brand, ratings */}
+      <SymBreaker x={9} y={lowerY} s={0.9} dark={onDark} />
+      <Silk x={W / 2 + (poles === 1 ? 3 : 0)} y={lowerY + 4.6} anchor="middle" size={poles === 1 ? 4.6 : 5.2} bold onDark={onDark}>
+        {brand}
+      </Silk>
+      <Silk x={W / 2 + (poles === 1 ? 3 : 0)} y={lowerY + 9.6} anchor="middle" size={4.2} muted={!onDark} onDark={onDark}>
+        {is3P ? '400V~' : '230V~'}
+      </Silk>
+      {/* breaking-capacity box (EN 60898: "6000" + energy class 3) */}
+      {poles > 1 && (
+        <g className="pointer-events-none">
+          <rect x={W - 21} y={lowerY + 0.5} width={14} height={6} fill="none" stroke={onDark ? 'var(--silk-on-dark)' : 'var(--silk)'} strokeWidth={0.5} />
+          <Mono x={W - 14} y={lowerY + 5} size={3.8} anchor="middle" onDark={onDark}>{kA * 1000}</Mono>
+          <rect x={W - 21} y={lowerY + 7} width={6} height={4.5} fill="none" stroke={onDark ? 'var(--silk-on-dark)' : 'var(--silk)'} strokeWidth={0.5} />
+          <Mono x={W - 18} y={lowerY + 10.6} size={3.4} anchor="middle" onDark={onDark}>3</Mono>
+        </g>
+      )}
+
+      {/* Trip-test button (multi-pole) */}
+      {poles > 1 && (
+        <g onClick={click(tripTest)} className="cursor-pointer">
+          <title>Trip test</title>
+          <circle cx={W - 9} cy={faceY + faceH - 6} r={3.4} fill="var(--act-yellow)" stroke="var(--mat-line)" strokeWidth={0.8} />
+          <Mono x={W - 9} y={faceY + faceH - 4.6} size={4} anchor="middle" fill="var(--mat-line)">T</Mono>
+        </g>
+      )}
+      {isMain && <SealHole cx={8} cy={faceY + faceH - 6} />}
+
+      {/* 5 Terminals + IEC markings beside each screw */}
+      <TermIds device={device} local onDark={onDark} size={4.8} side={(t) => (t.relX < 0.5 ? 'left' : 'right')} />
+      <Terminals {...props} local />
     </g>
   );
 };
+

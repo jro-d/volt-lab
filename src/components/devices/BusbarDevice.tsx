@@ -1,73 +1,34 @@
 import React from 'react';
-import { DeviceTerminals, DeviceComponentProps } from './DeviceTerminals';
+import { DeviceProps, Mono, SymEarth, Terminals, TermIds } from './kit';
 
-/**
- * EduVolt-style Vertical DIN-Mounted Earth (PE) or Neutral (N) Busbar Block.
- * Spaced embedded labels tucked vertically inside the 19px gaps between screw terminals.
- */
-export const BusbarDevice: React.FC<DeviceComponentProps> = (props) => {
+/** Neutral (blue insulators) or earth (green-yellow) busbar: tinned copper bar on two standoffs. */
+export const BusbarDevice: React.FC<DeviceProps> = (props) => {
   const { device } = props;
-  const { width, height, terminals, type } = device;
-  const isEarth = type === 'earth_busbar';
-  const insulatorColor = isEarth ? 'var(--cond-green)' : 'var(--cond-blue)';
-  const insulatorDark = isEarth ? 'var(--lamp-green-off)' : 'var(--lamp-blue-off)';
-  const barFill = isEarth ? 'var(--mat-copper)' : 'var(--mat-housing-shade)';
-  const barStroke = isEarth ? 'var(--mat-copper-dark)' : 'var(--mat-housing-dark-face)';
+  const { width: W, height: H } = device;
+  const isEarth = device.type === 'earth_busbar';
+  const cx = W / 2;
+  const standoff = (y: number) => (
+    <g>
+      <rect x={cx - 9} y={y} width={18} height={9} rx={2} fill={isEarth ? 'var(--cond-green)' : 'var(--cond-blue)'} stroke="var(--mat-line)" strokeWidth={0.9} />
+      {isEarth && <path d={`M${cx - 9} ${y + 6}l6 -6M${cx - 3} ${y + 9}l9 -9M${cx + 4} ${y + 9}l5 -5`} stroke="var(--cond-yellow)" strokeWidth={2.2} />}
+      <circle cx={cx} cy={y + 4.5} r={1.6} fill="var(--mat-line)" />
+    </g>
+  );
 
   return (
-    <g className="select-none">
-      <g transform={`translate(${device.x}, ${device.y})`}>
-      {/* Subtle CAD shadow */}
-      <rect x={2} y={2} width={width} height={height} rx={4} fill="transparent" />
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      {/* bar */}
+      <rect x={cx - 7} y={8} width={14} height={H - 16} rx={1.5} fill="var(--mat-copper)" stroke="var(--mat-copper-dark)" strokeWidth={1} />
+      <path d={`M${cx - 4.5} 10V${H - 10}`} stroke="#fff" strokeOpacity={0.3} strokeWidth={1.2} />
+      {standoff(0)}
+      {standoff(H - 9)}
+      {/* bar marking */}
+      <rect x={cx - 7} y={H * 0.5 - 21} width={14} height={8} rx={1} fill="var(--nameplate)" />
+      <Mono x={cx} y={H * 0.5 - 15.6} size={4.6} anchor="middle" onDark>{isEarth ? 'PE' : 'N'}</Mono>
+      {isEarth && <SymEarth x={cx} y={H - 25} s={0.6} />}
 
-      {/* Insulated Top & Bottom DIN Standoff Feet */}
-      <rect x={2} y={0} width={width - 4} height={11} rx={2} fill={insulatorColor} stroke={insulatorDark} strokeWidth={1} />
-      <rect x={2} y={height - 8} width={width - 4} height={8} rx={2} fill={insulatorColor} stroke={insulatorDark} strokeWidth={1} />
-
-      {/* Top Insulated Identification Badge */}
-      <text x={width / 2} y={7.6} textAnchor="middle" fontSize="5.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-        {isEarth ? 'PE' : 'N'}
-      </text>
-
-      {/* Machined Solid Busbar Body */}
-      <rect x={4} y={9} width={width - 8} height={height - 15} rx={2} fill={barFill} stroke={barStroke} strokeWidth={1.1} />
-      <line x1={8} y1={11} x2={8} y2={height - 8} stroke="rgba(255,255,255,0.35)" strokeWidth={1} />
-
-      {/* Engraved Inter-Terminal Grooves & Non-Overlapping Index Labels */}
-      {terminals.map((term, i) => {
-        const cy = term.relY * height;
-        const badgeY = term.relY > 0.82 ? cy - 15.5 : cy + 8.5;
-        return (
-          <g key={`bb-slot-${term.id}`}>
-            {i > 0 && (
-              <line x1={6} y1={cy - 15} x2={width - 6} y2={cy - 15} stroke={barStroke} strokeWidth={0.5} opacity={0.45} />
-            )}
-            <rect
-              x={6}
-              y={badgeY}
-              width={width - 12}
-              height={7}
-              rx={1}
-              fill="var(--mat-line)"
-              opacity={0.85}
-            />
-            <text
-              x={width / 2}
-              y={badgeY + 5.1}
-              textAnchor="middle"
-              fontSize="4.4"
-              fontWeight="900"
-              fontFamily="var(--font-mono)"
-              fill={isEarth ? 'var(--act-yellow)' : '#e0f2fe'}
-            >
-              {term.label}
-            </text>
-          </g>
-        );
-      })}
-
-      </g>
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4} side={() => 'right'} />
+      <Terminals {...props} local />
     </g>
   );
 };

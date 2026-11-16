@@ -1,210 +1,144 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import { Bay, DeviceProps, Led, Mono, Silk, Terminals, TermIds, act, makePatch } from './kit';
 
-/**
- * EduVolt-style Household & HVAC Loads: Smart TV, Stand Fan, 1.5HP Inverter ACU, Instant Water Heater.
- * Crisp CAD styling with embedded bottom L/PE/N pocket labels.
- */
-export const ApplianceDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height, terminals } = device;
-  const isTv = device.type === 'appliance_tv';
-  const isFan = device.type === 'appliance_fan';
-  const isAc = device.type === 'appliance_ac';
-  const isPowered = !!device.state.powered;
+/** Household loads: LED TV, instant water heater (with ELCB test), stand fan and split-type AC. */
+export const ApplianceDevice: React.FC<DeviceProps> = (props) => {
+  const { device } = props;
+  const { width: W, height: H, type } = device;
+  const patch = makePatch(props);
+  const on = !!device.state.powered;
   const hasFault = !!device.state.hasEarthFault;
-  const cx = x + width / 2;
+  const watts = device.state.wattage || 0;
+  const cx = W / 2;
+  const botTy = H * (device.terminals[0]?.relY ?? 0.9);
 
-  // 1. SMART 4K LED TV
-  if (isTv) {
+  /* ───────────── LED TV ───────────── */
+  if (type === 'appliance_tv') {
+    const scrH = H - 24;
     return (
-      <g className="select-none">
-        <path d={`M ${cx - 8} ${y + height - 24} L ${cx - 22} ${y + height - 8} L ${cx + 22} ${y + height - 8} L ${cx + 8} ${y + height - 24} Z`} fill="var(--silk-muted)" stroke="var(--mat-line)" strokeWidth={1} />
-        <rect x={cx - 30} y={y + height - 11} width={60} height={5} rx={2} fill="var(--mat-line-soft)" stroke="var(--mat-line)" strokeWidth={0.9} />
-
-        <rect x={x} y={y} width={width} height={height - 23} rx={4} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={1.3} />
-        <rect x={x + 4} y={y + 4} width={width - 8} height={height - 31} rx={2} fill={isPowered ? 'var(--lamp-blue-on)' : 'var(--mat-line)'} />
-        {isPowered ? (
-          <g>
-            <text x={cx} y={y + 19} textAnchor="middle" fontSize="8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-              4K UHD LIVE
-            </text>
-            <text x={cx} y={y + 29} textAnchor="middle" fontSize="4.8" fontFamily="var(--font-mono)" fill="#bae6fd">
-              HDMI 1 · 150W AC
-            </text>
+      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+        {/* stand */}
+        <path d={`M${cx - 6} ${scrH}l-14 ${H - scrH - 5}h40l-14 ${-(H - scrH - 5)}z`} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={0.9} />
+        <rect x={cx - 24} y={H - 6} width={48} height={4} rx={2} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={0.8} />
+        {/* bezel + panel */}
+        <rect className="d-dark" x={0} y={0} width={W} height={scrH} rx={3} />
+        <rect x={3} y={3} width={W - 6} height={scrH - 8} rx={1.5} fill={on ? 'var(--lamp-blue-off)' : 'var(--mat-line)'} />
+        {on && (
+          <g className="pointer-events-none">
+            <path d={`M3 ${scrH - 12}l18 -12l12 8l16 -14l14 10l14 -6V${scrH - 5}H3z`} fill="var(--lamp-blue-on)" opacity={0.55} />
+            <circle cx={W - 16} cy={12} r={5} fill="var(--lamp-white-on)" opacity={0.8} />
           </g>
-        ) : (
-          <text x={cx} y={y + 24} textAnchor="middle" fontSize="6.5" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-muted)">
-            STANDBY
-          </text>
         )}
-        <circle cx={cx} cy={y + height - 25.5} r={1.8} fill={isPowered ? 'var(--lamp-green-on)' : 'var(--act-red)'} />
-        <DeviceTerminals {...props} hideLabel={() => true} />
+        {!on && <Mono x={cx} y={scrH / 2 + 6} size={4.4} anchor="middle" fill="var(--mat-line-soft)">STANDBY</Mono>}
+        <Led cx={cx} cy={scrH - 2.5} r={1} on color={on ? 'white' : 'red'} ring={false} />
+        <Mono x={W - 5} y={scrH - 1.4} size={3} anchor="end" fill="var(--silk-on-dark)">{`${watts || 120}W`}</Mono>
+        {/* rear inlet pocket for the plug terminal */}
+        <rect className="d-dark-face" x={cx - 9} y={H * (device.terminals[0]?.relY ?? 0.2) - 8} width={18} height={16} rx={2.5} />
+        <Terminals {...props} local />
       </g>
     );
   }
 
-  // 2. ELECTRIC PEDESTAL STAND FAN
-  if (isFan) {
-    const fanSpeed = device.state.speed || 2;
-    const fanCy = y + 42;
+  /* ───────────── Stand fan ───────────── */
+  if (type === 'appliance_fan') {
+    const speed = device.state.speed || 2;
+    const cy = 34;
+    const R = 30;
     return (
-      <g className="select-none">
-        <rect x={cx - 4.5} y={fanCy + 26} width={9} height={height - 84} rx={1.5} fill="var(--mat-steel)" stroke="var(--mat-line)" strokeWidth={0.9} />
-        <rect x={x + 8} y={y + height - 24} width={width - 16} height={22} rx={4} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={1.1} />
-
-        <circle cx={cx} cy={fanCy} r={34} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.3} />
-        <circle cx={cx} cy={fanCy} r={29} fill="none" stroke="var(--mat-steel)" strokeWidth={0.8} />
-
-        <g
-          transform={`translate(${cx}, ${fanCy})`}
-          className={isPowered ? 'animate-spin' : ''}
-          style={{ transformOrigin: '0px 0px', animationDuration: fanSpeed === 3 ? '0.28s' : fanSpeed === 2 ? '0.45s' : '0.7s' }}
-        >
-          {[0, 120, 240].map((deg) => (
-            <path
-              key={deg}
-              transform={`rotate(${deg})`}
-              d="M 0 0 C 8 -10, 24 -12, 26 -2 C 27 7, 10 10, 0 0 Z"
-              fill={isPowered ? 'var(--lamp-blue-on)' : 'var(--mat-steel)'}
-              stroke="var(--mat-line)"
-              strokeWidth={0.8}
-            />
+      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+        {/* pole + base */}
+        <rect className="d-steel" x={cx - 2.5} y={cy + R - 2} width={5} height={botTy - cy - R - 6} />
+        <rect className="d-dark" x={6} y={botTy - 10} width={W - 12} height={H - botTy + 8} rx={4} />
+        {/* guard */}
+        <circle cx={cx} cy={cy} r={R} fill="var(--mat-housing)" fillOpacity={0.4} stroke="var(--mat-steel-dark)" strokeWidth={1.4} />
+        {[0.5, 0.75].map((f) => <circle key={f} cx={cx} cy={cy} r={R * f} fill="none" stroke="var(--mat-steel)" strokeWidth={0.6} />)}
+        {Array.from({ length: 12 }).map((_, i) => {
+          const a = (i / 12) * Math.PI * 2;
+          return <path key={i} d={`M${cx + Math.cos(a) * 6} ${cy + Math.sin(a) * 6}L${cx + Math.cos(a) * R} ${cy + Math.sin(a) * R}`} stroke="var(--mat-steel)" strokeWidth={0.5} />;
+        })}
+        {/* blades */}
+        <g className={on ? 'animate-spin' : undefined} style={{ transformOrigin: `${cx}px ${cy}px`, animationDuration: `${1.2 / speed}s` }}>
+          {[0, 120, 240].map((r) => (
+            <path key={r} d={`M${cx} ${cy}c6 -8 16 -14 4 -${R - 6}c-9 4 -9 14 -4 ${R - 6}z`} fill="var(--lamp-blue-on)" fillOpacity={0.75} stroke="var(--lamp-blue-off)" strokeWidth={0.7} transform={`rotate(${r} ${cx} ${cy})`} />
           ))}
         </g>
-
-        <circle cx={cx} cy={fanCy} r={8.5} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={1} />
-        <text x={cx} y={fanCy + 2} textAnchor="middle" fontSize="4.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-          {isPowered ? `S${fanSpeed}` : 'FAN'}
-        </text>
-
-        {/* Embedded L / PE / N Pocket Strip */}
-        <rect x={x + 10} y={y + height - 24} width={width - 20} height={7} fill="var(--mat-line)" />
-        {terminals.map((t) => (
-          <text
-            key={`ft-${t.id}`}
-            x={x + t.relX * width}
-            y={y + height - 18.8}
-            textAnchor="middle"
-            fontSize="4.1"
-            fontWeight="900"
-            fontFamily="var(--font-mono)"
-            fill={t.type === 'earth' ? 'var(--lamp-green-on)' : t.type === 'neutral' ? 'var(--lamp-blue-on)' : 'var(--lamp-red-on)'}
-          >
-            {t.label}
-          </text>
+        <circle cx={cx} cy={cy} r={6} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={0.8} />
+        <Mono x={cx} y={cy + 1.4} size={3.6} anchor="middle" onDark>{on ? speed : 'OFF'}</Mono>
+        {/* speed keys on the base */}
+        {[1, 2, 3].map((s) => (
+          <g key={s} {...act(() => patch({ speed: s }))}>
+            <title>{`Speed ${s}`}</title>
+            <rect x={cx - 16 + (s - 1) * 11} y={botTy - 22} width={10} height={7} rx={1.5} fill={speed === s ? 'var(--act-blue)' : 'var(--mat-housing-shade)'} stroke="var(--mat-line)" strokeWidth={0.6} />
+            <Mono x={cx - 11 + (s - 1) * 11} y={botTy - 16.8} size={4} anchor="middle" fill={speed === s ? 'var(--on-act)' : undefined}>{s}</Mono>
+          </g>
         ))}
-
-        <DeviceTerminals {...props} hideLabel={() => true} />
+        <Bay x={9} y={botTy - 8} w={W - 18} h={16} dark />
+        <TermIds device={device} local size={3.6} onDark side={() => 'above'} gap={-1.6} />
+        <Terminals {...props} local />
       </g>
     );
   }
 
-  // 3. 1.5HP INVERTER SPLIT-TYPE ACU
-  if (isAc) {
+  /* ───────────── Split-type AC indoor unit ───────────── */
+  if (type === 'appliance_ac') {
     const temp = device.state.setTemp || 16;
+    const bodyH = botTy - 12;
     return (
-      <g className="select-none">
-        <rect x={x + 2} y={y + 3} width={width} height={height - 3} rx={5} fill="transparent" />
-        <rect x={x} y={y} width={width} height={height - 2} rx={5} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-        {[6, 10, 14].map((ly) => (
-          <line key={ly} x1={x + 10} y1={y + ly} x2={x + width - 10} y2={y + ly} stroke="var(--mat-housing-shade)" strokeWidth={1} />
+      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+        <rect className="d-housing" x={0} y={0} width={W} height={bodyH} rx={8} />
+        <path d={`M8 6H${W - 8}`} stroke="var(--mat-housing-shade)" strokeWidth={1} />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <path key={i} d={`M10 ${8 + i * 2.6}H${W - 10}`} stroke="var(--mat-line-soft)" strokeWidth={0.5} />
         ))}
-        <rect x={x + 10} y={y + 20} width={56} height={12} rx={2} fill="var(--mat-line)" />
-        <text x={x + 38} y={y + 28} textAnchor="middle" fontSize="5.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--nameplate-tag)">
-          INVERTER 1.5HP
-        </text>
-
-        <rect x={x + width - 50} y={y + 19} width={40} height={14} rx={2} fill="var(--mat-line)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.8} />
-        <text x={x + width - 30} y={y + 29} textAnchor="middle" fontSize="8" fontWeight="900" fontFamily="var(--font-mono)" fill={isPowered ? 'var(--nameplate-tag)' : 'var(--silk-muted)'}>
-          {isPowered ? `${temp}°C` : 'OFF'}
-        </text>
-
-        {/* Discharge Deflector + Embedded Bottom Terminal Bay */}
-        <rect x={x + 8} y={y + 38} width={width - 16} height={5} rx={1.5} fill={isPowered ? 'var(--lamp-blue-on)' : 'var(--mat-housing-shade)'} stroke="var(--silk-muted)" strokeWidth={0.6} />
-
-        <rect x={x + 4} y={y + height - 24} width={width - 8} height={7} fill="var(--mat-line)" />
-        {terminals.map((t) => (
-          <text
-            key={`act-${t.id}`}
-            x={x + t.relX * width}
-            y={y + height - 18.8}
-            textAnchor="middle"
-            fontSize="4.2"
-            fontWeight="900"
-            fontFamily="var(--font-mono)"
-            fill={t.type === 'earth' ? 'var(--lamp-green-on)' : t.type === 'neutral' ? 'var(--lamp-blue-on)' : 'var(--lamp-red-on)'}
-          >
-            {t.label}
-          </text>
-        ))}
-        <rect x={x + 4} y={y + height - 17} width={width - 8} height={15} rx={2} fill="var(--mat-housing-dark)" />
-
-        <DeviceTerminals {...props} hideLabel={() => true} />
+        {/* display */}
+        <rect x={cx - 15} y={bodyH * 0.42} width={30} height={12} rx={2} fill="var(--console)" />
+        <Mono x={cx + 6} y={bodyH * 0.42 + 9.2} size={8} anchor="end" fill={on ? 'var(--console-readout)' : 'var(--console-muted)'}>{on ? temp : '--'}</Mono>
+        <Mono x={cx + 8} y={bodyH * 0.42 + 9.2} size={3.8} fill="var(--console-muted)">°C</Mono>
+        <Led cx={cx + 22} cy={bodyH * 0.42 + 6} r={1.3} on={on} color="green" ring={false} />
+        <Silk x={10} y={bodyH * 0.42 + 9} size={4.4} bold muted>INVERTER</Silk>
+        {/* louvre (open when running) */}
+        <rect x={10} y={bodyH - 9} width={W - 20} height={on ? 6 : 3} rx={1.5} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={0.6} />
+        {on && [0, 1, 2].map((i) => <path key={i} d={`M${W * (0.3 + i * 0.2)} ${bodyH + 1}q-3 4 0 8`} fill="none" stroke="var(--lamp-blue-on)" strokeWidth={0.8} opacity={0.7} />)}
+        <Mono x={W - 10} y={bodyH * 0.42 + 9} size={3.6} anchor="end" muted>{`${((watts || 1200) / 1000).toFixed(1)}kW`}</Mono>
+        <Bay x={W * 0.18} y={botTy - 8} w={W * 0.64} h={16} />
+        <TermIds device={device} local size={3.8} side={(t) => (t.relX < 0.5 ? 'left' : 'right')} />
+        <Terminals {...props} local />
       </g>
     );
   }
 
-  // 4. INSTANT WATER HEATER (3.5kW / 4.5kW)
-  const wattageKw = ((device.state.wattage || 3500) / 1000).toFixed(1);
+  /* ───────────── Instant water heater ───────────── */
+  const kw = ((watts || 3500) / 1000).toFixed(1);
   return (
-    <g className="select-none">
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="transparent" />
-      <rect x={x} y={y} width={width} height={height} rx={5} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-      <rect x={x + 6} y={y + 5} width={width - 12} height={14} rx={2} fill="var(--lamp-blue-off)" />
-      <text x={cx} y={y + 14.2} textAnchor="middle" fontSize="6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-        HEATER {wattageKw}kW
-      </text>
-
-      {/* Temperature Knob */}
-      <circle cx={cx} cy={y + 42} r={14.5} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1} />
-      <circle cx={cx} cy={y + 42} r={10} fill="var(--silk-muted)" stroke="var(--mat-line)" strokeWidth={0.9} />
-      <line x1={cx} y1={y + 33} x2={cx} y2={y + 38} stroke="var(--act-red)" strokeWidth={2.2} strokeLinecap="round" />
-
-      {/* Heating LED & Test ELCB */}
-      <circle cx={x + 15} cy={y + 72} r={3} fill={isPowered ? 'var(--act-red)' : 'var(--mat-line-soft)'} stroke="var(--mat-line)" strokeWidth={0.6} />
-      <text x={x + 21} y={y + 74} fontSize="5" fontWeight="900" fill="var(--silk)">
-        ELCB
-      </text>
-      <g
-        onMouseDown={stopCanvas}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (onPatchState) onPatchState(device.id, { hasEarthFault: !hasFault });
-          else {
-            device.state.hasEarthFault = !hasFault;
-            onToggleState?.({ ...device, state: { ...device.state, hasEarthFault: !hasFault } });
-          }
-        }}
-        className="cursor-pointer"
-      >
-        <rect x={x + width - 44} y={y + 65} width={37} height={13} rx={2} fill={hasFault ? 'var(--cond-red)' : 'var(--mat-housing-shade)'} stroke="var(--mat-line)" strokeWidth={0.8} />
-        <text x={x + width - 25.5} y={y + 73.5} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill={hasFault ? 'var(--silk-on-dark)' : 'var(--silk)'}>
-          {hasFault ? 'FAULT!' : 'TEST'}
-        </text>
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      <rect className="d-housing" x={0} y={0} width={W} height={H} rx={8} />
+      <rect className="d-nameplate" x={10} y={7} width={W - 20} height={10} rx={2} />
+      <Silk x={cx} y={14} size={5} anchor="middle" bold onDark>{`HEATER ${kw}kW`}</Silk>
+      {/* temperature knob */}
+      <circle cx={cx} cy={42} r={15} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={0.9} />
+      <circle cx={cx} cy={42} r={11} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={1} />
+      <path d={`M${cx} 33v6`} stroke="var(--act-red)" strokeWidth={2} strokeLinecap="round" />
+      <path d={`M${cx - 17} 52a19 19 0 0 1 0 -20`} fill="none" stroke="var(--act-blue)" strokeWidth={1.4} />
+      <path d={`M${cx + 17} 32a19 19 0 0 1 0 20`} fill="none" stroke="var(--act-red)" strokeWidth={1.4} />
+      {/* heating LED + built-in ELCB */}
+      <Led cx={14} cy={70} r={2.2} on={on && !hasFault} color="red" />
+      <Silk x={19} y={71.6} size={4.4} muted>HEAT</Silk>
+      <rect className="d-shade" x={W - 45} y={63} width={38} height={14} rx={2} />
+      <g {...act(() => patch({ hasEarthFault: !hasFault }))}>
+        <title>{hasFault ? 'Clear the simulated earth fault' : 'TEST: simulate an earth fault on the heating element'}</title>
+        <rect x={W - 43} y={65} width={34} height={10} rx={1.5} fill={hasFault ? 'var(--danger)' : 'var(--mat-housing)'} stroke="var(--mat-line)" strokeWidth={0.7} />
+        <Mono x={W - 26} y={71.6} size={4.2} anchor="middle" fill={hasFault ? 'var(--surface)' : undefined}>{hasFault ? 'FAULT' : 'ELCB TEST'}</Mono>
       </g>
-
-      {/* Bottom Embedded Silkscreen + Pocket */}
-      <rect x={x + 4} y={y + height - 26} width={width - 8} height={7} fill="var(--mat-line)" />
-      {terminals.map((t) => (
-        <text
-          key={`wht-${t.id}`}
-          x={x + t.relX * width}
-          y={y + height - 20.8}
-          textAnchor="middle"
-          fontSize="4.2"
-          fontWeight="900"
-          fontFamily="var(--font-mono)"
-          fill={t.type === 'earth' ? 'var(--lamp-green-on)' : t.type === 'neutral' ? 'var(--lamp-blue-on)' : 'var(--lamp-red-on)'}
-        >
-          {t.label}
-        </text>
+      {/* water pipes */}
+      {[W * 0.3, W * 0.7].map((px, i) => (
+        <g key={px} className="pointer-events-none">
+          <rect className="d-steel" x={px - 3} y={82} width={6} height={10} />
+          <circle cx={px} cy={87} r={1.2} fill={i === 0 ? 'var(--act-blue)' : 'var(--act-red)'} />
+        </g>
       ))}
-      <rect x={x + 4} y={y + height - 19} width={width - 8} height={17} rx={2} fill="var(--mat-housing-dark)" />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <Bay x={8} y={botTy - 8} w={W - 16} h={16} />
+      <TermIds device={device} local size={3.8} side={() => 'right'} />
+      <Terminals {...props} local />
     </g>
   );
 };

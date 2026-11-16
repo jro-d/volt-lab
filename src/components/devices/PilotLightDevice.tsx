@@ -1,66 +1,53 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import { Bay, DeviceProps, Housing, LampColor, Mono, SymLamp, Terminals, TermIds, act } from './kit';
 
-/**
- * EduVolt-style 22mm Panel Pilot Lamp Indicator (Green / Red / Amber / Blue).
- */
-export const PilotLightDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height } = device;
-  const isLit = !!device.state.pilotLit;
-  const color = device.state.pilotColor || 'green';
-  const cx = x + width / 2;
-  const lensCy = y + 27;
-
-  const palette: Record<string, { on: string; off: string; dark: string }> = {
-    green: { on: 'var(--lamp-green-on)', off: 'var(--cond-green)', dark: 'var(--lamp-green-off)' },
-    red: { on: 'var(--lamp-red-on)', off: 'var(--cond-red)', dark: 'var(--lamp-red-off)' },
-    amber: { on: 'var(--act-yellow)', off: 'var(--mat-copper)', dark: 'var(--mat-copper-dark)' },
-    blue: { on: 'var(--lamp-blue-on)', off: 'var(--cond-blue)', dark: 'var(--lamp-blue-off)' },
-  };
-  const pal = palette[color] || palette.green;
-
-  const handleToggleColor = (e: React.MouseEvent) => {
-    e.stopPropagation();
+/** 22 mm LED pilot light (IEC 60073 colours). Lit when X1-X2 is energized; click the bezel to change colour. */
+export const PilotLightDevice: React.FC<DeviceProps> = (props) => {
+  const { device, onPatchState, onToggleState } = props;
+  const { width: W, height: H } = device;
+  const lit = !!device.state.pilotLit;
+  const color = (device.state.pilotColor || 'green') as LampColor;
+  const cycle = () => {
     const colors = ['green', 'red', 'amber', 'blue'];
     const next = colors[(colors.indexOf(color) + 1) % colors.length];
     if (onPatchState) onPatchState(device.id, { pilotColor: next });
     else onToggleState?.({ ...device, state: { ...device.state, pilotColor: next } });
   };
+  const ty = H * (device.terminals[0]?.relY ?? 0.88);
+  const botBayY = ty - 8;
+  const cx = W / 2;
+  const cy = H * 0.36;
+  const lens = `var(--lamp-${color}-${lit ? 'on' : 'off'})`;
 
   return (
-    <g id={`device-${device.id}`} className="select-none">
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="transparent" />
-      <rect x={x} y={y} width={width} height={height} rx={5} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.3} />
-      <rect x={x + 3} y={y + 3} width={width - 6} height={height - 27} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-line-soft)" strokeWidth={0.9} />
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      <Housing w={W} h={H} m="dark" rx={4} />
+      <Bay x={3} y={botBayY} w={W - 6} h={16} dark />
 
-      {/* Halo Glow when Energized */}
-      {isLit && <circle cx={cx} cy={lensCy} r={21} fill={pal.on} opacity={0.32} className="pointer-events-none" />}
-
-      {/* 22mm Dome Lens Bezel */}
-      <g onMouseDown={stopCanvas} onClick={handleToggleColor} className="cursor-pointer">
-        <title>Click bezel to cycle pilot color (Green / Red / Amber / Blue)</title>
-        <circle cx={cx} cy={lensCy} r={16.5} fill="var(--mat-steel)" stroke="var(--mat-line)" strokeWidth={1.1} />
-        <circle cx={cx} cy={lensCy} r={13.5} fill="var(--mat-housing-dark)" />
-        <circle cx={cx} cy={lensCy} r={11.5} fill={isLit ? pal.on : pal.off} stroke={pal.dark} strokeWidth={0.9} />
-        <path d={`M ${cx - 6} ${lensCy - 4} A 8 8 0 0 1 ${cx} ${lensCy - 8}`} fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth={1.8} strokeLinecap="round" />
+      <g {...act(cycle)}>
+        <title>Click the bezel to change colour (green / red / amber / blue)</title>
+        {lit && <circle cx={cx} cy={cy} r={22} fill="var(--lamp-glow)" />}
+        {/* chrome bezel with knurling */}
+        <circle cx={cx} cy={cy} r={15} fill="var(--mat-steel)" stroke="var(--mat-line)" strokeWidth={1} />
+        {Array.from({ length: 24 }).map((_, i) => {
+          const a = (i / 24) * Math.PI * 2;
+          return <path key={i} d={`M${cx + Math.cos(a) * 13.4} ${cy + Math.sin(a) * 13.4}L${cx + Math.cos(a) * 15} ${cy + Math.sin(a) * 15}`} stroke="var(--mat-steel-dark)" strokeWidth={0.6} />;
+        })}
+        <circle cx={cx} cy={cy} r={12} fill={lens} stroke="var(--mat-line)" strokeWidth={0.9} />
+        {/* LED cluster behind the fresnel lens */}
+        {[0, 1, 2, 3, 4, 5].map((i) => {
+          const a = (i / 6) * Math.PI * 2;
+          return <circle key={i} cx={cx + Math.cos(a) * 5.5} cy={cy + Math.sin(a) * 5.5} r={1.4} fill="#fff" opacity={lit ? 0.55 : 0.12} />;
+        })}
+        <circle cx={cx} cy={cy} r={1.6} fill="#fff" opacity={lit ? 0.7 : 0.15} />
+        <path d={`M${cx - 7} ${cy - 6}a9 9 0 0 1 8 -3.6`} fill="none" stroke="#fff" strokeOpacity={0.55} strokeWidth={1.2} strokeLinecap="round" />
       </g>
 
-      <text x={cx} y={y + 52} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-        {isLit ? `● ${color.toUpperCase()} ON` : `22mm ${color.toUpperCase()}`}
-      </text>
+      <SymLamp x={W - 9} y={cy + 20} s={0.9} dark />
+      <Mono x={cx} y={cy + 22} size={4.2} anchor="middle" onDark>{`${color.toUpperCase()} 24–240V`}</Mono>
 
-      {/* Embedded Bottom Silkscreen + Terminal Bay */}
-      <rect x={x + 3} y={y + height - 24} width={width - 6} height={7} fill="var(--mat-line)" />
-      <text x={x + width * 0.30} y={y + height - 18.8} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-red-on)">
-        X1
-      </text>
-      <text x={x + width * 0.70} y={y + height - 18.8} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-        X2
-      </text>
-      <rect x={x + 3} y={y + height - 17} width={width - 6} height={15} rx={2} fill="var(--mat-housing-dark)" />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4.4} onDark side={(t) => (t.relX < 0.5 ? 'left' : 'right')} />
+      <Terminals {...props} local />
     </g>
   );
 };

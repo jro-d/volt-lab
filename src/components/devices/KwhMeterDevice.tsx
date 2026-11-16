@@ -1,114 +1,64 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals } from './DeviceTerminals';
+import { Bay, DeviceProps, Housing, Led, Mono, Nameplate, SealHole, Silk, Terminals, TermIds, deviceTag } from './kit';
 
 /**
- * EduVolt-style Digital Kilowatt-Hour Utility Meter (1P / 3P).
- * Flat CAD metering housing, crisp backlit LCD telemetry display, impulse LED,
- * and embedded L/N/N/L bottom terminal pocket band with zero overlap.
+ * Single-phase revenue kWh meter (IEC 62053-21, class 1): hanging hook, clear cover over an LCD
+ * register, 1600 imp/kWh test LED that blinks while energized, sealed terminal cover below.
  */
-export const KwhMeterDevice: React.FC<DeviceComponentProps> = (props) => {
+export const KwhMeterDevice: React.FC<DeviceProps> = (props) => {
   const { device } = props;
-  const { x, y, width, height, type } = device;
-  const is3P = type === 'kwh_meter_3p';
-  const cx = x + width / 2;
-  const voltage = Number(device.state.voltageIn ?? 230);
-  const kwhVal = Number(device.state.kwh ?? 123.45).toFixed(2).padStart(7, '0');
-  const freq = Number(device.state.frequency ?? 60);
-  const isEnergized = device.state.energized !== false;
-
-  const botLabels: Array<{ relX: number; text: string; color: string }> = [
-    { relX: 0.22, text: 'L IN', color: 'var(--lamp-red-on)' },
-    { relX: 0.40, text: 'N IN', color: 'var(--lamp-blue-on)' },
-    { relX: 0.60, text: 'N OUT', color: 'var(--lamp-blue-on)' },
-    { relX: 0.78, text: 'L OUT', color: 'var(--lamp-red-on)' },
-  ];
+  const { width: W, height: H } = device;
+  const on = device.state.energized !== false;
+  const kwh = Number(device.state.kwh ?? 0);
+  const v = device.state.voltageIn || 230;
+  const hz = device.state.frequency || 60;
+  const ty = H * (device.terminals[0]?.relY ?? 0.9);
+  const bayY = ty - 9;
+  const coverY = bayY - 22;
+  const cx = W / 2;
+  const reading = kwh.toFixed(1).padStart(7, '0');
 
   return (
-    <g className="select-none">
-      {/* Subtle Architectural CAD Shadow */}
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={6} fill="transparent" />
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      {/* hanging hook */}
+      <path d={`M${cx - 6} 2V-3a6 6 0 0 1 12 0V2`} fill="none" stroke="var(--mat-steel-dark)" strokeWidth={2} />
+      <Housing w={W} h={H} m="light" rx={5} />
+      {/* clear cover outline */}
+      <rect x={4} y={4} width={W - 8} height={coverY - 6} rx={4} fill="var(--mat-housing-shade)" opacity={0.35} stroke="var(--mat-line-soft)" strokeWidth={0.6} />
+      <Nameplate x={10} y={10} w={W - 20} h={9} tag={deviceTag(device) || 'P'} center="kWh METER" text="CL.1" size={5} />
 
-      {/* Top Mounting Lug Tab */}
-      <rect x={cx - 11} y={y - 5} width={22} height={7} rx={2} fill="var(--mat-line-soft)" stroke="var(--mat-line)" strokeWidth={1} />
-      <circle cx={cx} cy={y - 2} r={2} fill="var(--mat-housing-shade)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.7} />
+      {/* LCD register */}
+      <rect className="d-dark-face" x={14} y={24} width={W - 28} height={30} rx={2.5} />
+      <rect className="d-lcd" x={17} y={27} width={W - 34} height={24} rx={1.5} />
+      <Mono x={W - 36} y={45} size={12} anchor="end" fill={on ? 'var(--lcd-ink)' : 'var(--mat-line-soft)'}>{reading}</Mono>
+      <Mono x={W - 21} y={45} size={5} anchor="end" fill="var(--lcd-ink)">kWh</Mono>
+      <Mono x={20} y={33} size={3.8} fill="var(--lcd-ink)">{on ? 'T1 ▸' : 'NO V'}</Mono>
 
-      {/* Main Molded Meter Housing */}
-      <rect x={x} y={y} width={width} height={height} rx={6} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.4} />
+      {/* Test LED + optical port */}
+      <Led cx={24} cy={66} r={2.2} on={on} color="red" />
+      <Mono x={30} y={67.6} size={4.2}>1600 imp/kWh</Mono>
+      <circle cx={W - 24} cy={66} r={7} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={0.8} />
+      <circle cx={W - 24} cy={66} r={3} fill="var(--mat-line)" />
+      <Silk x={W - 24} y={77.5} size={3.6} anchor="middle" muted>OPTO</Silk>
 
-      {/* Top Dark EduVolt / Utility Banner */}
-      <rect x={x + 3} y={y + 3} width={width - 6} height={19} rx={3} fill="var(--nameplate)" />
-      <text x={x + 9} y={y + 13} fontSize="6" fontWeight="900" fontFamily="var(--font-display)" fill="var(--silk-on-dark)">
-        VoltLab
-      </text>
-      <text x={x + width - 9} y={y + 13} textAnchor="end" fontSize="5" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--nameplate-tag)">
-        {is3P ? '3Φ METER' : 'kWh 230V'}
-      </text>
-      <text x={x + 9} y={y + 19.5} fontSize="4.1" fontWeight="700" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-        CLASS 1.0 · IEC 62053-21
-      </text>
-
-      {/* Recessed LCD Telemetry Window */}
-      <rect x={x + 10} y={y + 27} width={width - 20} height={48} rx={3} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={1.1} />
-      <rect x={x + 14} y={y + 31} width={width - 28} height={36} rx={2} fill={isEnergized ? '#ecfccb' : 'var(--mat-housing-shade)'} stroke="var(--lamp-green-off)" strokeWidth={0.8} />
-
-      {/* Top LCD Telemetry Header */}
-      <text x={x + 18} y={y + 39} fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-off)">
-        {device.state.tag || 'MTR-01'}
-      </text>
-      <text x={x + width - 18} y={y + 39} textAnchor="end" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-off)">
-        {voltage}V · {freq}Hz
-      </text>
-
-      {/* Main kWh Readout */}
-      <text x={cx + 22} y={y + 56} textAnchor="end" fontSize="12.5" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)" letterSpacing="0.8">
-        {kwhVal}
-      </text>
-      <text x={x + width - 18} y={y + 56} textAnchor="end" fontSize="6.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-off)">
-        kWh
-      </text>
-
-      {/* Impulse LED & Calibration Bar */}
-      <circle cx={x + 22} cy={y + 88} r={3.2} fill={isEnergized ? 'var(--act-red)' : 'var(--silk-muted)'} stroke="var(--mat-line)" strokeWidth={0.7} />
-      {isEnergized && <circle cx={x + 22} cy={y + 88} r={5.5} fill="var(--act-red)" opacity={0.28} className="animate-ping" />}
-      <text x={x + 29} y={y + 89.8} fontSize="4.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-        1600 imp/kWh
-      </text>
-
-      {/* IEC Optical Probe & Nameplate Specs */}
-      <circle cx={x + width - 22} cy={y + 92} r={8.5} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={0.9} />
-      <circle cx={x + width - 22} cy={y + 92} r={4.5} fill="var(--mat-line)" />
-      <rect x={x + 10} y={y + 102} width={width - 42} height={24} rx={2} fill="var(--mat-housing)" stroke="var(--mat-steel)" strokeWidth={0.8} />
-      <text x={x + 14} y={y + 111.5} fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-        {is3P ? '3×230/400V 10(100)A' : '1Φ2W 230V 10(60)A'}
-      </text>
-      <text x={x + 14} y={y + 120.5} fontSize="4.2" fontWeight="700" fontFamily="var(--font-mono)" fill="var(--silk-muted)">
-        UTILITY REVENUE SEAL
-      </text>
-
-      {/* Embedded Bottom Silkscreen Label Band */}
-      <rect x={x + 4} y={y + height - 39} width={width - 8} height={11} fill="var(--nameplate)" />
-      {botLabels.map((lbl) => (
-        <text
-          key={`km-${lbl.text}`}
-          x={x + width * lbl.relX}
-          y={y + height - 31.5}
-          textAnchor="middle"
-          fontSize="4.8"
-          fontWeight="900"
-          fontFamily="var(--font-mono)"
-          fill={lbl.color}
-        >
-          {lbl.text}
-        </text>
+      {/* Rating plate */}
+      <rect className="d-face" x={14} y={84} width={W - 28} height={coverY - 92} rx={1.5} />
+      <Mono x={18} y={91} size={4.2}>{`${v}V  10(60)A  ${hz}Hz`}</Mono>
+      <Mono x={18} y={97.5} size={3.6} muted>IEC 62053-21 · 1Φ 2W</Mono>
+      <Silk x={18} y={105} size={3.8} muted>UTILITY REVENUE METER</Silk>
+      {/* barcode */}
+      {Array.from({ length: 22 }).map((_, i) => (
+        <rect key={i} x={W - 46 + i * 1.4} y={99} width={(i * 7) % 3 === 0 ? 0.9 : 0.5} height={7} fill="var(--mat-line)" />
       ))}
 
-      {/* Bottom Terminal Cover & Screw Bay */}
-      <rect x={x + 4} y={y + height - 28} width={width - 8} height={25} rx={2.5} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={1} />
-      {[0.31, 0.50, 0.69].map((r) => (
-        <line key={`md-${r}`} x1={x + width * r} y1={y + height - 28} x2={x + width * r} y2={y + height - 3} stroke="var(--silk-muted)" strokeWidth={0.8} />
-      ))}
+      {/* Terminal cover with seal */}
+      <rect className="d-shade" x={3} y={coverY} width={W - 6} height={H - coverY - 3} rx={3} />
+      <SealHole cx={10} cy={coverY + 6} />
+      <SealHole cx={W - 10} cy={coverY + 6} />
+      <Bay x={6} y={bayY} w={W - 12} h={18} />
 
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4} gap={4.6} text={(t) => (t.label || t.id).replace('_', ' ')} />
+      <Terminals {...props} local />
     </g>
   );
 };

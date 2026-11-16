@@ -1,296 +1,194 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import {
+  Bay, DeviceProps, DinClip, Face, Housing, LegendPlate, Led, Mono, Nameplate, PushButton, Screw, Silk, SymCoil, SymNC, SymNO,
+  Terminals, TermIds, act, deviceTag, makePatch,
+} from './kit';
 
 /**
- * EduVolt-style Extended Industrial Controls: On-Delay Timer Relay (RE17), HOA Selector, Limit Switch, and VFD Drive.
+ * Control extensions: on-delay timer relay (KT), HAND-OFF-AUTO selector (SA), roller-lever limit
+ * switch (SQ) and a variable-frequency drive (U) with keypad.
  */
-export const IndustrialControlExtDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height, type, state, terminals } = device;
+export const IndustrialControlExtDevice: React.FC<DeviceProps> = (props) => {
+  const { device } = props;
+  const { width: W, height: H, type, state } = device;
+  const patch = makePatch(props);
+  const tag = deviceTag(device);
+  const tTop = H * (device.terminals[0]?.relY ?? 0.08);
 
-  const patch = (next: Record<string, any>, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onPatchState) onPatchState(device.id, next);
-    else onToggleState?.({ ...device, state: { ...device.state, ...next } });
-  };
-
+  /* ───────────── Timer relay (on-delay) ───────────── */
   if (type === 'timer_relay') {
     const delaySec = typeof state.delaySec === 'number' ? state.delaySec : 5;
     const elapsedSec = typeof state.elapsedSec === 'number' ? state.elapsedSec : 0;
     const energized = !!state.energized;
     const timedOut = !!state.timedOut;
-    const tag = state.tag || 'KT1';
-
+    const presets = [2, 5, 10, 15];
+    const frac = Math.min(1, elapsedSec / delaySec);
+    const topBayY = tTop - 8;
+    const botTy = H * (device.terminals.find((t) => t.relY > 0.5)?.relY ?? 0.92);
+    const botBayY = botTy - 8;
+    const faceY = topBayY + 18;
+    const faceH = botBayY - 2 - faceY;
+    const cx = W / 2;
+    const dialCy = faceY + 36;
+    const ang = ((-135 + (presets.indexOf(delaySec) / 3) * 270 - 90) * Math.PI) / 180;
     return (
-      <g id={`device-${device.id}`} className="select-none">
-        <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="transparent" />
-        {/* Dark Slate DIN Timer Enclosure (RE17 aesthetic) */}
-        <rect x={x} y={y} width={width} height={height} rx={4} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-        {/* Top Bay + Silkscreen A1/A2 */}
-        <rect x={x + 3} y={y + 2} width={width - 6} height={16} rx={2} fill="var(--mat-housing-dark)" />
-        <rect x={x + 3} y={y + 18} width={width - 6} height={7.5} fill="var(--mat-line)" />
-        <text x={x + width * 0.25} y={y + 23.4} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--port-control)">
-          A1
-        </text>
-        <text x={x + width * 0.75} y={y + 23.4} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-          A2
-        </text>
-
-        {/* Header Band */}
-        <rect x={x + 3} y={y + 26.5} width={width - 6} height={11} fill="var(--cond-green)" />
-        <text x={x + 7} y={y + 34} fontSize="5" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-          {tag} · ON-DLY
-        </text>
-        <circle cx={x + width - 16} cy={y + 32} r={2.2} fill={energized ? 'var(--lamp-green-on)' : 'var(--lamp-green-off)'} />
-        <circle cx={x + width - 9} cy={y + 32} r={2.2} fill={timedOut ? 'var(--lamp-amber-on)' : 'var(--mat-copper-dark)'} />
-
-        {/* Time Setting Dial */}
-        <g
-          transform={`translate(${x + width / 2}, ${y + 57})`}
-          onMouseDown={stopCanvas}
-          onClick={(e) => {
-            const presets = [2, 5, 10, 15];
-            const idx = presets.indexOf(delaySec);
-            patch({ delaySec: presets[(idx + 1) % presets.length], elapsedSec: 0, timedOut: false }, e);
-          }}
-          className="cursor-pointer"
-        >
-          <title>{`Click dial to cycle delay preset (${delaySec}s)`}</title>
-          <circle r={15.5} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1} />
-          <circle r={11.5} fill="var(--mat-housing)" stroke="var(--silk-muted)" strokeWidth={0.8} />
-          <circle
-            r={14.5}
-            fill="none"
-            stroke={energized ? 'var(--lamp-amber-on)' : 'transparent'}
-            strokeWidth={2.2}
-            strokeDasharray={`${Math.min(1, elapsedSec / Math.max(0.1, delaySec)) * 91} 91`}
-          />
-          <text x={0} y={3} textAnchor="middle" fontSize="7.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-            {delaySec}s
-          </text>
+      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+        <DinClip cx={cx} y={H} />
+        <Housing w={W} h={H} />
+        <Bay x={3} y={topBayY} w={W - 6} h={16} />
+        <Bay x={3} y={botBayY} w={W - 6} h={16} />
+        <Face x={3} y={faceY} w={W - 6} h={faceH} />
+        <Nameplate x={3} y={faceY + 6} w={W - 6} h={8} tag={tag || 'KT'} text="ON-DELAY" size={4.6} />
+        {/* status LEDs */}
+        <Led cx={12} cy={faceY + 21} r={1.8} on={energized} color="green" />
+        <Mono x={16} y={faceY + 22.6} size={3.6} muted>U</Mono>
+        <Led cx={W - 18} cy={faceY + 21} r={1.8} on={timedOut} color="amber" />
+        <Mono x={W - 14} y={faceY + 22.6} size={3.6} muted>R</Mono>
+        {/* time dial with progress ring */}
+        <g {...act(() => patch({ delaySec: presets[(Math.max(0, presets.indexOf(delaySec)) + 1) % presets.length], elapsedSec: 0, timedOut: false }))}>
+          <title>{`Click the dial to change the delay (${delaySec} s)`}</title>
+          <circle cx={cx} cy={dialCy} r={14} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={0.8} />
+          {energized && (
+            <circle cx={cx} cy={dialCy} r={14} fill="none" stroke="var(--ok)" strokeWidth={2} strokeDasharray={`${frac * 88} 88`} transform={`rotate(-90 ${cx} ${dialCy})`} />
+          )}
+          {presets.map((p, i) => {
+            const a = ((-135 + (i / 3) * 270 - 90) * Math.PI) / 180;
+            return <Mono key={p} x={cx + Math.cos(a) * 19} y={dialCy + Math.sin(a) * 19 + 1.4} size={3.6} anchor="middle" muted>{p}</Mono>;
+          })}
+          <circle cx={cx} cy={dialCy} r={9} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={1} />
+          <path d={`M${cx} ${dialCy}L${cx + Math.cos(ang) * 8} ${dialCy + Math.sin(ang) * 8}`} stroke="var(--act-red)" strokeWidth={1.4} strokeLinecap="round" />
         </g>
-
-        <text x={x + width / 2} y={y + 82} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill={timedOut ? 'var(--lamp-amber-on)' : energized ? 'var(--lamp-green-on)' : 'var(--silk-on-dark)'}>
-          {timedOut ? '15-18 CLOSED' : energized ? `RUN ${elapsedSec.toFixed(1)}s` : 'READY'}
-        </text>
-
-        {/* Bottom Silkscreen + Terminal Pocket */}
-        <rect x={x + 3} y={y + height - 26.5} width={width - 6} height={7.5} fill="var(--mat-line)" />
-        <text x={x + width * 0.22} y={y + height - 21} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-          15 COM
-        </text>
-        <text x={x + width * 0.50} y={y + height - 21} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-amber-on)">
-          16 NC
-        </text>
-        <text x={x + width * 0.78} y={y + height - 21} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-on)">
-          18 NO
-        </text>
-        <rect x={x + 3} y={y + height - 19} width={width - 6} height={17} rx={2} fill="var(--mat-housing-dark)" />
-
-        <DeviceTerminals {...props} hideLabel={() => true} />
+        <Mono x={cx} y={dialCy + 24} size={4.4} anchor="middle">{energized ? `${elapsedSec.toFixed(1)} / ${delaySec} s` : `t = ${delaySec} s`}</Mono>
+        {/* printed function: delayed-on coil + changeover */}
+        <g className="pointer-events-none">
+          <SymCoil x={14} y={faceY + faceH - 14} s={0.9} />
+          <path className="d-sym" d={`M11.3 ${faceY + faceH - 11.5}h5.4M11.3 ${faceY + faceH - 9.5}h5.4`} />
+          <SymNC x={W * 0.5} y={faceY + faceH - 14} s={0.9} />
+          <SymNO x={W * 0.78} y={faceY + faceH - 14} s={0.9} />
+        </g>
+        <TermIds device={device} local size={4} gap={3} text={(t) => (t.label || t.id).split(' ')[0]} />
+        <Terminals {...props} local />
       </g>
     );
   }
 
+  /* ───────────── HAND-OFF-AUTO selector ───────────── */
   if (type === 'selector_hoa') {
     const mode: 'hand' | 'off' | 'auto' = state.mode || 'off';
-    const tag = state.tag || 'HOA1';
-    const cx = x + width / 2;
-    const cy = y + 54;
-    const rotDeg = mode === 'hand' ? -45 : mode === 'auto' ? 45 : 0;
-
+    const rot = mode === 'hand' ? -45 : mode === 'auto' ? 45 : 0;
+    const cx = W / 2;
+    const cy = H * 0.57;
+    const botTy = H * (device.terminals.find((t) => t.relY > 0.5)?.relY ?? 0.9);
     return (
-      <g id={`device-${device.id}`} className="select-none">
-        <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="transparent" />
-        <rect x={x} y={y} width={width} height={height} rx={4} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-        {/* Top Pocket + Label */}
-        <rect x={x + 3} y={y + 2} width={width - 6} height={16} rx={2} fill="var(--mat-housing-dark)" />
-        <rect x={x + 3} y={y + 18} width={width - 6} height={7} fill="var(--mat-line)" />
-        <text x={cx} y={y + 23.2} textAnchor="middle" fontSize="4.3" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-red-on)">
-          COM IN
-        </text>
-
-        {/* Legend Arc */}
-        <text x={cx - 21} y={y + 35} textAnchor="middle" fontSize="4.4" fontWeight="900" fill={mode === 'hand' ? 'var(--cond-green)' : 'var(--silk-muted)'}>
-          HAND
-        </text>
-        <text x={cx} y={y + 33} textAnchor="middle" fontSize="4.6" fontWeight="900" fill="var(--silk)">
-          OFF
-        </text>
-        <text x={cx + 21} y={y + 35} textAnchor="middle" fontSize="4.4" fontWeight="900" fill={mode === 'auto' ? 'var(--act-blue)' : 'var(--silk-muted)'}>
-          AUTO
-        </text>
-
-        {/* Winged Selector Handle */}
-        <g
-          transform={`translate(${cx}, ${cy})`}
-          onMouseDown={stopCanvas}
-          onClick={(e) => {
-            const nextMode = mode === 'hand' ? 'off' : mode === 'off' ? 'auto' : 'hand';
-            patch({ mode: nextMode }, e);
-          }}
-          className="cursor-pointer"
-        >
-          <title>{`Click to switch HAND → OFF → AUTO (${tag})`}</title>
-          <circle r={15} fill="var(--mat-steel)" stroke="var(--mat-line)" strokeWidth={1.1} />
-          <circle r={12.5} fill="var(--mat-housing-dark)" />
-          <g transform={`rotate(${rotDeg})`}>
-            <rect x={-2.8} y={-12} width={5.6} height={24} rx={1.8} fill="var(--mat-line)" stroke="var(--mat-line-soft)" strokeWidth={0.8} />
-            <rect x={-1.4} y={-11} width={2.8} height={8} rx={1} fill="var(--mat-housing)" />
+      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+        <Housing w={W} h={H} m="shade" rx={4} />
+        <Bay x={3} y={tTop - 8} w={W - 6} h={16} />
+        <Bay x={3} y={botTy - 8} w={W - 6} h={16} />
+        <rect className="d-face" x={5} y={tTop + 10} width={W - 10} height={botTy - tTop - 20} rx={3} />
+        <LegendPlate cx={cx} y={tTop + 13} w={W - 22} text={tag || 'SA'} />
+        {(['hand', 'off', 'auto'] as const).map((m, i) => {
+          const a = ((-45 + i * 45 - 90) * Math.PI) / 180;
+          return (
+            <Silk key={m} x={cx + Math.cos(a) * 19} y={cy + Math.sin(a) * 19 + 1.6} size={4.6} anchor="middle" bold={mode === m} muted={mode !== m} fill={mode === m ? 'var(--silk)' : undefined}>
+              {m.toUpperCase()}
+            </Silk>
+          );
+        })}
+        <g {...act(() => patch({ mode: mode === 'hand' ? 'off' : mode === 'off' ? 'auto' : 'hand' }))}>
+          <title>{`Click to turn HAND → OFF → AUTO (${tag})`}</title>
+          <circle cx={cx} cy={cy} r={13} fill="var(--mat-steel)" stroke="var(--mat-line)" strokeWidth={0.9} />
+          <circle cx={cx} cy={cy} r={11} fill="var(--act-black)" stroke="var(--mat-line)" strokeWidth={1} />
+          <g transform={`rotate(${rot} ${cx} ${cy})`} style={{ transition: 'transform 110ms ease-out' }}>
+            <rect x={cx - 3} y={cy - 10} width={6} height={20} rx={2.5} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={0.7} />
+            <path d={`M${cx} ${cy - 9}v4`} stroke="#fff" strokeWidth={1.4} strokeLinecap="round" />
           </g>
         </g>
-
-        {/* Bottom Silkscreen + Terminal Pocket */}
-        <rect x={x + 3} y={y + height - 25} width={width - 6} height={7} fill="var(--mat-line)" />
-        <text x={x + width * 0.25} y={y + height - 19.8} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-on)">
-          HAND
-        </text>
-        <text x={x + width * 0.75} y={y + height - 19.8} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--nameplate-tag)">
-          AUTO
-        </text>
-        <rect x={x + 3} y={y + height - 18} width={width - 6} height={16} rx={2} fill="var(--mat-housing-dark)" />
-
-        <DeviceTerminals {...props} hideLabel={() => true} />
+        <TermIds device={device} local size={4} side={(t) => (t.relY < 0.5 ? 'right' : 'above')} gap={2.6} />
+        <Terminals {...props} local />
       </g>
     );
   }
 
+  /* ───────────── Limit switch (roller lever) ───────────── */
   if (type === 'limit_switch') {
     const actuated = !!state.actuated;
-    const tag = state.tag || 'LS1';
-
+    const cx = W / 2;
+    const headY = H * 0.5;
+    const ang = actuated ? 30 : 0;
     return (
-      <g id={`device-${device.id}`} className="select-none">
-        <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="transparent" />
-        <rect x={x} y={y} width={width} height={height} rx={4} fill="var(--lamp-blue-off)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-        {/* Top Bay + Labels */}
-        <rect x={x + 3} y={y + 2} width={width - 6} height={21} rx={2} fill="var(--mat-housing-dark)" />
-        <rect x={x + 3} y={y + 23} width={width - 6} height={7.5} fill="var(--mat-line)" />
-        <text x={x + width * 0.28} y={y + 28.4} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-amber-on)">
-          11 NC
-        </text>
-        <text x={x + width * 0.72} y={y + 28.4} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-on)">
-          13 NO
-        </text>
-
-        {/* Roller Lever Mechanism (clean center clearance) */}
-        <g transform={`translate(${x + width / 2}, ${y + 54})`} onMouseDown={stopCanvas} onClick={(e) => patch({ actuated: !actuated }, e)} className="cursor-pointer">
-          <title>{`Click roller lever to actuate/release (${tag})`}</title>
-          <rect x={-11} y={-8} width={22} height={16} rx={2} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={0.9} />
-          <g transform={`rotate(${actuated ? 35 : -25})`} style={{ transition: 'transform 120ms' }}>
-            <rect x={-2} y={-19} width={4} height={19} rx={1.5} fill="var(--mat-housing-shade)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.8} />
-            <circle cx={0} cy={-19} r={4.5} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={1.1} />
+      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+        <Housing w={W} h={H} m="cast" rx={4} />
+        <rect className="d-dark-face" x={4} y={tTop - 9} width={W - 8} height={H - 2 * (tTop - 9)} rx={2.5} />
+        <Nameplate x={8} y={tTop + 9} w={W - 16} h={7} tag={tag || 'SQ'} text="1NO+1NC" size={4.2} />
+        {/* rotary head + roller lever */}
+        <g {...act(() => patch({ actuated: !actuated }))}>
+          <title>{`Click the roller lever to actuate / release (${tag})`}</title>
+          <circle cx={cx} cy={headY} r={9} fill="var(--mat-steel)" stroke="var(--mat-line)" strokeWidth={1} />
+          <g transform={`rotate(${ang} ${cx} ${headY})`} style={{ transition: 'transform 110ms ease-out' }}>
+            <rect x={cx - 2} y={headY - 24} width={4} height={24} rx={1.5} fill="var(--mat-steel-dark)" stroke="var(--mat-line)" strokeWidth={0.6} />
+            <circle cx={cx} cy={headY - 24} r={5.5} fill="var(--mat-rubber)" stroke="var(--mat-line)" strokeWidth={0.8} />
+            <circle cx={cx} cy={headY - 24} r={1.4} fill="var(--mat-steel)" />
           </g>
+          <circle cx={cx} cy={headY} r={3} fill="var(--mat-line)" />
         </g>
-
-        <text x={x + width / 2} y={y + 73} textAnchor="middle" fontSize="4.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-          {tag}: {actuated ? 'TRIP' : 'NORM'}
-        </text>
-
-        {/* Bottom Silkscreen + Bay */}
-        <rect x={x + 3} y={y + height - 26.5} width={width - 6} height={7.5} fill="var(--mat-line)" />
-        <text x={x + width * 0.28} y={y + height - 21} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-amber-on)">
-          12 NC
-        </text>
-        <text x={x + width * 0.72} y={y + height - 21} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-on)">
-          14 NO
-        </text>
-        <rect x={x + 3} y={y + height - 19} width={width - 6} height={17} rx={2} fill="var(--mat-housing-dark)" />
-
-        <DeviceTerminals {...props} hideLabel={() => true} />
+        <rect x={cx - 15} y={headY + 13} width={30} height={7} rx={1.2} fill="var(--mat-line)" />
+        <Mono x={cx} y={headY + 18.2} size={4} anchor="middle" fill={actuated ? 'var(--flag-trip)' : 'var(--lamp-green-on)'}>{actuated ? 'ACTUATED' : 'FREE'}</Mono>
+        <SymNC x={W * 0.28} y={headY + 23} s={0.8} dark />
+        <SymNO x={W * 0.72} y={headY + 23} s={0.8} dark />
+        <TermIds device={device} local size={3.8} onDark side={(t) => (t.relX < 0.5 ? 'left' : 'right')} text={(t) => (t.label || t.id).split(' ')[0]} />
+        <Terminals {...props} local />
       </g>
     );
   }
 
-  // vfd_drive
+  /* ───────────── VFD ───────────── */
   const isOn = state.isOn !== false;
   const freqHz = typeof state.freqHz === 'number' ? state.freqHz : 60;
   const running = !!state.running;
-  const tag = state.tag || 'VFD1';
-
+  const topBayY = tTop - 8;
+  const botTy = H * (device.terminals.find((t) => t.relY > 0.5)?.relY ?? 0.94);
+  const botBayY = botTy - 8;
+  const cx = W / 2;
+  const kY = topBayY + 22;
   return (
-    <g id={`device-${device.id}`} className="select-none">
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="transparent" />
-      <rect x={x} y={y} width={width} height={height} rx={5} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={1.3} />
-
-      {/* Top Bay + Silkscreen */}
-      <rect x={x + 3} y={y + 2} width={width - 6} height={16} rx={2} fill="var(--mat-housing-dark)" />
-      <rect x={x + 3} y={y + 18} width={width - 6} height={7.5} fill="var(--mat-line)" />
-      {terminals
-        .filter((t) => t.relY < 0.5)
-        .map((t) => (
-          <text
-            key={`vt-${t.id}`}
-            x={x + t.relX * width}
-            y={y + 23.4}
-            textAnchor="middle"
-            fontSize="4.2"
-            fontWeight="900"
-            fontFamily="var(--font-mono)"
-            fill={t.type === 'earth' ? 'var(--lamp-green-on)' : 'var(--lamp-red-on)'}
-          >
-            {t.label}
-          </text>
-        ))}
-
-      {/* Inner Faceplate */}
-      <rect x={x + 6} y={y + 27} width={width - 12} height={height - 54} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1} />
-      <rect x={x + 8} y={y + 29} width={width - 16} height={12} rx={1.5} fill="var(--cond-green)" />
-      <text x={x + width / 2} y={y + 37.2} textAnchor="middle" fontSize="5.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-        ALTIVAR VFD ({tag})
-      </text>
-
-      {/* 7-Segment Display */}
-      <rect x={x + 14} y={y + 44} width={width - 28} height={26} rx={2.5} fill="var(--mat-line)" stroke="var(--mat-housing-dark-face)" strokeWidth={1} />
-      <text x={x + width / 2} y={y + 62} textAnchor="middle" fontSize="12.5" fontWeight="900" fontFamily="var(--font-mono)" fill={isOn ? (running ? 'var(--act-red)' : 'var(--mat-pvc-orange)') : 'var(--silk-muted)'}>
-        {isOn ? `${freqHz.toFixed(1)} Hz` : 'OFF'}
-      </text>
-
-      {/* Keypad */}
-      <g transform={`translate(${x + 14}, ${y + 74})`} onMouseDown={stopCanvas}>
-        <g className="cursor-pointer" onClick={(e) => patch({ freqHz: Math.max(10, freqHz - 10) }, e)}>
-          <rect x={0} y={0} width={28} height={15} rx={2} fill="var(--mat-housing-dark-face)" />
-          <text x={14} y={10} textAnchor="middle" fontSize="6.5" fontWeight="900" fill="var(--silk-on-dark)">-Hz</text>
-        </g>
-        <g className="cursor-pointer" onClick={(e) => patch({ freqHz: Math.min(60, freqHz + 10) }, e)}>
-          <rect x={32} y={0} width={28} height={15} rx={2} fill="var(--mat-housing-dark-face)" />
-          <text x={46} y={10} textAnchor="middle" fontSize="6.5" fontWeight="900" fill="var(--silk-on-dark)">+Hz</text>
-        </g>
-        <g className="cursor-pointer" onClick={(e) => patch({ isOn: !isOn }, e)}>
-          <rect x={64} y={0} width={44} height={15} rx={2} fill={isOn ? 'var(--cond-green)' : 'var(--cond-red)'} />
-          <text x={86} y={10} textAnchor="middle" fontSize="6.2" fontWeight="900" fill="var(--silk-on-dark)">{isOn ? 'RUN' : 'STOP'}</text>
-        </g>
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      <Housing w={W} h={H} m="dark" rx={4} />
+      <Bay x={3} y={topBayY} w={W - 6} h={16} dark />
+      <Bay x={3} y={botBayY} w={W - 6} h={16} dark />
+      {/* heatsink fins on the sides */}
+      {[2, W - 6].map((fx) => Array.from({ length: 8 }).map((_, i) => (
+        <rect key={`${fx}-${i}`} x={fx} y={kY + 4 + i * 10} width={4} height={6} rx={1} fill="var(--mat-housing-dark-face)" />
+      )))}
+      <Nameplate x={10} y={kY} w={W - 20} h={9} tag={tag || 'U'} center="VFD" text="2.2kW 3~" size={4.8} />
+      {/* keypad: console display + keys */}
+      <rect className="d-housing" x={14} y={kY + 13} width={W - 28} height={70} rx={3} />
+      <rect className="d-console" x={19} y={kY + 18} width={W - 38} height={24} rx={2} />
+      <Mono x={W - 24} y={kY + 35} size={11} anchor="end" fill={isOn ? 'var(--console-readout)' : 'var(--console-muted)'}>{isOn ? `${freqHz.toFixed(1)}` : '----'}</Mono>
+      <Mono x={24} y={kY + 25} size={3.6} fill="var(--console-muted)">Hz</Mono>
+      <Mono x={24} y={kY + 39} size={3.6} fill={running ? 'var(--console-readout)' : 'var(--console-muted)'}>{running ? 'RUN ▶' : 'RDY'}</Mono>
+      <g {...act(() => patch({ freqHz: Math.max(10, freqHz - 10) }))}>
+        <title>Lower the output frequency</title>
+        <rect x={20} y={kY + 47} width={22} height={11} rx={2} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={0.7} />
+        <Mono x={31} y={kY + 54.6} size={5} anchor="middle">▼</Mono>
       </g>
-
-      {/* Heatsink Vents */}
-      {[0, 1, 2, 3, 4].map((i) => (
-        <rect key={i} x={x + 15 + i * 22} y={y + 96} width={15} height={36} rx={1.5} fill="var(--mat-steel)" stroke="var(--mat-line-soft)" strokeWidth={0.5} />
+      <g {...act(() => patch({ freqHz: Math.min(60, freqHz + 10) }))}>
+        <title>Raise the output frequency</title>
+        <rect x={W - 42} y={kY + 47} width={22} height={11} rx={2} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={0.7} />
+        <Mono x={W - 31} y={kY + 54.6} size={5} anchor="middle">▲</Mono>
+      </g>
+      <g {...act(() => patch({ isOn: !isOn }))}>
+        <title>{isOn ? 'Disable the drive' : 'Enable the drive'}</title>
+        <PushButton cx={cx} cy={kY + 70} r={6} color={isOn ? 'green' : 'black'} legend={isOn ? 'I' : 'O'} />
+      </g>
+      <Led cx={cx - 18} cy={kY + 70} r={1.8} on={isOn} color="green" />
+      <Led cx={cx + 18} cy={kY + 70} r={1.8} on={running} color="amber" />
+      {/* vents */}
+      {Array.from({ length: 4 }).map((_, i) => (
+        <rect key={i} x={20} y={kY + 89 + i * 4} width={W - 40} height={1.6} rx={0.8} fill="var(--mat-line)" />
       ))}
-
-      {/* Bottom Silkscreen + Terminal Bay */}
-      <rect x={x + 3} y={y + height - 25.5} width={width - 6} height={7.5} fill="var(--mat-line)" />
-      {terminals
-        .filter((t) => t.relY >= 0.5)
-        .map((t) => (
-          <text
-            key={`vb-${t.id}`}
-            x={x + t.relX * width}
-            y={y + height - 20}
-            textAnchor="middle"
-            fontSize="4.2"
-            fontWeight="900"
-            fontFamily="var(--font-mono)"
-            fill="var(--nameplate-tag)"
-          >
-            {t.label}
-          </text>
-        ))}
-      <rect x={x + 3} y={y + height - 18} width={width - 6} height={16} rx={2} fill="var(--mat-housing-dark)" />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <Screw cx={10} cy={kY + 4} r={1.4} m="dark" />
+      <TermIds device={device} local size={4} onDark gap={0.5} text={(t) => (t.label || t.id).split('/').pop() || ''} />
+      <Terminals {...props} local />
     </g>
   );
 };

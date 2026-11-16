@@ -1,105 +1,64 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import { Bay, DeviceProps, Mono, Pill, Screw, Terminals, TermIds } from './kit';
 
 /**
- * EduVolt-style 2"x4" Rectangular Surface/Flush Utility Box (PVC or GI Steel).
- * Embedded material toggle & L/N/PE pass-through labels with zero external pills.
+ * 2×4 surface utility box (orange PVC or galvanized steel), open: device mounting ears top and
+ * bottom, knockouts, and L / N / PE runs passing from the IN strip to the OUT strip.
  */
-export const UtilityBoxSurfacePvcDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height } = device;
-  const isSteel = device.state.boxMaterial === 'galvanized_steel';
-  const cx = x + width / 2;
-  const cy = y + height / 2;
-
-  const handleToggleMaterial = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const next = isSteel ? 'orange_pvc' : 'galvanized_steel';
+export const UtilityBoxSurfacePvcDevice: React.FC<DeviceProps> = (props) => {
+  const { device, onPatchState, onToggleState } = props;
+  const { width: W, height: H } = device;
+  const isPvc = device.state.boxMaterial !== 'galvanized_steel';
+  const toggleMaterial = () => {
+    const next = isPvc ? 'galvanized_steel' : 'orange_pvc';
     if (onPatchState) onPatchState(device.id, { boxMaterial: next });
     else {
       device.state.boxMaterial = next;
       onToggleState?.({ ...device, state: { ...device.state, boxMaterial: next } });
     }
   };
+  const fill = isPvc ? 'var(--mat-pvc-orange)' : 'var(--mat-steel)';
+  const dark = isPvc ? 'var(--mat-pvc-orange-dark)' : 'var(--mat-steel-dark)';
+  const ins = device.terminals.filter((t) => t.relY < 0.5);
+  const outs = device.terminals.filter((t) => t.relY >= 0.5);
+  const topY = H * (ins[0]?.relY ?? 0.12);
+  const botY = H * (outs[0]?.relY ?? 0.88);
+  const runCol = ['var(--cond-red)', 'var(--cond-white)', 'var(--cond-green)'];
 
   return (
-    <g className="select-none">
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="transparent" />
-
-      {/* Outer Lip */}
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={5}
-        fill={isSteel ? 'var(--mat-housing-shade)' : 'var(--mat-pvc-orange)'}
-        stroke="var(--mat-line)"
-        strokeWidth={1.3}
-      />
-
-      {/* Deep Recessed Cavity */}
-      <rect
-        x={x + 5}
-        y={y + 6}
-        width={width - 10}
-        height={height - 12}
-        rx={3}
-        fill={isSteel ? 'var(--silk-muted)' : 'var(--mat-pvc-orange-dark)'}
-        stroke="var(--mat-housing-dark)"
-        strokeWidth={0.9}
-      />
-
-      {/* Top/Bottom Knockout Rings */}
-      <circle cx={cx} cy={y + 3.5} r={2.6} fill="none" stroke={isSteel ? 'var(--mat-housing-shade)' : '#fed7aa'} strokeDasharray="1.5 1" strokeWidth={0.8} />
-      <circle cx={cx} cy={y + height - 3.5} r={2.6} fill="none" stroke={isSteel ? 'var(--mat-housing-shade)' : '#fed7aa'} strokeDasharray="1.5 1" strokeWidth={0.8} />
-
-      {/* Pass-Through Barrier Block */}
-      <rect x={x + 8} y={y + 9} width={width - 16} height={height - 18} rx={2.5} fill="var(--mat-line)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} />
-
-      {/* Top Embedded Silkscreen Strip */}
-      <rect x={x + 9} y={y + 24} width={width - 18} height={8} fill="var(--mat-housing-dark)" />
-      {[
-        { rel: 0.25, lbl: 'L IN', col: 'var(--lamp-red-on)' },
-        { rel: 0.50, lbl: 'N IN', col: 'var(--lamp-blue-on)' },
-        { rel: 0.75, lbl: 'PE', col: 'var(--lamp-green-on)' },
-      ].map((t) => (
-        <text key={`ubt-${t.lbl}`} x={x + width * t.rel} y={y + 29.8} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill={t.col}>
-          {t.lbl}
-        </text>
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      <rect x={0} y={0} width={W} height={H} rx={4} fill={fill} stroke="var(--mat-line)" strokeWidth={1.25} />
+      <rect x={5} y={5} width={W - 10} height={H - 10} rx={3} fill={dark} opacity={0.35} stroke={dark} strokeWidth={1} />
+      {/* knockouts on the sides */}
+      {[H * 0.35, H * 0.65].map((ky) => [3, W - 3].map((kx) => (
+        <circle key={`${kx}-${ky}`} cx={kx} cy={ky} r={4} fill={fill} stroke={dark} strokeWidth={0.7} />
+      )))}
+      {/* device mounting ears */}
+      {[topY + 13, botY - 13].map((ey) => (
+        <g key={ey}>
+          <rect x={W / 2 - 7} y={ey - 4} width={14} height={8} rx={2} fill={fill} stroke="var(--mat-line)" strokeWidth={0.6} />
+          <Screw cx={W / 2} cy={ey} r={1.8} />
+        </g>
       ))}
+      {/* pass-through runs IN → OUT */}
+      {ins.map((t, i) => {
+        const x = W * t.relX;
+        return (
+          <g key={t.id} className="pointer-events-none">
+            <path d={`M${x} ${topY + 7}V${botY - 7}`} stroke="var(--wire-casing)" strokeWidth={4.2} strokeLinecap="round" />
+            <path d={`M${x} ${topY + 7}V${botY - 7}`} stroke={runCol[i] || 'var(--cond-black)'} strokeWidth={2.8} strokeLinecap="round" />
+          </g>
+        );
+      })}
+      <rect className="d-nameplate" x={W / 2 - 18} y={H / 2 - 6} width={36} height={12} rx={1.5} />
+      <Mono x={W / 2} y={H / 2 - 0.6} size={4} anchor="middle" onDark>{isPvc ? '2×4 PVC' : '2×4 GI'}</Mono>
+      <Mono x={W / 2} y={H / 2 + 4.2} size={3.2} anchor="middle" fill="var(--console-muted)">UTILITY BOX</Mono>
+      <Bay x={5} y={topY - 8} w={W - 10} h={16} />
+      <Bay x={5} y={botY - 8} w={W - 10} h={16} />
+      <Pill cx={W / 2} cy={H / 2 + 13} w={16} label={isPvc ? 'PVC' : 'GI'} title="Switch the box material: orange PVC or galvanized steel" onToggle={toggleMaterial} />
 
-      {/* Internal Continuity Traces */}
-      <line x1={x + width * 0.25} y1={y + 34} x2={x + width * 0.25} y2={y + height - 34} stroke="var(--cond-red)" strokeWidth={1.1} strokeDasharray="2 2" opacity={0.5} />
-      <line x1={cx} y1={y + 34} x2={cx} y2={y + height - 34} stroke="var(--cond-blue)" strokeWidth={1.1} strokeDasharray="2 2" opacity={0.5} />
-      <line x1={x + width * 0.75} y1={y + 34} x2={x + width * 0.75} y2={y + height - 34} stroke="var(--cond-green)" strokeWidth={1.1} strokeDasharray="2 2" opacity={0.5} />
-
-      {/* Center Label + Embedded Material Toggle Chip */}
-      <rect x={x + 12} y={cy - 12} width={width - 24} height={24} rx={2.5} fill="var(--mat-housing-dark)" stroke="var(--silk-muted)" strokeWidth={0.8} />
-      <text x={cx} y={cy - 3} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-        2"×4" UTILITY
-      </text>
-      <g onMouseDown={stopCanvas} onClick={handleToggleMaterial} className="cursor-pointer">
-        <title>Switch box material between Orange PVC and Galvanized Steel</title>
-        <rect x={cx - 18} y={cy + 1} width={36} height={9} rx={1.8} fill="var(--mat-line)" stroke="var(--lamp-amber-on)" strokeWidth={0.6} />
-        <text x={cx} y={cy + 7.2} textAnchor="middle" fontSize="3.9" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-white-on)">
-          {isSteel ? 'GI STEEL' : 'PVC BOX'}
-        </text>
-      </g>
-
-      {/* Bottom Embedded Silkscreen Strip */}
-      <rect x={x + 9} y={y + height - 32} width={width - 18} height={8} fill="var(--mat-housing-dark)" />
-      {[
-        { rel: 0.25, lbl: 'L OUT', col: 'var(--lamp-red-on)' },
-        { rel: 0.50, lbl: 'N OUT', col: 'var(--lamp-blue-on)' },
-        { rel: 0.75, lbl: 'PE', col: 'var(--lamp-green-on)' },
-      ].map((t) => (
-        <text key={`ubb-${t.lbl}`} x={x + width * t.rel} y={y + height - 26.2} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill={t.col}>
-          {t.lbl}
-        </text>
-      ))}
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={3.6} gap={1.5} onDark={isPvc} text={(t) => (t.label || t.id).split('_')[0]} />
+      <Terminals {...props} local />
     </g>
   );
 };
