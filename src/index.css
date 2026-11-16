@@ -1,19 +1,22 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* v1 variable names kept as aliases so any remaining references follow the v2 theme. */
 :root {
-  --voltlab-canvas-bg: #faf8f5;
-  --voltlab-panel-bg: #0f172a;
-  --voltlab-panel-header: #162033;
-  --voltlab-panel-surface: #172235;
-  --voltlab-panel-elevated: #1e293b;
-  --voltlab-panel-border: #334155;
-  --voltlab-panel-border-strong: #475569;
-  --voltlab-panel-text: #f8fafc;
-  --voltlab-panel-text-muted: #94a3b8;
-  --voltlab-accent-primary: #f43f5e;
-  --voltlab-accent-sky: #38bdf8;
+  --voltlab-canvas-bg: var(--canvas);
+  --voltlab-panel-bg: var(--surface);
+  --voltlab-panel-header: var(--surface-sunken);
+  --voltlab-panel-surface: var(--surface-sunken);
+  --voltlab-panel-elevated: var(--surface-hover);
+  --voltlab-panel-border: var(--border);
+  --voltlab-panel-border-strong: var(--border-strong);
+  --voltlab-panel-text: var(--ink);
+  --voltlab-panel-text-muted: var(--ink-muted);
+  --voltlab-accent-primary: var(--brand);
+  --voltlab-accent-sky: var(--probe);
 }
 
 @keyframes dash {
@@ -34,57 +37,87 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 html, body, #root {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: var(--voltlab-canvas-bg);
-  color: #1c1917;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
 }
 
-/* Elegant light mode scrollbars */
+/* Keyboard focus: a 2px gap then 2px probe, on every surface. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Device silkscreen and terminal markings inside SVG */
+.vl-silk {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+.vl-mono {
+  font-family: var(--font-mono);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f4f0eb;
+  background: var(--surface-sunken);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d6cfc7;
+  background: var(--border-strong);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b8aea3;
+  background: var(--ink-faint);
 }
 
-/* High-contrast dark slate panel console */
-.voltlab-panel {
-  background-color: var(--voltlab-panel-bg);
-  color: var(--voltlab-panel-text);
-  border-color: var(--voltlab-panel-border-strong);
+/* Instrument surfaces (code inspector, DMM, PLC screen) stay dark in both themes. */
+@layer components {
+  .voltlab-panel {
+    background-color: var(--surface);
+    color: var(--ink);
+    border-color: var(--border);
+  }
+  
+  .voltlab-console {
+    background-color: var(--console);
+    color: var(--console-ink);
+    border-color: var(--console-line);
+  }
 }
 
 .voltlab-scroll-dark::-webkit-scrollbar-track {
-  background: #0b1120;
+  background: var(--surface-sunken);
 }
 
 .voltlab-scroll-dark::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.55);
+  background: var(--border-strong);
 }
 
 .voltlab-scroll-dark::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.85);
+  background: var(--ink-faint);
 }
 
 @media (forced-colors: active) {
-  .voltlab-panel {
+  .voltlab-panel,
+  .voltlab-console {
     border: 2px solid CanvasText;
     box-shadow: none;
   }

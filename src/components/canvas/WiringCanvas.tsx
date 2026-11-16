@@ -6,6 +6,7 @@ import { WireRenderer } from './WireRenderer';
 import { calculateOrthogonalPath, computeWireRoute, generateSvgPath, Point, getDeviceTerminalPosition } from '../../core/wireRouter';
 import { SolvedCircuit } from '../../core/circuitSolver';
 import { cadStatus } from '../../utils/cadStatusStore';
+import { conductorColor } from '../../styles/conductors';
 
 interface WiringCanvasProps {
   devices: ElectricalDevice[];
@@ -680,32 +681,32 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   return (
     <div
-      className="relative w-full h-full bg-[#fbfaf8] overflow-hidden select-none"
+      className="relative w-full h-full bg-canvas overflow-hidden select-none"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       {/* Zoom / Pan Controls HUD (Light Theme) */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-white/95 border border-stone-200/90 rounded-xl p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.06)] backdrop-blur-md">
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-surface/95 border border-border/90 rounded-md p-1.5 shadow-2 backdrop-blur-md">
         <button
           onClick={() => setZoom((z) => Math.min(2.5, z + 0.15))}
-          className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-bold text-sm transition"
+          className="w-7 h-7 flex items-center justify-center bg-surface-sunken hover:bg-border text-ink rounded-lg font-bold text-sm transition"
           title="Zoom In"
         >
           +
         </button>
-        <span className="text-xs font-mono text-stone-600 w-12 text-center font-bold">
+        <span className="text-xs font-mono text-ink-muted w-12 text-center font-bold">
           {Math.round(zoom * 100)}%
         </span>
         <button
           onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
-          className="w-7 h-7 flex items-center justify-center bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg font-bold text-sm transition"
+          className="w-7 h-7 flex items-center justify-center bg-surface-sunken hover:bg-border text-ink rounded-lg font-bold text-sm transition"
           title="Zoom Out"
         >
           -
         </button>
         <button
           onClick={fitToView}
-          className="px-2.5 py-1 bg-stone-800 hover:bg-stone-900 text-xs text-white rounded-lg font-bold transition"
+          className="px-2.5 py-1 bg-ink hover:bg-ink text-xs text-surface rounded-lg font-bold transition"
           title="Zoom to fit the whole drawing (F)"
         >
           Fit
@@ -715,7 +716,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
             setZoom(1.0);
             setPan({ x: 0, y: 0 });
           }}
-          className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-xs text-stone-600 rounded-lg font-medium transition"
+          className="px-2.5 py-1 bg-surface-sunken hover:bg-border text-xs text-ink-muted rounded-lg font-medium transition"
           title="Reset to 100% at the origin"
         >
           1:1
@@ -725,10 +726,10 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       {/* Empty workbench onboarding */}
       {devices.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]" style={{ paddingLeft: insetLeft }}>
-          <div className="max-w-md text-center bg-white/90 border border-stone-200 rounded-2xl px-6 py-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] backdrop-blur">
-            <div className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-rose-600 mb-1">Empty workbench</div>
-            <div className="text-base font-serif font-bold text-stone-900 mb-1.5">Drag a device from the library to begin</div>
-            <p className="text-xs text-stone-500 leading-relaxed">
+          <div className="max-w-md text-center bg-surface/90 border border-border rounded-lg px-6 py-5 shadow-2 backdrop-blur">
+            <div className="text-[10px] font-mono font-bold uppercase tracking-[0.18em] text-ink-muted mb-1">Empty workbench</div>
+            <div className="text-[18px] font-semibold text-ink mb-1.5">Drag a device from the library to begin</div>
+            <p className="text-xs text-ink-muted leading-relaxed">
               Click a terminal, then another terminal to run a conductor. Press <b>▶ Simulate</b> to energize.
               New here? Open <b>Examples</b> and try the <b>⚓ Marine DOL</b> or <b>🔄 Forward-Reverse</b> motor starter labs.
             </p>
@@ -738,17 +739,17 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
       {/* Multi-selection summary */}
       {(selectedDeviceIds.length > 1 || selectedWireIds.length > 1) && !wiringStart && (
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-slate-900/90 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg" style={{ marginLeft: insetLeft / 2 }}>
-          <span className="text-sky-300">Selected</span>
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-surface/90 text-ink text-[11px] font-bold px-3 py-1 rounded-full shadow-lg" style={{ marginLeft: insetLeft / 2 }}>
+          <span className="text-probe">Selected</span>
           {selectedDeviceIds.length > 0 && <span>{selectedDeviceIds.length} device{selectedDeviceIds.length === 1 ? '' : 's'}</span>}
           {selectedWireIds.length > 0 && <span>{selectedWireIds.length} wire{selectedWireIds.length === 1 ? '' : 's'}</span>}
-          <span className="text-slate-400 font-medium">· double-click for properties</span>
+          <span className="text-ink-muted font-medium">· double-click for properties</span>
         </div>
       )}
 
       {/* Wire Tool Notice */}
       {wiringStart && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-rose-600 text-white font-bold text-xs px-4 py-1.5 rounded-full shadow-lg animate-pulse">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-probe text-on-probe font-semibold text-xs px-4 py-1.5 rounded-full shadow-2">
           Click destination terminal to complete connection (ESC or click board to cancel)
         </div>
       )}
@@ -772,13 +773,13 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       >
         <defs>
-          {/* Engineering CAD Grid Background Pattern (Warm Light Mode) */}
-          <pattern id="smallGridLight" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f0ece4" strokeWidth="0.8" />
+          {/* Drafting-paper grid: dots every 10 units, lines every 50 */}
+          <pattern id="smallGridLight" width="10" height="10" patternUnits="userSpaceOnUse">
+            <circle cx="0.75" cy="0.75" r="0.75" fill="var(--canvas-grid)" />
           </pattern>
-          <pattern id="majorGridLight" width="100" height="100" patternUnits="userSpaceOnUse">
-            <rect width="100" height="100" fill="url(#smallGridLight)" />
-            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#e6dfd5" strokeWidth="1.2" />
+          <pattern id="majorGridLight" width="50" height="50" patternUnits="userSpaceOnUse">
+            <rect width="50" height="50" fill="url(#smallGridLight)" />
+            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="var(--canvas-grid-major)" strokeWidth="0.75" />
           </pattern>
         </defs>
 
@@ -880,9 +881,9 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
               y={Math.min(marquee.y0, marquee.y1)}
               width={Math.abs(marquee.x1 - marquee.x0)}
               height={Math.abs(marquee.y1 - marquee.y0)}
-              fill="#0284c7"
-              fillOpacity={0.08}
-              stroke="#0284c7"
+              fill="var(--probe-soft)"
+              fillOpacity={0.5}
+              stroke="var(--probe)"
               strokeWidth={1 / zoom}
               strokeDasharray={`${5 / zoom} ${3 / zoom}`}
               className="pointer-events-none"
@@ -898,8 +899,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                   y1={-5000}
                   x2={snapGuides.x}
                   y2={5000}
-                  stroke="#38bdf8"
-                  strokeWidth={1.2}
+                  stroke="var(--probe)"
+                  strokeWidth={0.75}
                   strokeDasharray="6 4"
                   opacity={0.85}
                 />
@@ -910,8 +911,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                   y1={snapGuides.y}
                   x2={5000}
                   y2={snapGuides.y}
-                  stroke="#38bdf8"
-                  strokeWidth={1.2}
+                  stroke="var(--probe)"
+                  strokeWidth={0.75}
                   strokeDasharray="6 4"
                   opacity={0.85}
                 />
@@ -926,10 +927,10 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
               const R = isArc ? 1.6 : 1;
               return (
                 <g key={spark.id} transform={`translate(${spark.x}, ${spark.y})`}>
-                  {isArc && <circle r={60} fill="#fde68a" opacity={0.35} className="animate-ping" />}
-                  <circle r={26 * R} fill="#fef08a" opacity={0.85} className="animate-ping" />
-                  <circle r={14 * R} fill={isArc ? '#f97316' : '#e11d48'} opacity={0.92} />
-                  <circle r={6 * R} fill="#ffffff" />
+                  {isArc && <circle r={60} fill="var(--flag-trip)" opacity={0.3} className="animate-ping" />}
+                  <circle r={26 * R} fill="var(--lamp-white-on)" opacity={0.85} className="animate-ping" />
+                  <circle r={14 * R} fill={isArc ? 'var(--cond-orange)' : 'var(--flag-trip)'} opacity={0.92} />
+                  <circle r={6 * R} fill="var(--lamp-white-on)" />
                   {/* Spark Rays */}
                   {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg, i) => (
                     <line
@@ -938,15 +939,15 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                       y1={0}
                       x2={(i % 2 ? 22 : 32) * R * Math.cos((deg * Math.PI) / 180)}
                       y2={(i % 2 ? 22 : 32) * R * Math.sin((deg * Math.PI) / 180)}
-                      stroke="#ffffff"
+                      stroke="var(--lamp-white-on)"
                       strokeWidth={2.5}
                       strokeLinecap="round"
                     />
                   ))}
                   {/* Fault Banner */}
-                  <rect x={-96} y={-48 * R - 8} width={192} height={24} rx={6} fill={isArc ? '#7c2d12' : '#e11d48'} stroke="#fde68a" strokeWidth={1.2} />
-                  <text x={0} y={-48 * R + 8} textAnchor="middle" fontSize={10} fontWeight="bold" fill="#ffffff">
-                    {isArc ? '💥 PHASE-TO-PHASE ARC FLASH' : '⚡ ARC FAULT DETECTED'}
+                  <rect x={-96} y={-48 * R - 8} width={192} height={24} rx={4} fill="var(--danger)" />
+                  <text x={0} y={-48 * R + 8} textAnchor="middle" fontSize={10} fontWeight="bold" fill="var(--surface)" fontFamily="var(--font-sans)">
+                    {isArc ? 'PHASE-TO-PHASE ARC FLASH' : 'ARC FAULT DETECTED'}
                   </text>
                 </g>
               );
@@ -957,12 +958,12 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
       {/* Active Rewire Banner */}
       {rewiringTarget && (
-        <div className="pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-sky-400 bg-slate-900/95 px-4 py-1.5 text-xs font-bold text-sky-100 shadow-lg backdrop-blur-md">
-          <span className="h-2 w-2 rounded-full bg-sky-400 animate-ping" />
+        <div className="pointer-events-auto absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full border border-probe bg-surface/95 px-4 py-1.5 text-xs font-bold text-probe shadow-lg backdrop-blur-md">
+          <span className="h-2 w-2 rounded-full bg-probe animate-ping" />
           <span>Click destination port to move this wire end (Esc to cancel)</span>
           <button
             onClick={() => onSetRewiringTarget?.(null)}
-            className="ml-1 rounded-full bg-slate-700 hover:bg-slate-600 px-2 py-0.5 text-[10px] text-white"
+            className="ml-1 rounded-full bg-surface-hover hover:bg-surface-hover px-2 py-0.5 text-[10px] text-ink"
           >
             Cancel
           </button>
@@ -993,25 +994,25 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
               <div
                 key={ep.key}
                 style={{ left: ep.x + 14, top: ep.y - 12 }}
-                className="pointer-events-auto absolute flex items-center gap-1 rounded-lg border border-sky-400/90 bg-slate-900/95 px-1.5 py-0.5 shadow-xl text-[10px] font-bold text-white"
+                className="pointer-events-auto absolute flex items-center gap-1 rounded-lg border border-probe/90 bg-surface/95 px-1.5 py-0.5 shadow-xl text-[10px] font-bold text-ink"
               >
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onSetRewiringTarget?.({ wireId: w.id, moveEnd: ep.key });
                   }}
-                  className="hover:text-sky-300 transition flex items-center gap-0.5"
+                  className="hover:text-probe transition flex items-center gap-0.5"
                   title={`Rewire ${ep.label} to another port`}
                 >
                   <span>⇄ Rewire</span>
                 </button>
-                <span className="text-slate-600">|</span>
+                <span className="text-ink-muted">|</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onDeleteWire?.(w.id);
                   }}
-                  className="hover:text-rose-400 transition"
+                  className="hover:text-danger transition"
                   title="Disconnect wire"
                 >
                   ✂
@@ -1043,15 +1044,15 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           <div
             style={{ left: portMenu.x, top: portMenu.y }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="absolute z-40 w-64 rounded-xl border border-slate-600 bg-slate-900/95 p-2.5 shadow-2xl backdrop-blur-md text-slate-100"
+            className="absolute z-40 w-64 rounded-md border border-border-strong bg-surface/95 p-2.5 shadow-2 backdrop-blur-md text-ink"
           >
-            <div className="flex items-center justify-between border-b border-slate-700 pb-1.5 mb-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-sky-400">
+            <div className="flex items-center justify-between border-b border-border pb-1.5 mb-2">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-probe">
                 Port {portTerm?.label || portMenu.terminalId} Connections ({attached.length})
               </div>
               <button
                 onClick={() => setPortMenu(null)}
-                className="text-slate-400 hover:text-white text-xs font-bold px-1"
+                className="text-ink-muted hover:text-ink text-xs font-bold px-1"
               >
                 ✕
               </button>
@@ -1063,14 +1064,14 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                 return (
                   <div
                     key={wire.id}
-                    className="rounded-lg bg-slate-800/90 border border-slate-700 px-2 py-1.5 text-[11px]"
+                    className="rounded-lg bg-surface-sunken/90 border border-border px-2 py-1.5 text-[11px]"
                   >
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span
                         className="h-2.5 w-2.5 rounded-full shrink-0 border border-white/60"
-                        style={{ backgroundColor: wire.color }}
+                        style={{ backgroundColor: conductorColor(wire.color) }}
                       />
-                      <span className="font-mono font-bold truncate text-slate-200">
+                      <span className="font-mono font-bold truncate text-ink">
                         {wire.label ? `${wire.label} · ` : ''}↔ {peerDev?.name?.split(' ')[0] || 'Dev'}:{peerTerm?.label || peerTermId}
                       </span>
                     </div>
@@ -1084,7 +1085,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                           }
                           onSetRewiringTarget?.({ wireId: wire.id, moveEnd });
                         }}
-                        className="flex-1 rounded-md bg-sky-600 hover:bg-sky-500 px-2 py-1 text-[10px] font-bold text-white transition"
+                        className="flex-1 rounded-md bg-probe hover:opacity-90 px-2 py-1 text-[10px] font-bold text-on-probe transition"
                       >
                         ⇄ Rewire to New Port
                       </button>
@@ -1093,7 +1094,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                           setPortMenu(null);
                           onDeleteWire?.(wire.id);
                         }}
-                        className="rounded-md bg-rose-900/80 hover:bg-rose-700 border border-rose-700 px-2 py-1 text-[10px] font-bold text-rose-100 transition"
+                        className="rounded-md bg-surface hover:bg-danger-soft border border-danger/40 px-2 py-1 text-[10px] font-bold text-danger transition"
                       >
                         Disconnect
                       </button>
@@ -1108,25 +1109,25 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
       {/* Handheld Digital Multimeter / Clamp Meter HUD */}
       {dmmMode && (
-        <div className="pointer-events-none absolute bottom-10 right-4 z-30 w-64 rounded-xl border-2 border-amber-500/80 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
+        <div className="pointer-events-none absolute bottom-10 right-4 z-30 w-64 rounded-md border-2 border-warning/80 bg-surface/95 p-3 shadow-2 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border pb-1.5 mb-2">
             <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-              <span className="text-[10px] font-bold tracking-widest text-amber-400 uppercase">
+              <span className="h-2 w-2 rounded-full bg-warning-fill animate-pulse" />
+              <span className="text-[10px] font-bold tracking-widest text-warning uppercase">
                 True RMS DMM / Clamp
               </span>
             </div>
-            <span className="text-[9px] font-mono text-slate-400">CAT IV 600V</span>
+            <span className="text-[9px] font-mono text-ink-muted">CAT IV 600V</span>
           </div>
-          <div className="rounded-lg bg-emerald-950/80 border border-emerald-700/50 px-3 py-2 font-mono">
-            <div className="text-[10px] text-emerald-400/80 uppercase tracking-wider">
+          <div className="rounded-lg bg-ok-soft/80 border border-ok/50 px-3 py-2 font-mono">
+            <div className="text-[10px] text-ok/80 uppercase tracking-wider">
               {dmmReadout?.label || 'Click 2 terminals (V) or 1 wire (A)'}
             </div>
-            <div className="text-2xl font-black text-emerald-300 tracking-tight mt-0.5">
+            <div className="text-2xl font-black text-ok tracking-tight mt-0.5">
               {dmmReadout?.primary || '---'}
             </div>
             {dmmReadout?.secondary && (
-              <div className="text-[11px] text-emerald-400/90 mt-0.5">{dmmReadout.secondary}</div>
+              <div className="text-[11px] text-ok/90 mt-0.5">{dmmReadout.secondary}</div>
             )}
           </div>
         </div>
@@ -1136,17 +1137,17 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       <div
         className={`pointer-events-none select-none absolute ${
           dmmMode ? 'bottom-3 left-4' : 'bottom-3 right-4'
-        } z-20 rounded-lg border border-stone-300/60 border-l-[3px] border-l-teal-700/75 bg-[#fcfaf5]/65 backdrop-blur-[1px] px-3 py-2 opacity-45`}
+        } z-20 rounded-lg border border-border/60 border-l-[3px] border-l-ok/75 bg-surface/65 backdrop-blur-[1px] px-3 py-2 opacity-45`}
       >
-        <div className="font-mono text-[9.5px] leading-[1.45] grid grid-cols-[78px_auto] gap-x-2 text-stone-700">
-          <span className="text-stone-500">DEVELOPED BY</span>
-          <span className="font-medium text-stone-800">: John Ray O. Dalida</span>
-          <span className="text-stone-500">STUDENT ID</span>
-          <span className="font-medium text-stone-800">: EE - 2022102981</span>
-          <span className="text-stone-500">INSTRUCTOR</span>
-          <span className="font-medium text-stone-800">: Engr. Nathaniel Sedilla</span>
-          <span className="text-stone-500">INSTITUTION</span>
-          <span className="font-medium text-stone-800">: Mapúa University</span>
+        <div className="font-mono text-[9.5px] leading-[1.45] grid grid-cols-[78px_auto] gap-x-2 text-ink">
+          <span className="text-ink-muted">DEVELOPED BY</span>
+          <span className="font-medium text-ink">: John Ray O. Dalida</span>
+          <span className="text-ink-muted">STUDENT ID</span>
+          <span className="font-medium text-ink">: EE - 2022102981</span>
+          <span className="text-ink-muted">INSTRUCTOR</span>
+          <span className="font-medium text-ink">: Engr. Nathaniel Sedilla</span>
+          <span className="text-ink-muted">INSTITUTION</span>
+          <span className="font-medium text-ink">: Mapúa University</span>
         </div>
       </div>
     </div>

@@ -41,7 +41,7 @@ export const DeviceTerminals: React.FC<DeviceTerminalsProps> = ({
         const [main, sub] = raw.includes(' ') ? [raw.split(' ')[0], raw.split(' ').slice(1).join(' ')] : [raw, ''];
         const isTop = terminal.relY < 0.5;
         const ly = isTop ? ty + 13 : ty - 10;
-        const color = labelColor ? labelColor(terminal) : '#e2e8f0';
+        const color = labelColor ? labelColor(terminal) : 'var(--mat-housing-shade)';
         return (
           <g key={terminal.id}>
             {!hideLabel?.(terminal) && (
@@ -53,7 +53,7 @@ export const DeviceTerminals: React.FC<DeviceTerminalsProps> = ({
                     width={18}
                     height={sub ? 13 : 8}
                     rx={2}
-                    fill="#0f172a"
+                    fill="var(--mat-line)"
                     opacity={0.78}
                   />
                 )}
@@ -63,7 +63,7 @@ export const DeviceTerminals: React.FC<DeviceTerminalsProps> = ({
                   textAnchor="middle"
                   fontSize="5.8"
                   fontWeight="800"
-                  fontFamily="ui-monospace, monospace"
+                  fontFamily="var(--font-mono)"
                   fill={color}
                 >
                   {main}
@@ -75,7 +75,7 @@ export const DeviceTerminals: React.FC<DeviceTerminalsProps> = ({
                     textAnchor="middle"
                     fontSize="4.4"
                     fontWeight="700"
-                    fontFamily="ui-monospace, monospace"
+                    fontFamily="var(--font-mono)"
                     fill={color}
                     opacity={0.85}
                   >
@@ -116,7 +116,7 @@ export const SvgPill: React.FC<{
   activeColor?: string;
   title?: string;
   onClick: (e: React.MouseEvent) => void;
-}> = ({ x, y, w, label, active, activeColor = '#0ea5e9', title, onClick }) => (
+}> = ({ x, y, w, label, active, activeColor = 'var(--lamp-blue-on)', title, onClick }) => (
   <g
     transform={`translate(${x}, ${y})`}
     className="cursor-pointer"
@@ -133,8 +133,8 @@ export const SvgPill: React.FC<{
       width={w}
       height={12}
       rx={6}
-      fill={active ? activeColor : '#ffffff'}
-      stroke={active ? activeColor : '#94a3b8'}
+      fill={active ? activeColor : 'var(--mat-housing)'}
+      stroke={active ? activeColor : 'var(--mat-steel)'}
       strokeWidth={0.9}
       filter="drop-shadow(0 1px 2px rgba(0,0,0,0.25))"
     />
@@ -144,8 +144,8 @@ export const SvgPill: React.FC<{
       textAnchor="middle"
       fontSize="6"
       fontWeight="800"
-      fontFamily="ui-sans-serif, system-ui"
-      fill={active ? '#ffffff' : '#334155'}
+      fontFamily="var(--font-display)"
+      fill={active ? 'var(--silk-on-dark)' : 'var(--silk)'}
     >
       {label}
     </text>

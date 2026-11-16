@@ -40,21 +40,21 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
   };
 
   const topLabels: Array<{ relX: number; text: string; color?: string }> = [
-    { relX: 0.08, text: 'A1', color: '#7e22ce' },
+    { relX: 0.08, text: 'A1', color: 'var(--port-control)' },
     { relX: 0.25, text: '1/L1' },
     { relX: 0.41, text: '3/L2' },
     { relX: 0.57, text: '5/L3' },
-    { relX: 0.78, text: '13NO', color: '#047857' },
-    { relX: 0.93, text: '21NC', color: '#b45309' },
+    { relX: 0.78, text: '13NO', color: 'var(--lamp-green-off)' },
+    { relX: 0.93, text: '21NC', color: 'var(--mat-copper)' },
   ];
 
   const botLabels: Array<{ relX: number; text: string; color?: string }> = [
-    { relX: 0.08, text: 'A2', color: '#7e22ce' },
+    { relX: 0.08, text: 'A2', color: 'var(--port-control)' },
     { relX: 0.25, text: '2/T1' },
     { relX: 0.41, text: '4/T2' },
     { relX: 0.57, text: '6/T3' },
-    { relX: 0.78, text: '14NO', color: '#047857' },
-    { relX: 0.93, text: '22NC', color: '#b45309' },
+    { relX: 0.78, text: '14NO', color: 'var(--lamp-green-off)' },
+    { relX: 0.93, text: '22NC', color: 'var(--mat-copper)' },
   ];
 
   return (
@@ -66,25 +66,25 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
       </defs>
 
       {/* Subtle architectural CAD shadow */}
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="rgba(15, 23, 42, 0.14)" />
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="transparent" />
 
       {/* Main Contactor Housing */}
-      <rect x={x} y={y} width={mainW} height={height} rx={4} fill="#e5e7eb" stroke="#0f172a" strokeWidth={1.3} />
+      <rect x={x} y={y} width={mainW} height={height} rx={4} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.3} />
 
       {/* Right Integrated Aux Module (LADN11 1NO+1NC) */}
-      <rect x={auxX} y={y + 1} width={auxW} height={height - 2} rx={3} fill="#d1d5db" stroke="#0f172a" strokeWidth={1.2} />
+      <rect x={auxX} y={y + 1} width={auxW} height={height - 2} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.2} />
 
       {/* Top Terminal Pocket Bay */}
-      <rect x={x + 1.5} y={y + 1.5} width={mainW - 3} height={topBayH - 1.5} rx={2} fill="#1f2937" />
-      <rect x={auxX + 1.5} y={y + 1.5} width={auxW - 3} height={topBayH - 1.5} rx={2} fill="#1f2937" />
+      <rect x={x + 1.5} y={y + 1.5} width={mainW - 3} height={topBayH - 1.5} rx={2} fill="var(--mat-housing-dark)" />
+      <rect x={auxX + 1.5} y={y + 1.5} width={auxW - 3} height={topBayH - 1.5} rx={2} fill="var(--mat-housing-dark)" />
       {[0.165, 0.33, 0.49].map((r) => (
-        <line key={r} x1={x + width * r} y1={y + 2} x2={x + width * r} y2={y + topBayH} stroke="#64748b" strokeWidth={0.8} />
+        <line key={r} x1={x + width * r} y1={y + 2} x2={x + width * r} y2={y + topBayH} stroke="var(--mat-line-soft)" strokeWidth={0.8} />
       ))}
-      <line x1={x + width * 0.855} y1={y + 2} x2={x + width * 0.855} y2={y + topBayH} stroke="#64748b" strokeWidth={0.8} />
+      <line x1={x + width * 0.855} y1={y + 2} x2={x + width * 0.855} y2={y + topBayH} stroke="var(--mat-line-soft)" strokeWidth={0.8} />
 
       {/* Top Silkscreen Label Band */}
-      <rect x={x + 1.5} y={y + topLabelY} width={mainW - 3} height={9} fill="#f8fafc" />
-      <rect x={auxX + 1.5} y={y + topLabelY} width={auxW - 3} height={9} fill="#f1f5f9" />
+      <rect x={x + 1.5} y={y + topLabelY} width={mainW - 3} height={9} fill="var(--mat-housing)" />
+      <rect x={auxX + 1.5} y={y + topLabelY} width={auxW - 3} height={9} fill="var(--mat-housing)" />
       {topLabels.map((lbl) => (
         <text
           key={`tl-${lbl.text}`}
@@ -93,28 +93,28 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
           textAnchor="middle"
           fontSize="4.6"
           fontWeight="900"
-          fontFamily="ui-monospace, monospace"
-          fill={lbl.color || '#0f172a'}
+          fontFamily="var(--font-mono)"
+          fill={lbl.color || 'var(--silk)'}
         >
           {lbl.text}
         </text>
       ))}
 
       {/* Dark Horizontal EduVolt / VoltLab Nameplate Bar */}
-      <rect x={x + 1.5} y={y + bandY} width={mainW - 3} height={bandH} fill="#111827" />
-      <text x={x + 5} y={y + bandY + 8.7} fontSize="5.4" fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#ffffff">
+      <rect x={x + 1.5} y={y + bandY} width={mainW - 3} height={bandH} fill="var(--nameplate)" />
+      <text x={x + 5} y={y + bandY + 8.7} fontSize="5.4" fontWeight="900" fontFamily="var(--font-display)" fill="var(--silk-on-dark)">
         VoltLab
       </text>
-      <text x={x + mainW * 0.56} y={y + bandY + 8.7} textAnchor="middle" fontSize="5.3" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#38bdf8">
+      <text x={x + mainW * 0.56} y={y + bandY + 8.7} textAnchor="middle" fontSize="5.3" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--nameplate-tag)">
         {device.state.tag || 'KM1'}
       </text>
-      <rect x={x + mainW - 21} y={y + bandY + 2.5} width={17} height={8} rx={1.5} fill={isClosed ? '#16a34a' : '#334155'} />
-      <text x={x + mainW - 12.5} y={y + bandY + 8.2} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#ffffff">
+      <rect x={x + mainW - 21} y={y + bandY + 2.5} width={17} height={8} rx={1.5} fill={isClosed ? 'var(--cond-green)' : 'var(--mat-housing-dark-face)'} />
+      <text x={x + mainW - 12.5} y={y + bandY + 8.2} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
         {coilOn ? 'COIL' : isClosed ? 'TEST' : 'OFF'}
       </text>
 
-      <rect x={auxX + 1.5} y={y + bandY} width={auxW - 3} height={bandH} fill="#334155" />
-      <text x={auxX + auxW / 2} y={y + bandY + 8.4} textAnchor="middle" fontSize="4.3" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#e2e8f0">
+      <rect x={auxX + 1.5} y={y + bandY} width={auxW - 3} height={bandH} fill="var(--mat-housing-dark-face)" />
+      <text x={auxX + auxW / 2} y={y + bandY + 8.4} textAnchor="middle" fontSize="4.3" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
         LADN11
       </text>
 
@@ -122,19 +122,19 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
       {!isCutaway ? (
         <g>
           {/* Left silkscreen specs (well separated from plunger window) */}
-          <text x={x + 5} y={y + 56} fontSize="5.6" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#1e293b">
+          <text x={x + 5} y={y + 56} fontSize="5.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
             1211
           </text>
-          <text x={x + 5} y={y + 64} fontSize="4.2" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#475569">
+          <text x={x + 5} y={y + 64} fontSize="4.2" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk-muted)">
             A1-A2
           </text>
-          <text x={x + 5} y={y + 71} fontSize="4.2" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#475569">
+          <text x={x + 5} y={y + 71} fontSize="4.2" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk-muted)">
             AC-3
           </text>
 
           {/* Coil state dot below silkscreen */}
-          <circle cx={x + 11} cy={y + 84} r={3} fill={coilOn ? '#22c55e' : '#94a3b8'} stroke="#0f172a" strokeWidth={0.7} />
-          <text x={x + 16} y={y + 85.5} fontSize="3.8" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#334155">
+          <circle cx={x + 11} cy={y + 84} r={3} fill={coilOn ? 'var(--lamp-green-on)' : 'var(--mat-steel)'} stroke="var(--mat-line)" strokeWidth={0.7} />
+          <text x={x + 16} y={y + 85.5} fontSize="3.8" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk)">
             {coilOn ? 'MAG' : 'IDLE'}
           </text>
 
@@ -147,8 +147,8 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
               width={mainW * 0.60}
               height={24}
               rx={2}
-              fill="#cbd5e1"
-              stroke="#0f172a"
+              fill="var(--mat-housing-shade)"
+              stroke="var(--mat-line)"
               strokeWidth={0.9}
             />
             {[0, 1, 2].map((i) => {
@@ -162,8 +162,8 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
                     width={ww}
                     height={16}
                     rx={1}
-                    fill={isClosed ? '#dcfce7' : '#ffffff'}
-                    stroke={isClosed ? '#16a34a' : '#475569'}
+                    fill={isClosed ? '#dcfce7' : 'var(--mat-housing)'}
+                    stroke={isClosed ? 'var(--cond-green)' : 'var(--silk-muted)'}
                     strokeWidth={0.9}
                   />
                   <rect
@@ -172,7 +172,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
                     width={ww - 4}
                     height={4.5}
                     rx={0.5}
-                    fill={isClosed ? '#16a34a' : '#94a3b8'}
+                    fill={isClosed ? 'var(--cond-green)' : 'var(--mat-steel)'}
                   />
                 </g>
               );
@@ -185,8 +185,8 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
             textAnchor="middle"
             fontSize="4.2"
             fontWeight="800"
-            fontFamily="ui-monospace, monospace"
-            fill={isClosed ? '#15803d' : '#475569'}
+            fontFamily="var(--font-mono)"
+            fill={isClosed ? 'var(--cond-green)' : 'var(--silk-muted)'}
           >
             {isClosed ? 'CLOSED · PULLED IN' : 'OPEN · HOLD TEST'}
           </text>
@@ -196,8 +196,8 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
             textAnchor="middle"
             fontSize="4.1"
             fontWeight="700"
-            fontFamily="ui-monospace, monospace"
-            fill="#64748b"
+            fontFamily="var(--font-mono)"
+            fill="var(--silk-muted)"
           >
             {device.state.ratedAmps || 25}A · 440V~ IEC 60947
           </text>
@@ -206,41 +206,41 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
         /* Internal X-Ray Cutaway View (clipped cleanly inside main faceplate) */
         <g clipPath={`url(#km-clip-${uid})`} onMouseDown={manualHold} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
           <title>X-Ray Cutaway — hold to actuate coil & armature</title>
-          <rect x={x + 2} y={y + bandY + bandH} width={mainW - 4} height={botLabelY - (bandY + bandH) - 1} fill="#0b1324" />
+          <rect x={x + 2} y={y + bandY + bandH} width={mainW - 4} height={botLabelY - (bandY + bandH) - 1} fill="var(--mat-line)" />
           {/* Fixed pole paths & contact pads */}
           {poleXs.map((px, i) => (
             <g key={`xpole-${i}`}>
-              <line x1={px} y1={y + bandY + bandH + 2} x2={px - 4} y2={y + 56} stroke="#f59e0b" strokeWidth={1.6} />
-              <line x1={px} y1={y + botLabelY - 2} x2={px + 4} y2={y + 56} stroke="#f59e0b" strokeWidth={1.6} />
-              <rect x={px - 6.5} y={y + 55} width={4.5} height={2.2} fill="#e2e8f0" />
-              <rect x={px + 2} y={y + 55} width={4.5} height={2.2} fill="#e2e8f0" />
+              <line x1={px} y1={y + bandY + bandH + 2} x2={px - 4} y2={y + 56} stroke="var(--lamp-amber-on)" strokeWidth={1.6} />
+              <line x1={px} y1={y + botLabelY - 2} x2={px + 4} y2={y + 56} stroke="var(--lamp-amber-on)" strokeWidth={1.6} />
+              <rect x={px - 6.5} y={y + 55} width={4.5} height={2.2} fill="var(--mat-housing-shade)" />
+              <rect x={px + 2} y={y + 55} width={4.5} height={2.2} fill="var(--mat-housing-shade)" />
             </g>
           ))}
           {/* Moving Contact Bridge & Armature */}
           <g style={{ transform: `translateY(${travel}px)`, transition: 'transform 110ms ease-out' }}>
-            <rect x={x + 12} y={y + 45} width={mainW - 22} height={3} rx={1} fill="#cbd5e1" />
+            <rect x={x + 12} y={y + 45} width={mainW - 22} height={3} rx={1} fill="var(--mat-housing-shade)" />
             {poleXs.map((px, i) => (
-              <rect key={`xbr-${i}`} x={px - 7.5} y={y + 48.2} width={15} height={2.4} rx={0.6} fill="#f97316" />
+              <rect key={`xbr-${i}`} x={px - 7.5} y={y + 48.2} width={15} height={2.4} rx={0.6} fill="var(--mat-pvc-orange)" />
             ))}
-            <rect x={x + mainW / 2 - 1.5} y={y + 48} width={3} height={11} fill="#94a3b8" />
-            <rect x={x + 15} y={y + 59} width={mainW - 30} height={6} rx={1} fill="#64748b" stroke="#cbd5e1" strokeWidth={0.5} />
+            <rect x={x + mainW / 2 - 1.5} y={y + 48} width={3} height={11} fill="var(--mat-steel)" />
+            <rect x={x + 15} y={y + 59} width={mainW - 30} height={6} rx={1} fill="var(--mat-line-soft)" stroke="var(--mat-housing-shade)" strokeWidth={0.5} />
           </g>
           {/* Fixed E-Core & Energizing A1-A2 Coil */}
-          <rect x={x + 15} y={y + 73} width={mainW - 30} height={22} rx={1.5} fill="#475569" stroke="#94a3b8" strokeWidth={0.6} />
+          <rect x={x + 15} y={y + 73} width={mainW - 30} height={22} rx={1.5} fill="var(--silk-muted)" stroke="var(--mat-steel)" strokeWidth={0.6} />
           <rect
             x={x + 21}
             y={y + 77}
             width={mainW - 42}
             height={14}
             rx={1.5}
-            fill={coilOn ? '#f97316' : '#92400e'}
-            stroke={coilOn ? '#fed7aa' : '#78350f'}
+            fill={coilOn ? 'var(--mat-pvc-orange)' : 'var(--mat-copper-dark)'}
+            stroke={coilOn ? '#fed7aa' : 'var(--mat-copper-dark)'}
             strokeWidth={0.8}
           />
-          <text x={x + mainW / 2} y={y + 86} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#fff7ed">
+          <text x={x + mainW / 2} y={y + 86} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="#fff7ed">
             COIL A1–A2
           </text>
-          <text x={x + mainW / 2} y={y + 104} textAnchor="middle" fontSize="4" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#7dd3fc">
+          <text x={x + mainW / 2} y={y + 104} textAnchor="middle" fontSize="4" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--nameplate-tag)">
             {coilOn ? 'MAGNET PULLED IN' : isClosed ? 'MANUAL PLUNGER' : 'SPRING RELEASED'}
           </text>
         </g>
@@ -253,10 +253,10 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
       ].map((win) => {
         const wx = x + width * win.relX;
         const wy = y + 66;
-        const col = win.closed ? '#16a34a' : win.isNc ? '#dc2626' : '#475569';
+        const col = win.closed ? 'var(--cond-green)' : win.isNc ? 'var(--cond-red)' : 'var(--silk-muted)';
         return (
           <g key={`aux-${win.label}`}>
-            <rect x={wx - 6} y={wy - 15} width={12} height={28} rx={1.5} fill="#ffffff" stroke="#475569" strokeWidth={0.8} />
+            <rect x={wx - 6} y={wy - 15} width={12} height={28} rx={1.5} fill="var(--mat-housing)" stroke="var(--silk-muted)" strokeWidth={0.8} />
             <line x1={wx} y1={wy - 12} x2={wx} y2={wy - 4} stroke={col} strokeWidth={1.1} />
             <line x1={wx} y1={wy + 4} x2={wx} y2={wy + 12} stroke={col} strokeWidth={1.1} />
             <line
@@ -268,7 +268,7 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
               strokeWidth={1.3}
             />
             {win.isNc && <line x1={wx - 3} y1={wy - 4} x2={wx + 3} y2={wy - 4} stroke={col} strokeWidth={0.9} />}
-            <text x={wx} y={wy + 20} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#1e293b">
+            <text x={wx} y={wy + 20} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
               {win.label}
             </text>
           </g>
@@ -289,8 +289,8 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
       {false && <g onMouseDown={stopCanvas} />}
 
       {/* Bottom Silkscreen Label Band */}
-      <rect x={x + 1.5} y={y + botLabelY} width={mainW - 3} height={9} fill="#f8fafc" />
-      <rect x={auxX + 1.5} y={y + botLabelY} width={auxW - 3} height={9} fill="#f1f5f9" />
+      <rect x={x + 1.5} y={y + botLabelY} width={mainW - 3} height={9} fill="var(--mat-housing)" />
+      <rect x={auxX + 1.5} y={y + botLabelY} width={auxW - 3} height={9} fill="var(--mat-housing)" />
       {botLabels.map((lbl) => (
         <text
           key={`bl-${lbl.text}`}
@@ -299,20 +299,20 @@ export const ContactorDevice: React.FC<DeviceComponentProps> = (props) => {
           textAnchor="middle"
           fontSize="4.6"
           fontWeight="900"
-          fontFamily="ui-monospace, monospace"
-          fill={lbl.color || '#0f172a'}
+          fontFamily="var(--font-mono)"
+          fill={lbl.color || 'var(--silk)'}
         >
           {lbl.text}
         </text>
       ))}
 
       {/* Bottom Terminal Pocket Bay */}
-      <rect x={x + 1.5} y={y + botBayY} width={mainW - 3} height={17.5} rx={2} fill="#1f2937" />
-      <rect x={auxX + 1.5} y={y + botBayY} width={auxW - 3} height={17.5} rx={2} fill="#1f2937" />
+      <rect x={x + 1.5} y={y + botBayY} width={mainW - 3} height={17.5} rx={2} fill="var(--mat-housing-dark)" />
+      <rect x={auxX + 1.5} y={y + botBayY} width={auxW - 3} height={17.5} rx={2} fill="var(--mat-housing-dark)" />
       {[0.165, 0.33, 0.49].map((r) => (
-        <line key={`bd-${r}`} x1={x + width * r} y1={y + botBayY} x2={x + width * r} y2={y + height - 2} stroke="#64748b" strokeWidth={0.8} />
+        <line key={`bd-${r}`} x1={x + width * r} y1={y + botBayY} x2={x + width * r} y2={y + height - 2} stroke="var(--mat-line-soft)" strokeWidth={0.8} />
       ))}
-      <line x1={x + width * 0.855} y1={y + botBayY} x2={x + width * 0.855} y2={y + height - 2} stroke="#64748b" strokeWidth={0.8} />
+      <line x1={x + width * 0.855} y1={y + botBayY} x2={x + width * 0.855} y2={y + height - 2} stroke="var(--mat-line-soft)" strokeWidth={0.8} />
 
       <DeviceTerminals {...props} hideLabel={() => true} />
     </g>

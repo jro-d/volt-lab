@@ -1072,7 +1072,7 @@ export const App: React.FC = () => {
 
   // Dual View right-pane switch (Ladder ⇄ SLD)
   const dualSwitch = (
-    <div className="flex items-center bg-white border border-stone-200 rounded-lg p-0.5 shadow-sm">
+    <div className="flex items-center bg-surface border border-border rounded-lg p-0.5 shadow-sm">
       {([
         { id: 'ladder', label: 'Ladder' },
         { id: 'sld', label: 'SLD' },
@@ -1081,7 +1081,7 @@ export const App: React.FC = () => {
           key={t.id}
           onClick={() => setDualPane(t.id)}
           className={`px-2.5 h-6 rounded-md text-[11px] font-bold transition ${
-            dualPane === t.id ? 'bg-stone-800 text-white' : 'text-stone-600 hover:text-stone-900'
+            dualPane === t.id ? 'bg-ink text-surface' : 'text-ink-muted hover:text-ink'
           }`}
         >
           {t.label}
@@ -1097,7 +1097,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#faf8f5] text-stone-900 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-screen bg-surface text-ink overflow-hidden font-sans">
       <input
         ref={fileInputRef}
         type="file"
@@ -1268,7 +1268,7 @@ export const App: React.FC = () => {
           )}
 
           {viewMode === 'split' && (
-            <div className="w-full h-full grid grid-cols-2 divide-x divide-stone-200">
+            <div className="w-full h-full grid grid-cols-2 divide-x divide-border">
               <div className="w-full h-full relative">
                 <WiringCanvas
                   devices={project.devices}
@@ -1356,7 +1356,7 @@ export const App: React.FC = () => {
 
         {/* CAD Notice Toast */}
         {notice && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-stone-900/90 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg border border-stone-700/60 backdrop-blur-sm pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 bg-ink/90 text-surface text-xs font-semibold px-4 py-2 rounded-full shadow-lg border border-border-strong/60 backdrop-blur-sm pointer-events-none animate-in fade-in zoom-in-95 duration-150">
             {notice}
           </div>
         )}
