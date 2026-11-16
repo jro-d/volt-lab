@@ -36,8 +36,8 @@ interface FolderNode {
 const LIBRARY_TREE: FolderNode[] = [
   {
     id: 'residential',
-    label: 'ROYU & PH Residential Devices',
-    types: ['switch_1gang', 'switch_2gang', 'switch_3gang', 'dimmer_switch', 'switch_3way', 'switch_4way', 'socket_duplex', 'royu_modular_combo_plate', 'socket_schuko', 'light_bulb'],
+    label: 'Residential Wiring Devices (PEC)',
+    types: ['switch_1gang', 'switch_2gang', 'switch_3gang', 'dimmer_switch', 'switch_3way', 'switch_4way', 'socket_duplex', 'modular_combo_plate', 'socket_schuko', 'light_bulb'],
   },
   {
     id: 'panelboards',
@@ -46,14 +46,14 @@ const LIBRARY_TREE: FolderNode[] = [
       { id: 'pole1', label: '1 Pole', types: ['mcb_1p'] },
       { id: 'pole2', label: '2 Poles (Bolt-On & DIN)', types: ['mcb_2p', 'service_disconnect_2p', 'ats_changeover'] },
       { id: 'pole3', label: '3 Poles', types: ['mcb_3p'] },
-      { id: 'safety', label: 'RCD / Safety Breakers', types: ['rcd_2p', 'royu_safety_breaker_2p', 'spd_surge'] },
+      { id: 'safety', label: 'RCD / Safety Breakers', types: ['rcd_2p', 'safety_breaker_2p', 'spd_surge'] },
       { id: 'mounting', label: 'Panelboards, DIN Rails & Meters', types: ['panelboard_frame', 'din_rail_track', 'panel_meter'] },
     ],
   },
   {
     id: 'conduits',
     label: 'Conduits, Utility & Junction Boxes',
-    types: ['utility_box_surface_pvc', 'junction_box_octagonal_orange', 'junction_box', 'junction_box_4way', 'splice_wire_nut', 'wago_connector_3p'],
+    types: ['utility_box_surface_pvc', 'junction_box_octagonal_orange', 'junction_box', 'junction_box_4way', 'splice_wire_nut', 'lever_connector_3p'],
   },
   {
     id: 'industrial',
@@ -227,7 +227,7 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
           <Search className="w-3.5 h-3.5 text-ink-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search library (MCB, ROYU, PLC...)"
+            placeholder="Search library (MCB, RCD, PLC...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:border-probe shadow-inner"

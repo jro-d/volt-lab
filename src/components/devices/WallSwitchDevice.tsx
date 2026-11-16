@@ -100,7 +100,7 @@ export const WallSwitchDevice: React.FC<DeviceProps> = (props) => {
             <title>{`Click the rocker to switch (${name})`}</title>
             <Rocker x={W / 2 - 16} y={H * 0.3} w={32} h={H * 0.38} on={isActive} mark={mark} />
           </g>
-          <Silk x={W / 2} y={H * 0.28 - 2} size={4.4} anchor="middle" bold fill="var(--brand)">ROYU</Silk>
+          <Silk x={W / 2} y={H * 0.28 - 2} size={4} anchor="middle" bold muted>16A 250V~</Silk>
         </g>
       )}
 

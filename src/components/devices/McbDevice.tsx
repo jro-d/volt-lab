@@ -21,12 +21,15 @@ export const McbDevice: React.FC<DeviceProps> = (props) => {
   const isMain = device.type === 'service_disconnect_2p';
   const poles = is3P ? 3 : is2P ? 2 : 1;
 
-  const profile: 'royu_bolt_on' | 'royu_din_rail' | 'generic_iec' =
-    device.state.breakerProfile ||
-    (device.state.mccbStyle === 'industrial_black' ? 'royu_bolt_on' : is2P && !isMain ? 'royu_bolt_on' : 'royu_din_rail');
-  const isBoltOn = profile === 'royu_bolt_on';
+  // Two standard form factors: bolt-on (UL 489 / NEMA panelboard) and DIN-rail (IEC 60898-1).
+  // Legacy saved values ('royu_bolt_on', 'royu_din_rail', 'generic_iec') map onto these.
+  const rawProfile = String(device.state.breakerProfile || '');
+  const profile: 'bolt_on' | 'din_rail' = rawProfile
+    ? rawProfile.includes('bolt') ? 'bolt_on' : 'din_rail'
+    : device.state.mccbStyle === 'industrial_black' || (is2P && !isMain) ? 'bolt_on' : 'din_rail';
+  const isBoltOn = profile === 'bolt_on';
 
-  // ROYU bolt-on handles are colour-coded by rating; DIN breakers use a black lever.
+  // Bolt-on handles are colour-coded by rating; DIN breakers use a black lever.
   const ampColors: Record<number, string> = {
     15: 'var(--act-blue)', 20: 'var(--act-red)', 30: 'var(--act-green)', 40: 'var(--mat-pvc-orange)',
   };
@@ -42,10 +45,9 @@ export const McbDevice: React.FC<DeviceProps> = (props) => {
     onToggleState?.(device);
   };
   const cycleProfile = () => {
-    const order = ['royu_bolt_on', 'royu_din_rail', 'generic_iec'] as const;
-    const next = order[(order.indexOf(profile) + 1) % order.length];
+    const next = profile === 'bolt_on' ? 'din_rail' : 'bolt_on';
     device.state.breakerProfile = next;
-    device.state.mccbStyle = next === 'royu_bolt_on' ? 'industrial_black' : 'din_rail';
+    device.state.mccbStyle = next === 'bolt_on' ? 'industrial_black' : 'din_rail';
     onToggleState?.(device);
   };
   const tripTest = () => {
@@ -76,7 +78,7 @@ export const McbDevice: React.FC<DeviceProps> = (props) => {
   const body = isBoltOn ? 'dark' : 'light';
   const onDark = isBoltOn;
   const tag = deviceTag(device);
-  const brand = isMain ? 'MAIN' : isBoltOn ? 'ROYU' : profile === 'royu_din_rail' ? 'ROYU' : 'IEC';
+  const brand = isMain ? 'MAIN' : isBoltOn ? 'UL 489' : 'IEC 60898';
   const kA = device.kaRating || (is3P ? 10 : 6);
 
   return (
@@ -98,10 +100,10 @@ export const McbDevice: React.FC<DeviceProps> = (props) => {
       <Bay x={3} y={botBayY} w={W - 6} h={bayH} dark={onDark} />
       <Seams xs={seamXs} y1={2} y2={H - 2} />
 
-      {/* 3 Face + nameplate (click to cycle bolt-on / ROYU DIN / IEC DIN) */}
+      {/* 3 Face + nameplate (click to switch bolt-on / DIN-rail) */}
       <Face x={3} y={faceY} w={W - 6} h={faceH} dark={onDark} />
       <g onClick={click(cycleProfile)} className="cursor-pointer">
-        <title>Click the nameplate to cycle the breaker profile (bolt-on / ROYU DIN / IEC DIN)</title>
+        <title>Click the nameplate to switch the breaker profile (bolt-on / DIN-rail)</title>
         <Nameplate x={3} y={plateY} w={W - 6} h={8} tag={tag} text={`${curve}${ratedAmps}`} size={poles === 1 ? 4.8 : 5.4} />
       </g>
 
@@ -129,9 +131,9 @@ export const McbDevice: React.FC<DeviceProps> = (props) => {
       </g>
       <Flag cx={W / 2} y={flagY} state={flagState} />
 
-      {/* Silkscreen: breaker symbol, brand, ratings */}
+      {/* Silkscreen: breaker symbol, product standard, ratings */}
       <SymBreaker x={9} y={lowerY} s={0.9} dark={onDark} />
-      <Silk x={W / 2 + (poles === 1 ? 3 : 0)} y={lowerY + 4.6} anchor="middle" size={poles === 1 ? 4.6 : 5.2} bold onDark={onDark}>
+      <Silk x={W / 2 + (poles === 1 ? 3 : 0)} y={lowerY + 4.6} anchor="middle" size={poles === 1 ? 3.9 : 5} bold onDark={onDark}>
         {brand}
       </Silk>
       <Silk x={W / 2 + (poles === 1 ? 3 : 0)} y={lowerY + 9.6} anchor="middle" size={4.2} muted={!onDark} onDark={onDark}>

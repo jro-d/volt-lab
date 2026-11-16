@@ -20,6 +20,7 @@ import { LadderCanvas } from './components/canvas/LadderCanvas';
 import { LadderRung } from './types/ladder';
 import { sound } from './utils/soundFx';
 import { resetTransientState, resetTripState, toEditModeDevices } from './utils/deviceState';
+import { migrateLegacyDevices } from './utils/projectMigration';
 import { Trash2, Lock } from 'lucide-react';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
@@ -32,7 +33,7 @@ function loadEmbeddedProject(): ElectricalProject | null {
     if (!el?.textContent?.trim()) return null;
     const parsed = JSON.parse(el.textContent);
     if (parsed && Array.isArray(parsed.devices) && Array.isArray(parsed.wires)) {
-      return { ...parsed, devices: toEditModeDevices(parsed.devices) };
+      return { ...parsed, devices: toEditModeDevices(migrateLegacyDevices(parsed.devices)) };
     }
   } catch {
     // Fall back to blank canvas if embedded JSON is malformed
@@ -663,6 +664,7 @@ export const App: React.FC = () => {
   };
 
   // Update specific property on a device (e.g. ratedAmps, tripCurve, wattage)
+  const DEVICE_SPEC_KEYS = ['productStandard', 'modelNumber', 'kaRating', 'mountingType', 'pecReference'];
   const handleUpdateDeviceProperty = (deviceId: string, key: string, value: any) => {
     pushUndoSnapshot();
     sound.playSwitchClick();
@@ -670,6 +672,8 @@ export const App: React.FC = () => {
       ...prev,
       devices: prev.devices.map(d => {
         if (d.id !== deviceId) return d;
+        // Datasheet fields live on the device itself, everything else in its state
+        if (DEVICE_SPEC_KEYS.includes(key)) return { ...d, [key]: value };
         const updatedState = { ...d.state, [key]: value };
         let updatedName = d.name;
         if (key === 'ratedAmps' && d.type.includes('mcb')) {
@@ -1015,7 +1019,7 @@ export const App: React.FC = () => {
           // Imported projects always open de-energized in Edit Mode
           setIsSimulating(false);
           setSparkFlash([]);
-          setProject({ ...imported, devices: toEditModeDevices(imported.devices) });
+          setProject({ ...imported, devices: toEditModeDevices(migrateLegacyDevices(imported.devices)) });
           setSelectedDeviceId(null);
           setSelectedGroupIds([]);
           setSelectedWireId(null);

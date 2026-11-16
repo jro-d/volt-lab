@@ -153,7 +153,7 @@ function buildNets(devices: ElectricalDevice[], wires: ElectricalWire[]) {
     const all = (ids: string[]) => {
       for (let i = 1; i < ids.length; i++) union(tk(d.id, ids[0]), tk(d.id, ids[i]));
     };
-    if (d.category === 'busbar' || d.type === 'splice_wire_nut' || d.type === 'wago_connector_3p') {
+    if (d.category === 'busbar' || d.type === 'splice_wire_nut' || d.type === 'lever_connector_3p') {
       all(d.terminals.map(t => t.id));
     } else if (d.type.includes('junction_box') || d.type === 'utility_box_surface_pvc') {
       const groups: Record<string, string[]> = {};
@@ -252,7 +252,7 @@ export function parsePhysicalLadder(devices: ElectricalDevice[], wires: Electric
     const feeders: [string, string, string][] = [
       ['mcb_2p', 'out_1', 'out_2'],
       ['service_disconnect_2p', 'out_l', 'out_n'],
-      ['royu_safety_breaker_2p', 'out_l', 'out_n'],
+      ['safety_breaker_2p', 'out_l', 'out_n'],
       ['rcd_2p', 'out_l', 'out_n'],
       ['kwh_meter_1p', 'l_out', 'n_out'],
     ];

@@ -62,7 +62,7 @@ const dev = (type: Parameters<typeof createDeviceFromCatalog>[0], x: number, y: 
 const dolDevices: ElectricalDevice[] = [
   dev('source_3phase_440v', 40, 30, 'mdol_src', { name: '440V 3Φ 60Hz Ship Feeder' }),
   dev('mcb_3p', 68, 176, 'mdol_q1', { name: 'Q1 Main 3P MCB 16A', state: { ratedAmps: 16, tripCurve: 'D' } }),
-  dev('contactor_3p', 60, 330, 'mdol_km1', { name: 'KM1 Line Contactor (3RT)', state: { tag: 'KM1' } }),
+  dev('contactor_3p', 60, 330, 'mdol_km1', { name: 'KM1 Line Contactor', state: { tag: 'KM1' } }),
   dev('thermal_overload_relay', 60, 520, 'mdol_f2', { name: 'F2 Thermal Overload (3RU)', state: { tag: 'F2', tripAmps: 6 } }),
   dev('motor_ac_industrial', 56, 700, 'mdol_m1', { name: 'M1 3Φ Motor 3HP 440V', state: { tag: 'M1', wattage: 2200, motorHp: 3 } }),
   dev('earth_busbar', 250, 680, 'mdol_pe', { name: 'PE Earth Bar' }),
@@ -132,7 +132,7 @@ const frDevices: ElectricalDevice[] = [
   dev('mcb_3p', 120, 176, 'mfr_q1', { name: 'Q1 Main 3P MCB 16A', state: { ratedAmps: 16, tripCurve: 'D' } }),
   dev('contactor_3p', 30, 330, 'mfr_km1', { name: 'KM1 Forward Contactor', state: { tag: 'KM1', role: 'FOR' } }),
   dev('contactor_3p', 196, 330, 'mfr_km2', { name: 'KM2 Reverse Contactor', state: { tag: 'KM2', role: 'REV' } }),
-  dev('thermal_overload_relay', 112, 548, 'mfr_f2', { name: 'F2 Thermal Overload (LRD)', state: { tag: 'F2', tripAmps: 6 } }),
+  dev('thermal_overload_relay', 112, 548, 'mfr_f2', { name: 'F2 Thermal Overload', state: { tag: 'F2', tripAmps: 6 } }),
   dev('motor_ac_industrial', 108, 730, 'mfr_m1', { name: 'M1 3Φ Motor 3HP 440V', state: { tag: 'M1', wattage: 2200, motorHp: 3 } }),
   dev('earth_busbar', 300, 700, 'mfr_pe', { name: 'PE Earth Bar' }),
   dev('mcb_2p', 400, 176, 'mfr_q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
@@ -340,7 +340,7 @@ export const MOTOR_CONTROL_LABS: LabLesson[] = [
   {
     id: 'lab-marine-dol-440v',
     title: '⚓ Marine / Industrial DOL Motor Starter (440V/220V Control Transformer + Thermal Overload Relay)',
-    subtitle: 'Practice sheet — DOL motor starter: 440V 3P Feeder → 3P MCB → Contactor 3RT → Thermal Overload 3RU → 3Φ Motor',
+    subtitle: 'Practice sheet — DOL motor starter: 440V 3P Feeder → 3P MCB → Contactor KM1 → Thermal Overload F2 → 3Φ Motor',
     category: 'industrial',
     badge: '⚓ Marine 440V',
     difficulty: 'Intermediate',

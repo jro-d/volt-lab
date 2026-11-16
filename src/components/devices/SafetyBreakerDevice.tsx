@@ -2,11 +2,11 @@ import React from 'react';
 import { Bay, DeviceProps, Flag, Housing, Lever, Mono, Nameplate, Screw, Silk, SymEarth, Terminals, TermIds, act, deviceTag, makePatch } from './kit';
 
 /**
- * ROYU 2P safety breaker in a surface enclosure (residential ACU / water-heater disconnect).
+ * 2P safety breaker in a surface enclosure (residential ACU / water-heater disconnect).
  * Closed cover: the lever shows through the cover window. Open cover: the bolt-on breaker,
  * copper stabs and lugs are visible. Click COVER to open/close; click the lever to switch.
  */
-export const RoyuSafetyBreakerDevice: React.FC<DeviceProps> = (props) => {
+export const SafetyBreakerDevice: React.FC<DeviceProps> = (props) => {
   const { device } = props;
   const { width: W, height: H } = device;
   const patch = makePatch(props);
@@ -63,7 +63,7 @@ export const RoyuSafetyBreakerDevice: React.FC<DeviceProps> = (props) => {
           <Screw cx={11} cy={coverY + coverH - 5} r={1.8} />
           <Screw cx={W - 11} cy={coverY + coverH - 5} r={1.8} />
           <rect className="d-nameplate" x={14} y={coverY + 4} width={W - 28} height={9} rx={1.5} />
-          <Silk x={18} y={coverY + 10.6} size={5.6} bold fill="var(--brand)">ROYU</Silk>
+          <Silk x={18} y={coverY + 10.6} size={5.2} bold onDark>NEMA 1</Silk>
           <Mono x={W - 18} y={coverY + 10.4} size={4.6} anchor="end" onDark>{deviceTag(device)}</Mono>
           <Silk x={cx} y={coverY + 21} size={5} anchor="middle" bold>SAFETY BREAKER</Silk>
           {/* window */}

@@ -106,22 +106,19 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </button>
       </div>
 
-      {/* ── MANUFACTURER DATASHEET CARD ── */}
+      {/* ── STANDARD DATASHEET CARD (brand-neutral) ── */}
       {device && (
         <div className="mb-3.5 p-2.5 rounded-md bg-surface-sunken border border-border text-ink shadow-sm">
           <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-border">
             <div className="flex items-center gap-1.5">
-              <span className={`text-[10px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded ${
-                device.brand === 'ROYU'
-                  ? 'bg-ink text-surface'
-                  : device.brand === 'Schneider'
-                  ? 'bg-ink text-surface'
-                  : 'bg-surface-hover text-ink'
-              }`}>
-                {device.brand || 'ROYU'}
+              <span
+                className="text-[10px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded bg-ink text-surface whitespace-nowrap"
+                title="Product standard this generic device model follows"
+              >
+                {device.productStandard || 'Standard'}
               </span>
-              <span className="text-[11px] font-bold font-mono text-ink">
-                {device.modelNumber || (device.type.includes('mcb') ? 'ROYU RCB220' : device.type.includes('combo') ? 'ROYU RWS103' : 'GENERIC-SPEC')}
+              <span className="text-[11px] font-bold font-mono text-ink truncate">
+                {device.modelNumber || device.name}
               </span>
             </div>
             {device.kaRating && (
@@ -151,38 +148,35 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {/* --- CIRCUIT BREAKER PROPERTIES --- */}
       {device && (device.type.includes('mcb') || device.type.includes('service_disconnect')) && (
         <div className="space-y-3">
-          {/* ROYU / IEC Breaker Profile Form Factor */}
+          {/* Breaker form factor: bolt-on (UL 489) or DIN-rail (IEC 60898-1) */}
           <div>
             <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Breaker Profile & Mounting
             </label>
-            <div className="grid grid-cols-3 gap-1">
+            <div className="grid grid-cols-2 gap-1">
               {[
-                { id: 'royu_bolt_on', label: 'ROYU Bolt-On', sub: '10kA 240V' },
-                { id: 'royu_din_rail', label: 'ROYU DIN-Rail', sub: '6kA 240V' },
-                { id: 'generic_iec', label: 'Generic IEC', sub: '6kA DIN' },
+                { id: 'bolt_on', label: 'Bolt-On', sub: 'UL 489 · 10kA' },
+                { id: 'din_rail', label: 'DIN-Rail', sub: 'IEC 60898-1 · 6kA' },
               ].map(prof => {
-                const active = (device.state.breakerProfile || (device.state.mccbStyle === 'industrial_black' ? 'royu_bolt_on' : 'royu_din_rail')) === prof.id;
+                const raw = String(device.state.breakerProfile || (device.state.mccbStyle === 'industrial_black' ? 'bolt_on' : 'din_rail'));
+                const active = (raw.includes('bolt') ? 'bolt_on' : 'din_rail') === prof.id;
                 return (
                   <button
                     key={prof.id}
                     onClick={() => {
                       onUpdateDeviceProperty(device.id, 'breakerProfile', prof.id);
-                      onUpdateDeviceProperty(device.id, 'mccbStyle', prof.id === 'royu_bolt_on' ? 'industrial_black' : 'din_rail');
-                      if (prof.id === 'royu_bolt_on') {
-                        onUpdateDeviceProperty(device.id, 'brand', 'ROYU');
+                      onUpdateDeviceProperty(device.id, 'mccbStyle', prof.id === 'bolt_on' ? 'industrial_black' : 'din_rail');
+                      const poles = device.type === 'mcb_3p' ? '3P' : device.type === 'mcb_1p' ? '1P' : '2P';
+                      if (prof.id === 'bolt_on') {
+                        onUpdateDeviceProperty(device.id, 'productStandard', 'UL 489 / PEC 2017');
                         onUpdateDeviceProperty(device.id, 'kaRating', 10);
                         onUpdateDeviceProperty(device.id, 'mountingType', 'bolt_on');
-                        onUpdateDeviceProperty(device.id, 'modelNumber', device.type === 'mcb_2p' ? 'ROYU RCB220' : 'ROYU RCB120');
-                      } else if (prof.id === 'royu_din_rail') {
-                        onUpdateDeviceProperty(device.id, 'brand', 'ROYU');
-                        onUpdateDeviceProperty(device.id, 'kaRating', 6);
-                        onUpdateDeviceProperty(device.id, 'mountingType', 'din_rail');
-                        onUpdateDeviceProperty(device.id, 'modelNumber', device.type === 'mcb_2p' ? 'ROYU RDM220' : 'ROYU RDM120');
+                        onUpdateDeviceProperty(device.id, 'modelNumber', `MCB ${poles} Bolt-On`);
                       } else {
-                        onUpdateDeviceProperty(device.id, 'brand', 'Generic');
+                        onUpdateDeviceProperty(device.id, 'productStandard', 'IEC 60898-1');
                         onUpdateDeviceProperty(device.id, 'kaRating', 6);
                         onUpdateDeviceProperty(device.id, 'mountingType', 'din_rail');
+                        onUpdateDeviceProperty(device.id, 'modelNumber', `MCB ${poles} DIN-Rail`);
                       }
                     }}
                     className={`py-1 px-1 text-center rounded-lg border transition ${
@@ -327,8 +321,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
-      {/* --- ROYU ENCLOSED SAFETY BREAKER (ACU DISCONNECT) --- */}
-      {device && device.type === 'royu_safety_breaker_2p' && (
+      {/* --- ENCLOSED SAFETY BREAKER (ACU DISCONNECT) --- */}
+      {device && device.type === 'safety_breaker_2p' && (
         <div className="space-y-3">
           {/* Front Enclosure Cover Toggle */}
           <div>
@@ -389,8 +383,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
-      {/* --- ROYU WIDE-SERIES MODULAR COMBO STRAP --- */}
-      {device && device.type === 'royu_modular_combo_plate' && (
+      {/* --- WIDE-SERIES MODULAR COMBO STRAP --- */}
+      {device && device.type === 'modular_combo_plate' && (
         <div className="space-y-3">
           {/* Front / Rear View Toggle */}
           <div>

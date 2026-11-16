@@ -39,7 +39,7 @@ export const ThermalOverloadDevice: React.FC<DeviceProps> = (props) => {
       <Bay x={3} y={botBayY} w={mainW - 6} h={bayH} dark />
       <Seams xs={[(poleX[0] + poleX[1]) / 2, (poleX[1] + poleX[2]) / 2]} y1={botBayY} y2={botBayY + bayH} />
       <Face x={3} y={faceY} w={mainW - 6} h={faceH} />
-      <Nameplate x={3} y={faceY + 6} w={mainW - 6} h={8} tag={deviceTag(device) || 'F'} text={`LRD ${tripAmps}A`} />
+      <Nameplate x={3} y={faceY + 6} w={mainW - 6} h={8} tag={deviceTag(device) || 'F'} text={`TOR ${tripAmps}A`} />
 
       {/* FLA dial */}
       <g {...act(() => patch({ tripAmps: FLA_STEPS[(dialIdx + 1) % FLA_STEPS.length] }))}>
