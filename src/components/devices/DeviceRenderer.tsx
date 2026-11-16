@@ -194,18 +194,29 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       {/* Rotatable Device Container & Selection Outline */}
       <g transform={rot ? `rotate(${rot}, ${cx}, ${cy})` : undefined}>
         {(isSelected || isGroupMember) && (
-          <rect
-            x={device.x - 4}
-            y={device.y - 4}
-            width={device.width + 8}
-            height={device.height + 8}
-            rx={6}
-            fill="none"
-            stroke={isSelected ? '#0284c7' : '#7c3aed'}
-            strokeWidth={1.8}
-            strokeDasharray="4 4"
-            className="pointer-events-none"
-          />
+          <g className="pointer-events-none">
+            {/* Selected: probe outline 3 units outside the housing, plus corner grips */}
+            <rect
+              x={device.x - 3}
+              y={device.y - 3}
+              width={device.width + 6}
+              height={device.height + 6}
+              rx={5}
+              fill="none"
+              stroke="var(--probe)"
+              strokeWidth={1.5}
+              strokeDasharray={isSelected ? undefined : '4 3'}
+            />
+            {isSelected &&
+              [
+                [device.x - 3, device.y - 3],
+                [device.x + device.width + 3, device.y - 3],
+                [device.x - 3, device.y + device.height + 3],
+                [device.x + device.width + 3, device.y + device.height + 3],
+              ].map(([gx, gy], i) => (
+                <rect key={i} x={gx - 3} y={gy - 3} width={6} height={6} rx={1} fill="var(--probe-soft)" stroke="var(--probe)" strokeWidth={1.2} />
+              ))}
+          </g>
         )}
         {isHighlighted && (
           <rect
@@ -214,9 +225,10 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
             width={device.width + 16}
             height={device.height + 16}
             rx={10}
-            fill="rgba(250,204,21,0.10)"
-            stroke="#f59e0b"
-            strokeWidth={2.4}
+            fill="var(--warning-fill)"
+            fillOpacity={0.12}
+            stroke="var(--warning-fill)"
+            strokeWidth={2}
             className="pointer-events-none animate-pulse"
           />
         )}
@@ -230,9 +242,9 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
             transform={`translate(${device.x + device.width + 2}, ${device.y - 2})`}
             className="pointer-events-none"
           >
-            <circle r={8} fill="#f59e0b" stroke="#ffffff" strokeWidth={1.2} />
-            <rect x={-3} y={-1} width={6} height={5} rx={1} fill="#ffffff" />
-            <path d="M -2 -1 L -2 -3 A 2 2 0 0 1 2 -3 L 2 -1" fill="none" stroke="#ffffff" strokeWidth={1.1} />
+            <circle r={8} fill="var(--surface)" stroke="var(--border)" strokeWidth={1} />
+            <rect x={-3} y={-1} width={6} height={5} rx={1} fill="var(--ink-muted)" />
+            <path d="M -2 -1 L -2 -3 A 2 2 0 0 1 2 -3 L 2 -1" fill="none" stroke="var(--ink-muted)" strokeWidth={1.1} />
           </g>
         )}
       </g>
@@ -250,10 +262,10 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
             width={108}
             height={28}
             rx={14}
-            fill="#ffffff"
-            stroke="#e2e8f0"
-            strokeWidth={1.2}
-            filter="drop-shadow(0 4px 10px rgba(0,0,0,0.15))"
+            fill="var(--surface)"
+            stroke="var(--border)"
+            strokeWidth={1}
+            filter="drop-shadow(0 4px 10px rgba(16,20,24,0.14))"
           />
 
           {/* Rotate Button */}
@@ -265,12 +277,12 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
               onRotate && onRotate(device);
             }}
           >
-            <circle r={11} fill="#f1f5f9" />
+            <circle r={11} fill="var(--surface)" />
             {/* Rotate 90 Arrow Icon */}
             <path
               d="M -4 -2 A 5 5 0 1 1 -2 4 M -5 -5 L -4 -2 L -1 -3"
               fill="none"
-              stroke="#0f172a"
+              stroke="var(--ink)"
               strokeWidth={1.3}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -286,10 +298,10 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
               onDuplicate && onDuplicate(device);
             }}
           >
-            <circle r={11} fill="#f1f5f9" />
+            <circle r={11} fill="var(--surface)" />
             {/* Copy / Duplicate Icon */}
-            <rect x={-4} y={-4} width={7} height={7} rx={1} fill="none" stroke="#0f172a" strokeWidth={1.1} />
-            <path d="M -1 -1 L 4 -1 L 4 4" fill="none" stroke="#0f172a" strokeWidth={1.1} />
+            <rect x={-4} y={-4} width={7} height={7} rx={1} fill="none" stroke="var(--ink)" strokeWidth={1.1} />
+            <path d="M -1 -1 L 4 -1 L 4 4" fill="none" stroke="var(--ink)" strokeWidth={1.1} />
           </g>
 
           {/* Delete Button */}
@@ -301,12 +313,12 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
               onDelete && onDelete(device);
             }}
           >
-            <circle r={11} fill="#fef2f2" />
+            <circle r={11} fill="var(--danger-soft)" />
             {/* Trash Icon */}
             <path
               d="M -4 -3 L 4 -3 M -3 -3 L -3 4 L 3 4 L 3 -3 M -1 -5 L 1 -5"
               fill="none"
-              stroke="#ef4444"
+              stroke="var(--danger)"
               strokeWidth={1.2}
               strokeLinecap="round"
             />

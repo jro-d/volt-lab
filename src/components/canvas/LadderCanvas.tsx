@@ -56,10 +56,10 @@ const RAIL_L = 70;
 const TOP = 64;
 
 const COLORS = {
-  idle: '#475569',
-  live: '#16a34a',
-  blocked: '#dc2626',
-  rail: '#0f172a',
+  idle: 'var(--ink-muted)',
+  live: 'var(--ok)',
+  blocked: 'var(--danger)',
+  rail: 'var(--ink)',
 };
 
 interface DrawCtx {
@@ -122,11 +122,11 @@ function drawElement(ctx: DrawCtx, el: LadderElement, col: number, row: number, 
         height={52}
         rx={8}
         fill={isSel ? 'rgba(14,165,233,0.12)' : linkedSel ? 'rgba(245,158,11,0.12)' : 'transparent'}
-        stroke={isSel ? '#0ea5e9' : linkedSel ? '#f59e0b' : 'transparent'}
+        stroke={isSel ? 'var(--probe)' : linkedSel ? 'var(--warning)' : 'transparent'}
         strokeWidth={1.4}
         strokeDasharray={isSel ? '0' : '3 2'}
       />
-      {passes && <rect x={cx - 11} y={cy - 12} width={22} height={24} rx={4} fill="#22c55e" opacity={0.14} />}
+      {passes && <rect x={cx - 11} y={cy - 12} width={22} height={24} rx={4} fill="var(--ok)" opacity={0.14} />}
       {/* contact plates */}
       <line x1={cx - 9} y1={cy - 11} x2={cx - 9} y2={cy + 11} stroke={symColor} strokeWidth={2.6} />
       <line x1={cx + 9} y1={cy - 11} x2={cx + 9} y2={cy + 11} stroke={symColor} strokeWidth={2.6} />
@@ -134,11 +134,11 @@ function drawElement(ctx: DrawCtx, el: LadderElement, col: number, row: number, 
         <line x1={cx - 13} y1={cy + 12} x2={cx + 13} y2={cy - 12} stroke={symColor} strokeWidth={2} />
       )}
       {/* actual contact position marker */}
-      <circle cx={cx} cy={cy} r={2.6} fill={closed ? COLORS.live : '#ffffff'} stroke={symColor} strokeWidth={1} />
-      <text x={cx} y={cy - 16} textAnchor="middle" fontSize={10} fontWeight={800} fill="#0f172a" fontFamily="ui-sans-serif, system-ui">
+      <circle cx={cx} cy={cy} r={2.6} fill={closed ? COLORS.live : 'var(--surface)'} stroke={symColor} strokeWidth={1} />
+      <text x={cx} y={cy - 16} textAnchor="middle" fontSize={10} fontWeight={800} fill="var(--ink)" fontFamily="ui-sans-serif, system-ui">
         {el.tag}
       </text>
-      <text x={cx} y={cy + 24} textAnchor="middle" fontSize={8.5} fontWeight={700} fill="#64748b" fontFamily="ui-monospace, monospace">
+      <text x={cx} y={cy + 24} textAnchor="middle" fontSize={8.5} fontWeight={700} fill="var(--ink-muted)" fontFamily="var(--font-mono)">
         {el.sub}
         {!el.deviceId ? ' ?' : ''}
       </text>
@@ -197,8 +197,8 @@ function drawOutput(
   if (!el) {
     ctx.parts.push(
       <g key={`${keyId}-empty`}>
-        <circle cx={cx} cy={cy} r={13} fill="none" stroke="#cbd5e1" strokeWidth={1.6} strokeDasharray="3 3" />
-        <text x={cx} y={cy + 3} textAnchor="middle" fontSize={8} fill="#94a3b8" fontWeight={700}>
+        <circle cx={cx} cy={cy} r={13} fill="none" stroke="var(--border-strong)" strokeWidth={1.6} strokeDasharray="3 3" />
+        <text x={cx} y={cy + 3} textAnchor="middle" fontSize={8} fill="var(--border-strong)" fontWeight={700}>
           OUT?
         </text>
       </g>
@@ -227,28 +227,28 @@ function drawOutput(
         height={52}
         rx={8}
         fill={isSel ? 'rgba(14,165,233,0.12)' : linkedSel ? 'rgba(245,158,11,0.12)' : 'transparent'}
-        stroke={isSel ? '#0ea5e9' : linkedSel ? '#f59e0b' : 'transparent'}
+        stroke={isSel ? 'var(--probe)' : linkedSel ? 'var(--warning)' : 'transparent'}
         strokeWidth={1.4}
         strokeDasharray={isSel ? '0' : '3 2'}
       />
       {el.kind === 'COIL' ? (
         <>
-          {energized && <circle cx={cx} cy={cy} r={16} fill="#22c55e" opacity={0.18} className="animate-pulse" />}
+          {energized && <circle cx={cx} cy={cy} r={16} fill="var(--ok)" opacity={0.18} className="animate-pulse" />}
           <path d={`M ${cx - 6} ${cy - 12} A 12 12 0 0 0 ${cx - 6} ${cy + 12}`} fill="none" stroke={col2} strokeWidth={2.6} />
           <path d={`M ${cx + 6} ${cy - 12} A 12 12 0 0 1 ${cx + 6} ${cy + 12}`} fill="none" stroke={col2} strokeWidth={2.6} />
         </>
       ) : (
         <>
-          <circle cx={cx} cy={cy} r={12} fill={energized ? lampColor : '#ffffff'} stroke={col2} strokeWidth={2.4} />
+          <circle cx={cx} cy={cy} r={12} fill={energized ? lampColor : 'var(--surface)'} stroke={col2} strokeWidth={2.4} />
           {energized && <circle cx={cx} cy={cy} r={18} fill={lampColor} opacity={0.25} className="animate-pulse" />}
           <line x1={cx - 8} y1={cy - 8} x2={cx + 8} y2={cy + 8} stroke={col2} strokeWidth={1.6} />
           <line x1={cx - 8} y1={cy + 8} x2={cx + 8} y2={cy - 8} stroke={col2} strokeWidth={1.6} />
         </>
       )}
-      <text x={cx} y={cy - 17} textAnchor="middle" fontSize={10} fontWeight={900} fill="#0f172a" fontFamily="ui-sans-serif, system-ui">
+      <text x={cx} y={cy - 17} textAnchor="middle" fontSize={10} fontWeight={900} fill="var(--ink)" fontFamily="ui-sans-serif, system-ui">
         {el.tag}
       </text>
-      <text x={cx} y={cy + 25} textAnchor="middle" fontSize={8.5} fontWeight={700} fill="#64748b" fontFamily="ui-monospace, monospace">
+      <text x={cx} y={cy + 25} textAnchor="middle" fontSize={8.5} fontWeight={700} fill="var(--ink-muted)" fontFamily="var(--font-mono)">
         {el.sub}
       </text>
     </g>
@@ -256,10 +256,10 @@ function drawOutput(
 }
 
 const LAMP_COLORS: Record<string, string> = {
-  GREEN: '#22c55e',
-  RED: '#ef4444',
-  AMBER: '#f59e0b',
-  BLUE: '#3b82f6',
+  GREEN: 'var(--lamp-green-on)',
+  RED: 'var(--lamp-red-on)',
+  AMBER: 'var(--lamp-amber-on)',
+  BLUE: 'var(--lamp-blue-on)',
 };
 
 const GENERIC: Record<LadderElementKind, { tag: string; sub: string }[]> = {
@@ -567,7 +567,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
           height={h * RH - 4}
           rx={10}
           fill={isSelRung ? 'rgba(14,165,233,0.06)' : i % 2 ? 'rgba(15,23,42,0.015)' : 'transparent'}
-          stroke={isSelRung ? '#7dd3fc' : 'transparent'}
+          stroke={isSelRung ? 'var(--probe)' : 'transparent'}
           onMouseDown={() => {
             if (mode === 'builder' && v.rungId) {
               setSelRungId(v.rungId);
@@ -575,7 +575,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
             }
           }}
         />
-        <text x={RAIL_L - 28} y={cy + 4} textAnchor="middle" fontSize={11} fontWeight={800} fill="#94a3b8" fontFamily="ui-monospace, monospace">
+        <text x={RAIL_L - 28} y={cy + 4} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--border-strong)" fontFamily="var(--font-mono)">
           {String(i + 1).padStart(2, '0')}
         </text>
       </g>
@@ -586,7 +586,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
     const preW = measure(v.pre).w;
     wire(ctx, `${v.key}-fill`, cellX(ctx, preW), cy, cellX(ctx, coilCol), cy, preOut);
     const energized = loadEnergized(v.output, preOut) && railsLive;
-    const lampColor = LAMP_COLORS[(v.output?.sub || '').toUpperCase()] || '#22c55e';
+    const lampColor = LAMP_COLORS[(v.output?.sub || '').toUpperCase()] || 'var(--ok)';
     drawOutput(ctx, v.output, coilCol, 0, preOut, energized, lampColor, `${v.key}-out`);
     const postOut = drawNode(ctx, v.post, coilCol + 1, 0, energized, `${v.key}-post`);
     const postW = measure(v.post).w;
@@ -595,7 +595,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
     const xr = xref(v.output?.deviceId, i);
     if (xr && v.output?.kind === 'COIL') {
       parts.push(
-        <text key={`${v.key}-xr`} x={railR + 10} y={cy + 4} fontSize={8.5} fontWeight={700} fill="#64748b" fontFamily="ui-monospace, monospace">
+        <text key={`${v.key}-xr`} x={railR + 10} y={cy + 4} fontSize={8.5} fontWeight={700} fill="var(--ink-muted)" fontFamily="var(--font-mono)">
           {xr}
         </text>
       );
@@ -621,7 +621,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
       title={title}
       onClick={() => setMode(id)}
       className={`flex items-center gap-1 px-2.5 h-7 rounded-md text-[11px] font-bold transition ${
-        mode === id ? 'bg-slate-900 text-white shadow-sm' : disabled ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'
+        mode === id ? 'bg-surface text-ink shadow-sm' : disabled ? 'text-ink cursor-not-allowed' : 'text-ink-muted hover:bg-surface-sunken'
       }`}
     >
       {icon}
@@ -638,7 +638,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
         setOptionKey('');
       }}
       className={`h-7 min-w-[38px] px-2 rounded-md font-mono text-xs font-black border transition ${
-        armed === kind ? 'bg-sky-600 text-white border-sky-700 shadow-sm' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+        armed === kind ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface text-ink border-border hover:border-border-strong'
       }`}
     >
       {glyph}
@@ -646,19 +646,19 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
   );
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-[#fbfaf7] overflow-hidden select-none">
+    <div className="relative w-full h-full flex flex-col bg-canvas overflow-hidden select-none">
       {/* Toolbar */}
-      <div className="shrink-0 border-b border-slate-200 bg-white/95 backdrop-blur px-3 py-2 flex flex-wrap items-center gap-2 z-10">
+      <div className="shrink-0 border-b border-border bg-surface/95 backdrop-blur px-3 py-2 flex flex-wrap items-center gap-2 z-10">
         <div className="flex items-center gap-1.5 mr-1">
-          <Activity className="w-4 h-4 text-emerald-600" />
+          <Activity className="w-4 h-4 text-ok" />
           <div className="leading-tight">
-            <div className="text-[11px] font-black uppercase tracking-wider text-slate-800">Control Ladder Diagram</div>
-            <div className="text-[10px] font-mono text-slate-500 truncate max-w-[220px]" title={phys.rails.source}>
+            <div className="text-[11px] font-black uppercase tracking-wider text-ink">Control Ladder Diagram</div>
+            <div className="text-[10px] font-mono text-ink-muted truncate max-w-[220px]" title={phys.rails.source}>
               Rails: {phys.rails.source}
             </div>
           </div>
         </div>
-        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+        <div className="flex items-center bg-surface-sunken border border-border rounded-lg p-0.5">
           {modeBtn({ id: 'live', icon: <Radio className="w-3 h-3" />, label: 'Live Sync', title: 'Auto-parsed from the physical workbench wiring' })}
           {modeBtn({
             id: 'target',
@@ -672,33 +672,33 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
         <div className="flex items-center gap-1 ml-auto">
           <span
             className={`text-[10px] font-mono font-bold px-2 py-1 rounded-full border ${
-              railsLive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200'
+              railsLive ? 'bg-ok-soft text-ok border-ok/40' : 'bg-surface-sunken text-ink-muted border-border'
             }`}
           >
             {railsLive ? '● CONTROL ENERGIZED' : isSimulating ? '○ CONTROL DEAD' : '○ EDIT MODE'}
           </span>
-          <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="w-7 h-7 rounded-md border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50" title="Zoom out">
+          <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="w-7 h-7 rounded-md border border-border bg-surface flex items-center justify-center hover:bg-surface-sunken" title="Zoom out">
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => setZoom((z) => Math.min(1.6, z + 0.1))} className="w-7 h-7 rounded-md border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50" title="Zoom in">
+          <button onClick={() => setZoom((z) => Math.min(1.6, z + 0.1))} className="w-7 h-7 rounded-md border border-border bg-surface flex items-center justify-center hover:bg-surface-sunken" title="Zoom in">
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           {headerRight}
         </div>
 
         {mode === 'builder' && (
-          <div className="w-full flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100">
-            <button onClick={addRung} className="h-7 px-2 rounded-md text-[11px] font-bold bg-white border border-slate-200 hover:border-slate-300 flex items-center gap-1">
+          <div className="w-full flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-border">
+            <button onClick={addRung} className="h-7 px-2 rounded-md text-[11px] font-bold bg-surface border border-border hover:border-border-strong flex items-center gap-1">
               <Plus className="w-3 h-3" /> Rung
             </button>
-            <div className="w-px h-5 bg-slate-200" />
+            <div className="w-px h-5 bg-border" />
             {symBtn({kind: "NO", glyph: "| |", title: "Normally Open contact (Start PB, Aux 13-14, TOR 97-98)",})}
             {symBtn({kind: "NC", glyph: "|/|", title: "Normally Closed contact (Stop PB, TOR 95-96, Interlock 21-22, E-Stop)",})}
             <button
               title="Parallel seal-in / latching branch: the next contact is placed in parallel with the selected one"
               onClick={() => setBranchMode((b) => !b)}
               className={`h-7 min-w-[38px] px-2 rounded-md font-mono text-xs font-black border transition ${
-                branchMode ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                branchMode ? 'bg-warning-fill text-ink border-warning' : 'bg-surface text-ink border-border hover:border-border-strong'
               }`}
             >
               ||
@@ -708,7 +708,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
             <select
               value={currentOption?.key || ''}
               onChange={(e) => setOptionKey(e.target.value)}
-              className="h-7 text-[11px] font-mono rounded-md border border-slate-200 bg-white px-1.5 max-w-[260px]"
+              className="h-7 text-[11px] font-mono rounded-md border border-border bg-surface px-1.5 max-w-[260px]"
             >
               {pickOptions.map((o) => (
                 <option key={o.key} value={o.key}>
@@ -718,26 +718,26 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
             </select>
             <button
               onClick={insert}
-              className="h-7 px-2.5 rounded-md text-[11px] font-bold bg-sky-600 text-white border border-sky-700 hover:bg-sky-700"
+              className="h-7 px-2.5 rounded-md text-[11px] font-bold bg-probe text-on-probe border border-probe hover:bg-probe"
               title={branchMode ? 'Insert as a parallel branch around the selected contact' : 'Insert after the selected contact (or set the rung output)'}
             >
               {branchMode ? 'Insert ∥' : 'Insert'}
             </button>
-            <button onClick={deleteSelected} className="h-7 px-2 rounded-md text-[11px] font-bold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center gap-1" title="Delete the selected symbol (or the selected rung)">
+            <button onClick={deleteSelected} className="h-7 px-2 rounded-md text-[11px] font-bold bg-surface border border-danger/40 text-danger hover:bg-danger-soft flex items-center gap-1" title="Delete the selected symbol (or the selected rung)">
               <Trash2 className="w-3 h-3" />
             </button>
-            <div className="w-px h-5 bg-slate-200" />
-            <button onClick={autoBuild} className="h-7 px-2 rounded-md text-[11px] font-bold bg-white border border-slate-200 hover:border-slate-300 flex items-center gap-1" title="Replace your ladder with one parsed from the physical wiring">
+            <div className="w-px h-5 bg-border" />
+            <button onClick={autoBuild} className="h-7 px-2 rounded-md text-[11px] font-bold bg-surface border border-border hover:border-border-strong flex items-center gap-1" title="Replace your ladder with one parsed from the physical wiring">
               <Wand2 className="w-3 h-3" /> From wiring
             </button>
             {targetLadder && targetLadder.length > 0 && (
-              <button onClick={copyTarget} className="h-7 px-2 rounded-md text-[11px] font-bold bg-white border border-slate-200 hover:border-slate-300 flex items-center gap-1" title="Start from the lab's target ladder">
+              <button onClick={copyTarget} className="h-7 px-2 rounded-md text-[11px] font-bold bg-surface border border-border hover:border-border-strong flex items-center gap-1" title="Start from the lab's target ladder">
                 <Target className="w-3 h-3" /> From target
               </button>
             )}
             <button
               onClick={runVerify}
-              className="h-7 px-2.5 rounded-md text-[11px] font-black bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 flex items-center gap-1 shadow-sm"
+              className="h-7 px-2.5 rounded-md text-[11px] font-black bg-ok text-surface border border-ok hover:bg-ok flex items-center gap-1 shadow-sm"
             >
               <ClipboardCheck className="w-3.5 h-3.5" /> Verify Against Physical Wiring
             </button>
@@ -749,20 +749,20 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
       <div className="flex-1 overflow-auto" onMouseDown={() => mode === 'builder' && setSelElId(null)}>
         {views.length === 0 ? (
           <div className="h-full flex items-center justify-center p-8">
-            <div className="max-w-sm text-center bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <Activity className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <div className="text-sm font-bold text-slate-800 mb-1">
+            <div className="max-w-sm text-center bg-surface border border-border rounded-lg p-6 shadow-sm">
+              <Activity className="w-8 h-8 text-ink mx-auto mb-2" />
+              <div className="text-sm font-bold text-ink mb-1">
                 {mode === 'builder' ? 'Start your ladder' : 'No control rungs found'}
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <p className="text-xs text-ink-muted leading-relaxed">
                 {mode === 'builder'
                   ? 'Add a rung, pick a symbol and a device contact, then Insert. Or build it automatically from the wiring.'
                   : 'Wire a control circuit from the transformer X1 (220V hot) through contacts to a contactor coil A1-A2 and back to X2 — it appears here automatically.'}
               </p>
               {mode === 'builder' && (
                 <div className="flex justify-center gap-2 mt-3">
-                  <button onClick={addRung} className="h-8 px-3 rounded-lg text-xs font-bold bg-sky-600 text-white">+ Add rung</button>
-                  <button onClick={autoBuild} className="h-8 px-3 rounded-lg text-xs font-bold bg-white border border-slate-200">From wiring</button>
+                  <button onClick={addRung} className="h-8 px-3 rounded-lg text-xs font-bold bg-probe text-on-probe">+ Add rung</button>
+                  <button onClick={autoBuild} className="h-8 px-3 rounded-lg text-xs font-bold bg-surface border border-border">From wiring</button>
                 </div>
               )}
             </div>
@@ -771,17 +771,17 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
           <svg width={svgW * zoom} height={svgH * zoom} viewBox={`0 0 ${svgW} ${svgH}`} className="block">
             <defs>
               <pattern id="ladderGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-                <circle cx="1" cy="1" r="0.7" fill="#e2e8f0" />
+                <circle cx="1" cy="1" r="0.7" fill="var(--border-strong)" />
               </pattern>
             </defs>
             <rect x={0} y={0} width={svgW} height={svgH} fill="url(#ladderGrid)" />
             {/* Rails */}
-            <line x1={RAIL_L} y1={TOP - 22} x2={RAIL_L} y2={totalRailBottom} stroke={railsLive ? '#dc2626' : COLORS.rail} strokeWidth={4} strokeLinecap="round" />
-            <line x1={railR} y1={TOP - 22} x2={railR} y2={totalRailBottom} stroke={railsLive ? '#2563eb' : COLORS.rail} strokeWidth={4} strokeLinecap="round" />
-            <text x={RAIL_L - 6} y={TOP - 30} textAnchor="start" fontSize={11} fontWeight={900} fill={railsLive ? '#dc2626' : '#0f172a'} fontFamily="ui-sans-serif, system-ui">
+            <line x1={RAIL_L} y1={TOP - 22} x2={RAIL_L} y2={totalRailBottom} stroke={railsLive ? 'var(--danger)' : COLORS.rail} strokeWidth={4} strokeLinecap="round" />
+            <line x1={railR} y1={TOP - 22} x2={railR} y2={totalRailBottom} stroke={railsLive ? 'var(--cond-blue)' : COLORS.rail} strokeWidth={4} strokeLinecap="round" />
+            <text x={RAIL_L - 6} y={TOP - 30} textAnchor="start" fontSize={11} fontWeight={900} fill={railsLive ? 'var(--danger)' : 'var(--ink)'} fontFamily="ui-sans-serif, system-ui">
               L1 · {railVoltLabel} Control Hot
             </text>
-            <text x={railR + 6} y={TOP - 30} textAnchor="end" fontSize={11} fontWeight={900} fill={railsLive ? '#2563eb' : '#0f172a'} fontFamily="ui-sans-serif, system-ui">
+            <text x={railR + 6} y={TOP - 30} textAnchor="end" fontSize={11} fontWeight={900} fill={railsLive ? 'var(--cond-blue)' : 'var(--ink)'} fontFamily="ui-sans-serif, system-ui">
               L2 · Control Return
             </text>
             {parts}
@@ -790,18 +790,18 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
       </div>
 
       {/* Legend / verification results */}
-      <div className="shrink-0 border-t border-slate-200 bg-white/95 px-3 py-2 max-h-[38%] overflow-auto">
+      <div className="shrink-0 border-t border-border bg-surface/95 px-3 py-2 max-h-[38%] overflow-auto">
         {verify ? (
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <ClipboardCheck className="w-4 h-4 text-emerald-600" />
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-800">Wiring Verification</span>
+              <ClipboardCheck className="w-4 h-4 text-ok" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-ink">Wiring Verification</span>
               {verifySummary && (
-                <span className="text-[10px] font-mono text-slate-500">
+                <span className="text-[10px] font-mono text-ink-muted">
                   {verifySummary.ok} match · {verifySummary.err} error · {verifySummary.warn} warning
                 </span>
               )}
-              <button onClick={() => setVerify(null)} className="ml-auto text-[10px] font-bold text-slate-400 hover:text-slate-700">
+              <button onClick={() => setVerify(null)} className="ml-auto text-[10px] font-bold text-ink-muted hover:text-ink">
                 close
               </button>
             </div>
@@ -811,10 +811,10 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
                   key={i}
                   className={`flex items-start gap-1.5 text-[11px] leading-snug rounded-lg px-2 py-1 border ${
                     m.level === 'ok'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      ? 'bg-ok-soft border-ok/40 text-ok'
                       : m.level === 'error'
-                      ? 'bg-rose-50 border-rose-200 text-rose-800'
-                      : 'bg-amber-50 border-amber-200 text-amber-800'
+                      ? 'bg-danger-soft border-danger/40 text-danger'
+                      : 'bg-warning-soft border-warning/40 text-warning'
                   }`}
                 >
                   {m.level === 'ok' ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-px" /> : m.level === 'error' ? <XCircle className="w-3.5 h-3.5 shrink-0 mt-px" /> : <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />}
@@ -824,10 +824,10 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
             </ul>
           </div>
         ) : (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-mono text-slate-500">
-            <span className="flex items-center gap-1"><span className="w-4 h-[3px] bg-emerald-600 rounded" /> energized path / closed contact</span>
-            <span className="flex items-center gap-1"><span className="w-4 h-[3px] bg-rose-600 rounded" /> voltage blocked by open contact</span>
-            <span className="flex items-center gap-1"><span className="w-4 h-[2px] bg-slate-500 rounded" /> de-energized</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-mono text-ink-muted">
+            <span className="flex items-center gap-1"><span className="w-4 h-[3px] bg-ok rounded" /> energized path / closed contact</span>
+            <span className="flex items-center gap-1"><span className="w-4 h-[3px] bg-danger rounded" /> voltage blocked by open contact</span>
+            <span className="flex items-center gap-1"><span className="w-4 h-[2px] bg-border-strong rounded" /> de-energized</span>
             <span>
               {mode === 'builder'
                 ? 'Click a symbol to select it · || then Insert adds a parallel seal-in branch'

@@ -42,14 +42,14 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
   const poles = is3P ? 3 : is2P ? 2 : 1;
 
   const ampColors: Record<number, string> = {
-    15: '#2563eb',
-    20: '#dc2626',
-    30: '#16a34a',
-    40: '#ea580c',
-    60: '#475569',
-    63: '#475569',
+    15: 'var(--cond-blue)',
+    20: 'var(--cond-red)',
+    30: 'var(--cond-green)',
+    40: 'var(--mat-pvc-orange)',
+    60: 'var(--silk-muted)',
+    63: 'var(--silk-muted)',
   };
-  const handleAccent = isBoltOn ? ampColors[ratedAmps] || '#1e293b' : '#111827';
+  const handleAccent = isBoltOn ? ampColors[ratedAmps] || 'var(--mat-housing-dark)' : 'var(--nameplate)';
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -105,12 +105,12 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
   const botPairs = ['2/1', '4/3', '6/5'];
 
   // Crisp DIN rail silhouette behind DIN breakers OR copper stabs for Bolt-On
-  const bodyBg = isBoltOn ? '#1e293b' : '#f1f5f9';
-  const shroudBg = isBoltOn ? '#0f172a' : '#e2e8f0';
-  const strokeCol = isBoltOn ? '#090d16' : '#1e293b';
-  const faceBg = isBoltOn ? '#273244' : '#ffffff';
-  const textCol = isBoltOn ? '#f8fafc' : '#0f172a';
-  const subTextCol = isBoltOn ? '#cbd5e1' : '#475569';
+  const bodyBg = isBoltOn ? 'var(--mat-housing-dark)' : 'var(--mat-housing)';
+  const shroudBg = isBoltOn ? 'var(--mat-line)' : 'var(--mat-housing-shade)';
+  const strokeCol = isBoltOn ? 'var(--mat-line)' : 'var(--mat-housing-dark)';
+  const faceBg = isBoltOn ? 'var(--mat-housing-dark-face)' : 'var(--mat-housing)';
+  const textCol = isBoltOn ? 'var(--mat-housing)' : 'var(--mat-line)';
+  const subTextCol = isBoltOn ? 'var(--mat-housing-shade)' : 'var(--silk-muted)';
 
   return (
     <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
@@ -126,16 +126,16 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
               width={12}
               height={5}
               rx={1}
-              fill="#d97706"
-              stroke="#78350f"
+              fill="var(--mat-copper)"
+              stroke="var(--mat-copper-dark)"
               strokeWidth={0.9}
             />
           );
         })
       ) : (
         <g>
-          <rect x={-3} y={cy - 11} width={4} height={22} rx={1} fill="#94a3b8" stroke="#334155" strokeWidth={0.9} />
-          <rect x={width - 1} y={cy - 11} width={4} height={22} rx={1} fill="#94a3b8" stroke="#334155" strokeWidth={0.9} />
+          <rect x={-3} y={cy - 11} width={4} height={22} rx={1} fill="var(--mat-steel)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} />
+          <rect x={width - 1} y={cy - 11} width={4} height={22} rx={1} fill="var(--mat-steel)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} />
         </g>
       )}
 
@@ -165,7 +165,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
               <>
                 <line x1={px} y1={2} x2={px} y2={topBayH} stroke={strokeCol} strokeWidth={0.9} />
                 <line x1={px} y1={botBayY} x2={px} y2={height - 2} stroke={strokeCol} strokeWidth={0.9} />
-                <line x1={px} y1={faceY} x2={px} y2={botBayY - 1} stroke={isBoltOn ? '#334155' : '#cbd5e1'} strokeWidth={0.8} />
+                <line x1={px} y1={faceY} x2={px} y2={botBayY - 1} stroke={isBoltOn ? 'var(--mat-housing-dark-face)' : 'var(--mat-housing-shade)'} strokeWidth={0.8} />
               </>
             )}
             <text
@@ -174,7 +174,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
               textAnchor="middle"
               fontSize={poles === 1 ? 5.2 : 5.5}
               fontWeight="800"
-              fontFamily="ui-monospace, monospace"
+              fontFamily="var(--font-mono)"
               fill={subTextCol}
             >
               {topPairs[idx]}
@@ -185,7 +185,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
               textAnchor="middle"
               fontSize={poles === 1 ? 5.2 : 5.5}
               fontWeight="800"
-              fontFamily="ui-monospace, monospace"
+              fontFamily="var(--font-mono)"
               fill={subTextCol}
             >
               {botPairs[idx]}
@@ -215,7 +215,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
           width={innerW}
           height={brandBarH}
           rx={1.5}
-          fill={isServiceDisc ? '#991b1b' : isRoyuDin ? '#0f4c81' : '#111827'}
+          fill={isServiceDisc ? 'var(--lamp-red-off)' : isRoyuDin ? 'var(--lamp-blue-off)' : 'var(--nameplate)'}
         />
         <text
           x={cx}
@@ -223,8 +223,8 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
           textAnchor="middle"
           fontSize={poles === 1 ? 5.4 : 6.2}
           fontWeight="900"
-          fontFamily="ui-sans-serif, system-ui"
-          fill="#ffffff"
+          fontFamily="var(--font-display)"
+          fill="var(--silk-on-dark)"
           letterSpacing="0.4"
         >
           {isServiceDisc ? 'MAIN' : isBoltOn ? 'ROYU' : isRoyuDin ? 'VoltLab' : 'IEC DIN'}
@@ -237,7 +237,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
         y={flagY + 6.5}
         fontSize={poles === 1 ? 6 : 6.8}
         fontWeight="900"
-        fontFamily="ui-monospace, monospace"
+        fontFamily="var(--font-mono)"
         fill={textCol}
       >
         {curve}{ratedAmps}
@@ -248,7 +248,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
         const winW = poles === 1 ? 10 : 11;
         const wx = poles === 1 ? width - padX - winW - 3 : padX + poleW * idx + poleW / 2 - winW / 2;
         const wy = poles === 1 ? flagY + 0.5 : flagY;
-        const winFill = isTripped ? '#f59e0b' : isClosed ? '#dc2626' : '#22c55e';
+        const winFill = isTripped ? 'var(--lamp-amber-on)' : isClosed ? 'var(--cond-red)' : 'var(--lamp-green-on)';
         return (
           <g key={`win-${idx}`}>
             {poles > 1 && idx === 0 && null}
@@ -259,7 +259,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
               height={6}
               rx={1}
               fill={winFill}
-              stroke="#0f172a"
+              stroke="var(--mat-line)"
               strokeWidth={0.7}
             />
           </g>
@@ -275,8 +275,8 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
           width={innerW - 8}
           height={18}
           rx={2}
-          fill={isBoltOn ? '#0b1120' : '#cbd5e1'}
-          stroke="#0f172a"
+          fill={isBoltOn ? 'var(--mat-line)' : 'var(--mat-housing-shade)'}
+          stroke="var(--mat-line)"
           strokeWidth={0.8}
         />
         {/* Sliding Bridged Handle */}
@@ -287,7 +287,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
           height={8}
           rx={1.5}
           fill={handleAccent}
-          stroke="#020617"
+          stroke="var(--mat-line)"
           strokeWidth={0.9}
         />
         <line
@@ -304,8 +304,8 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
           textAnchor="middle"
           fontSize={4.8}
           fontWeight="900"
-          fontFamily="ui-monospace, monospace"
-          fill="#ffffff"
+          fontFamily="var(--font-mono)"
+          fill="var(--silk-on-dark)"
         >
           {isTripped ? 'TRIP' : isClosed ? 'ON' : 'OFF'}
         </text>
@@ -318,7 +318,7 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
         textAnchor={poles > 1 ? 'start' : 'middle'}
         fontSize={poles === 1 ? 4.4 : 4.8}
         fontWeight="800"
-        fontFamily="ui-monospace, monospace"
+        fontFamily="var(--font-mono)"
         fill={subTextCol}
       >
         {poles === 1 ? `${isBoltOn ? 'BOLT' : 'DIN'} 10kA` : `${poles}P ${isBoltOn ? 'BOLT-ON' : 'DIN'} ${is3P ? '400V' : '240V'}`}
@@ -328,8 +328,8 @@ export const McbDevice: React.FC<McbDeviceProps> = ({
       {(is2P || is3P) && (
         <g onClick={handleManualTripTest} className="cursor-pointer">
           <title>Simulate manual trip test</title>
-          <circle cx={width - padX - 7} cy={specY - 2} r={3.5} fill="#0f172a" stroke="#64748b" strokeWidth={0.7} />
-          <text x={width - padX - 7} y={specY - 0.5} textAnchor="middle" fontSize={4.2} fontWeight="900" fill="#fbbf24">
+          <circle cx={width - padX - 7} cy={specY - 2} r={3.5} fill="var(--mat-line)" stroke="var(--mat-line-soft)" strokeWidth={0.7} />
+          <text x={width - padX - 7} y={specY - 0.5} textAnchor="middle" fontSize={4.2} fontWeight="900" fill="var(--lamp-amber-on)">
             T
           </text>
         </g>

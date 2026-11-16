@@ -1,3 +1,8 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+// Token-backed colours generated from the VoltLab v2 design system (src/styles/tokens.css).
+const tokenColors = require('./src/styles/tokenColors.cjs');
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -8,33 +13,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        cream: {
-          50: '#fcfbfa',
-          100: '#faf8f5',
-          200: '#f4f0eb',
-          300: '#eadecf',
-          400: '#dec7b0',
-        },
-        stonecard: {
-          bg: '#ffffff',
-          border: '#f1ede8',
-          subtle: '#faf8f5',
-          text: '#1c1917',
-          muted: '#78716c',
-        },
-        electric: {
-          phase: '#dc2626',
-          neutral: '#2563eb',
-          earth: '#16a34a',
-          switched: '#d97706',
-          busbar: '#ca8a04',
-          trip: '#e11d48'
-        }
+        ...tokenColors,
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
-        serif: ['Charter', 'Georgia', 'Cambria', 'serif']
-      }
+        sans: ['"IBM Plex Sans"', '"Segoe UI"', 'system-ui', 'sans-serif'],
+        display: ['"Barlow Semi Condensed"', '"Arial Narrow"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+      },
+      borderRadius: {
+        xs: '2px',
+        device: '3px',
+        sm: '4px',
+        md: '6px',
+        lg: '10px',
+      },
+      boxShadow: {
+        1: 'var(--shadow-1)',
+        2: 'var(--shadow-2)',
+        focus: 'var(--focus-ring)',
+      },
     },
   },
   plugins: [],

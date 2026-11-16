@@ -135,26 +135,26 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
         e.dataTransfer.effectAllowed = 'copy';
       }}
       onClick={() => onAddComponent(item.type)}
-      className={`group flex items-center gap-2.5 p-1.5 rounded-xl border transition ${
+      className={`group flex items-center gap-2.5 p-1.5 rounded-md border transition ${
         isLocked
           ? 'opacity-50 cursor-not-allowed border-transparent'
-          : 'cursor-grab active:cursor-grabbing border-slate-800 bg-[#152033]/90 hover:bg-slate-800 hover:border-sky-400/70 hover:shadow-[0_4px_14px_rgba(56,189,248,0.18)]'
+          : 'cursor-grab active:cursor-grabbing border-transparent bg-surface hover:bg-surface-hover hover:border-border'
       }`}
       title={isLocked ? 'Stop simulation (■) to modify wiring' : 'Click or drag onto workbench canvas'}
     >
-      <div className="w-12 h-12 shrink-0 rounded-xl bg-slate-100 border border-slate-500/80 shadow-inner flex items-center justify-center overflow-hidden p-0.5">
+      <div className="w-12 h-12 shrink-0 rounded-md bg-surface-sunken border border-border-strong/80 flex items-center justify-center overflow-hidden p-0.5">
         <DeviceThumbnail type={item.type} className="w-11 h-11" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-bold text-slate-100 group-hover:text-sky-300 transition-colors truncate">
+        <div className="text-xs font-bold text-ink transition-colors truncate">
           {item.name}
         </div>
-        <div className="text-[10px] text-slate-400 truncate">{item.description}</div>
-        <span className="inline-block mt-0.5 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200">
+        <div className="text-[10px] text-ink-muted truncate">{item.description}</div>
+        <span className="inline-block mt-0.5 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-surface border border-border text-ink">
           {item.terminals.length} terminals
         </span>
       </div>
-      <div className="w-5 h-5 rounded-md bg-slate-800 border border-slate-600 group-hover:bg-sky-500 group-hover:border-sky-400 text-slate-300 group-hover:text-slate-950 flex items-center justify-center transition shrink-0">
+      <div className="w-5 h-5 rounded-md bg-surface-sunken border border-border-strong group-hover:bg-probe group-hover:border-probe text-ink group-hover:text-on-probe flex items-center justify-center transition shrink-0">
         <Plus className="w-3 h-3" />
       </div>
     </div>
@@ -172,24 +172,24 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
       <div key={node.id}>
         <button
           onClick={() => toggleFolder(node.id)}
-          className={`w-full flex items-center justify-between gap-2 py-1.5 pr-2 rounded-lg hover:bg-slate-800/80 text-left transition ${
-            depth === 0 ? 'pl-1.5 text-xs font-bold text-slate-100' : 'pl-1.5 text-[11px] font-semibold text-slate-200'
+          className={`w-full flex items-center justify-between gap-2 py-1.5 pr-2 rounded-lg hover:bg-surface-hover text-left transition ${
+            depth === 0 ? 'pl-1.5 text-xs font-bold text-ink' : 'pl-1.5 text-[11px] font-semibold text-ink'
           }`}
         >
           <span className="flex items-center gap-1.5 min-w-0">
             {isCollapsed ? (
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <ChevronRight className="w-3.5 h-3.5 text-ink-muted shrink-0" />
             ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <ChevronDown className="w-3.5 h-3.5 text-ink-muted shrink-0" />
             )}
-            <FolderIcon className={`w-4 h-4 shrink-0 ${depth === 0 ? 'text-amber-400' : 'text-amber-300'}`} />
+            <FolderIcon className={`w-4 h-4 shrink-0 ${depth === 0 ? 'text-warning' : 'text-warning'}`} />
             <span className="truncate">{node.label}</span>
           </span>
-          <span className="text-[10px] font-mono text-slate-300 bg-slate-800 border border-slate-700 px-1.5 rounded font-semibold shrink-0">{count}</span>
+          <span className="text-[10px] font-mono text-ink bg-surface-sunken border border-border px-1.5 rounded font-semibold shrink-0">{count}</span>
         </button>
 
         {!isCollapsed && (
-          <div className="ml-3 pl-2 border-l border-slate-700/80 space-y-1">
+          <div className="ml-3 pl-2 border-l border-border/80 space-y-1">
             {(node.children || []).map((child) => renderFolder(child, depth + 1))}
             {itemsFor(node.types).map(renderItem)}
           </div>
@@ -203,18 +203,18 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
   const total = tree.reduce((n, f) => n + countIn(f), 0);
 
   return (
-    <aside className="voltlab-panel voltlab-scroll-dark absolute top-3 left-3 z-30 w-80 max-h-[calc(100%-36px)] rounded-2xl bg-[#0f172a]/[0.97] backdrop-blur-md shadow-[0_20px_50px_rgba(15,23,42,0.45)] border-2 border-slate-600/90 ring-1 ring-white/10 flex flex-col overflow-hidden select-none text-slate-100">
+    <aside className="voltlab-panel voltlab-scroll-dark absolute top-3 left-3 z-30 w-80 max-h-[calc(100%-36px)] rounded-lg bg-surface backdrop-blur-md shadow-2 border-2 border-border-strong/90 ring-1 ring-white/10 flex flex-col overflow-hidden select-none text-ink">
       {/* Floating window title bar */}
-      <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-700 bg-[#162033]">
-        <span className="flex items-center gap-2 text-[11px] font-bold text-slate-100 uppercase tracking-wider font-mono">
-          <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]" />
-          <Library className="w-3.5 h-3.5 text-rose-400" />
+      <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-border bg-surface-sunken">
+        <span className="flex items-center gap-2 text-[11px] font-bold text-ink uppercase tracking-wider font-mono">
+          
+          <Library className="w-3.5 h-3.5 text-ink-muted" />
           Component Library
-          <span className="text-slate-200 bg-slate-800 border border-slate-600 px-1.5 py-0.5 rounded text-[10px] font-semibold normal-case">{total}</span>
+          <span className="text-ink bg-surface-sunken border border-border-strong px-1.5 py-0.5 rounded text-[10px] font-semibold normal-case">{total}</span>
         </span>
         <button
           onClick={onClose}
-          className="p-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition"
+          className="p-1 rounded-md text-ink hover:text-ink hover:bg-surface-hover transition"
           title="Hide library"
         >
           <X className="w-3.5 h-3.5" />
@@ -222,21 +222,21 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
       </div>
 
       {/* Search */}
-      <div className="px-3 pt-2.5 pb-2 border-b border-slate-800 bg-[#0f172a]">
+      <div className="px-3 pt-2.5 pb-2 border-b border-border bg-surface">
         <div className="relative">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-ink-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search library (MCB, ROYU, PLC...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-sky-400 shadow-inner"
+            className="w-full pl-8 pr-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:border-probe shadow-inner"
           />
         </div>
       </div>
 
       {isLocked && (
-        <div className="mx-3 mt-2 mb-1 px-2.5 py-1.5 rounded-lg bg-amber-950/80 border border-amber-500/60 text-[10px] font-semibold text-amber-200">
+        <div className="mx-3 mt-2 mb-1 px-2.5 py-1.5 rounded-lg bg-warning-soft/80 border border-warning/60 text-[10px] font-semibold text-warning">
           🔒 Grid energized — stop simulation (■) to add devices.
         </div>
       )}
@@ -245,7 +245,7 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
       <div className="voltlab-scroll-dark flex-1 overflow-y-auto px-2 py-2 pb-3 space-y-1">
         {tree.map((folder) => renderFolder(folder))}
         {total === 0 && (
-          <div className="text-center text-xs text-slate-400 py-6">No devices match “{searchQuery}”.</div>
+          <div className="text-center text-xs text-ink-muted py-6">No devices match “{searchQuery}”.</div>
         )}
       </div>
     </aside>

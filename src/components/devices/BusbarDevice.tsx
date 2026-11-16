@@ -9,23 +9,23 @@ export const BusbarDevice: React.FC<DeviceComponentProps> = (props) => {
   const { device } = props;
   const { width, height, terminals, type } = device;
   const isEarth = type === 'earth_busbar';
-  const insulatorColor = isEarth ? '#16a34a' : '#2563eb';
-  const insulatorDark = isEarth ? '#14532d' : '#1e3a8a';
-  const barFill = isEarth ? '#d97706' : '#cbd5e1';
-  const barStroke = isEarth ? '#78350f' : '#334155';
+  const insulatorColor = isEarth ? 'var(--cond-green)' : 'var(--cond-blue)';
+  const insulatorDark = isEarth ? 'var(--lamp-green-off)' : 'var(--lamp-blue-off)';
+  const barFill = isEarth ? 'var(--mat-copper)' : 'var(--mat-housing-shade)';
+  const barStroke = isEarth ? 'var(--mat-copper-dark)' : 'var(--mat-housing-dark-face)';
 
   return (
     <g className="select-none">
       <g transform={`translate(${device.x}, ${device.y})`}>
       {/* Subtle CAD shadow */}
-      <rect x={2} y={2} width={width} height={height} rx={4} fill="rgba(15, 23, 42, 0.14)" />
+      <rect x={2} y={2} width={width} height={height} rx={4} fill="transparent" />
 
       {/* Insulated Top & Bottom DIN Standoff Feet */}
       <rect x={2} y={0} width={width - 4} height={11} rx={2} fill={insulatorColor} stroke={insulatorDark} strokeWidth={1} />
       <rect x={2} y={height - 8} width={width - 4} height={8} rx={2} fill={insulatorColor} stroke={insulatorDark} strokeWidth={1} />
 
       {/* Top Insulated Identification Badge */}
-      <text x={width / 2} y={7.6} textAnchor="middle" fontSize="5.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#ffffff">
+      <text x={width / 2} y={7.6} textAnchor="middle" fontSize="5.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
         {isEarth ? 'PE' : 'N'}
       </text>
 
@@ -48,7 +48,7 @@ export const BusbarDevice: React.FC<DeviceComponentProps> = (props) => {
               width={width - 12}
               height={7}
               rx={1}
-              fill="#0f172a"
+              fill="var(--mat-line)"
               opacity={0.85}
             />
             <text
@@ -57,8 +57,8 @@ export const BusbarDevice: React.FC<DeviceComponentProps> = (props) => {
               textAnchor="middle"
               fontSize="4.4"
               fontWeight="900"
-              fontFamily="ui-monospace, monospace"
-              fill={isEarth ? '#fde047' : '#e0f2fe'}
+              fontFamily="var(--font-mono)"
+              fill={isEarth ? 'var(--act-yellow)' : '#e0f2fe'}
             >
               {term.label}
             </text>

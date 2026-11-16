@@ -1,6 +1,7 @@
 import React from 'react';
 import { ElectricalDevice, ElectricalWire, CodeStandard } from '../../types/electrical';
 import { getWireStandards, COLOR_STANDARDS } from '../../data/standardsData';
+import { conductorColor } from '../../styles/conductors';
 import { 
   Sliders, 
   ShieldCheck, 
@@ -81,25 +82,25 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   const rcdSensitivities = [10, 30, 100, 300];
 
   return (
-    <div className={`absolute top-4 ${isLibraryOpen ? 'left-[340px]' : 'left-4'} z-20 w-80 voltlab-panel voltlab-scroll-dark bg-[#0f172a]/[0.97] border-2 border-slate-600/90 ring-1 ring-white/10 rounded-2xl shadow-[0_20px_50px_rgba(15,23,42,0.45)] backdrop-blur-md p-4 text-slate-100 max-h-[calc(100%-36px)] overflow-y-auto select-none animate-in fade-in slide-in-from-top-2 duration-150`}>
+    <div className={`absolute top-4 ${isLibraryOpen ? 'left-[340px]' : 'left-4'} z-20 w-80 voltlab-panel voltlab-scroll-dark bg-surface border border-border rounded-lg shadow-2 backdrop-blur-md p-4 text-ink max-h-[calc(100%-36px)] overflow-y-auto select-none animate-in fade-in slide-in-from-top-2 duration-150`}>
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-700/80">
+      <div className="flex items-center justify-between pb-2 mb-3 border-b border-border/80">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-300">
+          <div className="w-7 h-7 rounded-md bg-surface-sunken flex items-center justify-center text-ink-muted">
             {device ? <Sliders className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
           </div>
           <div>
-            <span className="text-[9px] font-mono font-bold text-rose-400 uppercase tracking-widest block">
+            <span className="text-[10px] font-display font-semibold text-ink-muted uppercase tracking-[0.08em] block">
               {device ? 'DEVICE INSPECTOR' : wires.length > 1 ? 'MULTI-WIRE INSPECTOR' : 'CONDUCTOR INSPECTOR'}
             </span>
-            <div className="text-xs font-bold text-slate-100 truncate max-w-[170px]">
+            <div className="text-xs font-bold text-ink truncate max-w-[170px]">
               {device ? device.name : wires.length > 1 ? `${wires.length} conductors selected` : `Wire: ${wire?.wireGauge}`}
             </div>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="p-1 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition"
+          className="p-1 text-ink hover:text-ink hover:bg-surface-hover rounded-lg transition"
         >
           <X className="w-4 h-4" />
         </button>
@@ -107,24 +108,24 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* ── MANUFACTURER DATASHEET CARD ── */}
       {device && (
-        <div className="mb-3.5 p-2.5 rounded-xl bg-[#172235] border border-slate-700 text-slate-100 shadow-sm">
-          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-700">
+        <div className="mb-3.5 p-2.5 rounded-md bg-surface-sunken border border-border text-ink shadow-sm">
+          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-border">
             <div className="flex items-center gap-1.5">
               <span className={`text-[10px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded ${
                 device.brand === 'ROYU'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-ink text-surface'
                   : device.brand === 'Schneider'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-600 text-white'
+                  ? 'bg-ink text-surface'
+                  : 'bg-surface-hover text-ink'
               }`}>
                 {device.brand || 'ROYU'}
               </span>
-              <span className="text-[11px] font-bold font-mono text-slate-100">
+              <span className="text-[11px] font-bold font-mono text-ink">
                 {device.modelNumber || (device.type.includes('mcb') ? 'ROYU RCB220' : device.type.includes('combo') ? 'ROYU RWS103' : 'GENERIC-SPEC')}
               </span>
             </div>
             {device.kaRating && (
-              <span className="text-[10px] font-mono font-black text-rose-200 bg-rose-950/90 border border-rose-500/60 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-semibold text-ink-muted bg-surface px-1.5 py-0.5 rounded-sm border border-border">
                 {device.kaRating} kAIC
               </span>
             )}
@@ -132,14 +133,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
           <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
             <div>
-              <span className="text-slate-400 block font-medium">Mounting:</span>
-              <span className="font-semibold text-slate-200 capitalize">
+              <span className="text-ink-muted block font-medium">Mounting:</span>
+              <span className="font-semibold text-ink capitalize">
                 {device.mountingType ? device.mountingType.replace('_', ' ') : 'Flush Utility Box'}
               </span>
             </div>
             <div>
-              <span className="text-slate-400 block font-medium">Reference Code:</span>
-              <span className="font-mono font-semibold text-slate-200">
+              <span className="text-ink-muted block font-medium">Reference Code:</span>
+              <span className="font-mono font-semibold text-ink">
                 {device.pecReference || 'PEC 2017'}
               </span>
             </div>
@@ -152,7 +153,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         <div className="space-y-3">
           {/* ROYU / IEC Breaker Profile Form Factor */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Breaker Profile & Mounting
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -186,12 +187,12 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                     }}
                     className={`py-1 px-1 text-center rounded-lg border transition ${
                       active
-                        ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                        : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                        ? 'bg-probe text-on-probe border-probe shadow-sm'
+                        : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                     }`}
                   >
                     <div className="text-[10px] font-bold leading-tight">{prof.label}</div>
-                    <div className={`text-[8px] ${active ? 'text-rose-100' : 'text-slate-400'}`}>{prof.sub}</div>
+                    <div className={`text-[8px] ${active ? 'text-on-probe/80' : 'text-ink-muted'}`}>{prof.sub}</div>
                   </button>
                 );
               })}
@@ -200,11 +201,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           {/* Ampere Rating Selector */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-rose-400" />
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" />
                 Rated Ampere Capacity (In)
               </label>
-              <span className="text-xs font-mono font-black text-rose-200 px-2 py-0.5 rounded bg-rose-950/90 border border-rose-500/60">
+              <span className="text-xs font-mono font-semibold text-ink px-2 py-0.5 rounded-sm bg-surface-sunken">
                 {device.state.ratedAmps || 16} A
               </span>
             </div>
@@ -217,8 +218,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     device.state.ratedAmps === amps
-                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700 hover:border-slate-500'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border hover:border-border-strong'
                   }`}
                 >
                   {amps}A
@@ -234,40 +235,40 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     device.state.ratedAmps === amps
-                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700 hover:border-slate-500'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border hover:border-border-strong'
                   }`}
                 >
                   {amps}A
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block">
+            <span className="text-[9px] text-ink-muted mt-1 block">
               PEC 240.4 & IEC 60898 standard DIN breaker frame ratings.
             </span>
           </div>
 
           {/* Trip Curve Selector (Type B, C, D) */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Magnetic Trip Characteristic Curve
             </label>
-            <div className="grid grid-cols-3 gap-1 bg-slate-900 border border-slate-700 p-1 rounded-lg text-xs font-bold font-mono">
+            <div className="grid grid-cols-3 gap-1 bg-surface border border-border p-1 rounded-lg text-xs font-bold font-mono">
               {(['B', 'C', 'D'] as const).map((curve) => (
                 <button
                   key={curve}
                   onClick={() => onUpdateDeviceProperty(device.id, 'tripCurve', curve)}
                   className={`py-1 rounded-md transition ${
                     (device.state.tripCurve || 'C') === curve
-                      ? 'bg-slate-700 text-white shadow-sm'
-                      : 'text-slate-300 hover:text-slate-100'
+                      ? 'bg-surface-hover text-ink shadow-sm'
+                      : 'text-ink hover:text-ink'
                   }`}
                 >
                   Type {curve}
                 </button>
               ))}
             </div>
-            <div className="text-[9px] text-slate-400 mt-1">
+            <div className="text-[9px] text-ink-muted mt-1">
               {(device.state.tripCurve || 'C') === 'B' && 'Type B: 3–5x In (Lighting & non-inductive resistive loads)'}
               {(device.state.tripCurve || 'C') === 'C' && 'Type C: 5–10x In (General socket outlets, appliances & small motors)'}
               {(device.state.tripCurve || 'C') === 'D' && 'Type D: 10–20x In (High inrush motors & industrial transformers)'}
@@ -280,7 +281,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'rcd_2p' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Rated Frame Ampacity
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -290,8 +291,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.ratedAmps || 40) === amps
-                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {amps}A
@@ -301,7 +302,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Earth Leakage Sensitivity (IΔn)
             </label>
             <div className="grid grid-cols-4 gap-1">
@@ -311,15 +312,15 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   onClick={() => onUpdateDeviceProperty(device.id, 'sensitivityMa', sens)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.sensitivityMa || 30) === sens
-                      ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {sens}mA
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block">
+            <span className="text-[9px] text-ink-muted mt-1 block">
               30mA is mandatory for personnel shock protection (PEC 2.10.1.8 / IEC 60364-4-41).
             </span>
           </div>
@@ -331,7 +332,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         <div className="space-y-3">
           {/* Front Enclosure Cover Toggle */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               NEMA 1 Enclosure Cover
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -339,8 +340,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'enclosureCoverOpen', false)}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   !device.state.enclosureCoverOpen
-                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-probe text-on-probe border-probe shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 🔒 Closed (Front Face)
@@ -349,8 +350,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'enclosureCoverOpen', true)}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.enclosureCoverOpen
-                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-probe text-on-probe border-probe shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 🔓 Open (Inspect Lugs)
@@ -361,10 +362,10 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           {/* Ampere Rating */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
                 Safety Breaker Rating (In)
               </label>
-              <span className="text-xs font-mono font-bold text-rose-400">{device.state.ratedAmps || 30}A</span>
+              <span className="text-xs font-mono font-semibold text-ink">{device.state.ratedAmps || 30}A</span>
             </div>
             <div className="grid grid-cols-4 gap-1">
               {[15, 20, 30, 40].map((amps) => (
@@ -373,15 +374,15 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.ratedAmps || 30) === amps
-                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {amps}A
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block">
+            <span className="text-[9px] text-ink-muted mt-1 block">
               PEC 4.40.2.1: Disconnecting means must be within sight from air-conditioning equipment.
             </span>
           </div>
@@ -393,7 +394,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         <div className="space-y-3">
           {/* Front / Rear View Toggle */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Plate View Mode
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -401,8 +402,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'viewMode', 'front')}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.viewMode !== 'rear'
-                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-probe text-on-probe border-probe shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 Front Faceplate
@@ -411,21 +412,21 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'viewMode', 'rear')}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.viewMode === 'rear'
-                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-probe text-on-probe border-probe shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 🔄 Rear Wiring Strap
               </button>
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block">
+            <span className="text-[9px] text-ink-muted mt-1 block">
               Flip to Rear View to wire common jumpers between SW, Pilot, and Outlet!
             </span>
           </div>
 
           {/* Slot 2 Module Option */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Slot 2 Modular Insert
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -433,8 +434,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'comboSlot2', 'pilot')}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.comboSlot2 !== 'switch2'
-                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-probe text-on-probe border-probe shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 🔴 Neon Pilot Lamp
@@ -443,8 +444,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'comboSlot2', 'switch2')}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.comboSlot2 === 'switch2'
-                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-probe text-on-probe border-probe shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 ⚡ 2nd 1-Way Switch
@@ -458,7 +459,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'utility_box_surface_pvc' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Box Material & Finish
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -466,8 +467,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'boxMaterial', 'orange_pvc')}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.boxMaterial !== 'galvanized_steel'
-                    ? 'bg-orange-600 text-white border-orange-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-warning-fill text-ink border-warning shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 🟧 PVC Safety Orange
@@ -476,14 +477,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'boxMaterial', 'galvanized_steel')}
                 className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                   device.state.boxMaterial === 'galvanized_steel'
-                    ? 'bg-slate-600 text-white border-slate-500 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-surface-hover text-ink border-border-strong shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 ⬜ Galvanized Steel (GI)
               </button>
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block">
+            <span className="text-[9px] text-ink-muted mt-1 block">
               PEC 3.14.2.2: Standard 2"×4" utility box volume 230 cm³ (14.0 in³). Max 7× 2.0mm² conductors.
             </span>
           </div>
@@ -494,7 +495,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'din_rail_track' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               DIN Rail Length
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -511,15 +512,15 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   }}
                   className={`py-1.5 text-xs font-bold rounded-lg border transition ${
                     (device.state.trackWidth || device.width) === opt.w
-                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block">
+            <span className="text-[9px] text-ink-muted mt-1 block">
               Mounts standard 35mm modular MCBs, RCDs, and industrial terminals per IEC 60715.
             </span>
           </div>
@@ -529,7 +530,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {/* --- LIGHT FIXTURE PROPERTIES --- */}
       {device && device.type === 'light_bulb' && (
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+          <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
             Lamp Wattage
           </label>
           <div className="grid grid-cols-4 gap-1">
@@ -539,8 +540,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'wattage', w)}
                 className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                   (device.state.wattage || 60) === w
-                    ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm'
-                    : 'bg-slate-900/90 text-slate-200 border-slate-700'
+                    ? 'bg-warning-fill text-ink border-warning shadow-sm'
+                    : 'bg-surface/90 text-ink border-border'
                 }`}
               >
                 {w}W
@@ -553,7 +554,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {/* --- WATER HEATER PROPERTIES --- */}
       {device && device.type === 'appliance_water_heater' && (
         <div className="space-y-2">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+          <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
             Heating Element Wattage
           </label>
           <div className="grid grid-cols-3 gap-1">
@@ -563,8 +564,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'wattage', w)}
                 className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                   (device.state.wattage || 3500) === w
-                    ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
-                    : 'bg-slate-900/90 text-slate-200 border-slate-700'
+                    ? 'bg-probe text-on-probe border-probe shadow-sm'
+                    : 'bg-surface/90 text-ink border-border'
                 }`}
               >
                 {(w / 1000).toFixed(1)} kW
@@ -578,7 +579,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'appliance_fan' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Fan Speed & Power Level
             </label>
             <div className="grid grid-cols-3 gap-1.5">
@@ -595,8 +596,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   }}
                   className={`py-1.5 px-1 text-xs font-mono font-bold rounded-lg border transition text-center ${
                     (device.state.speed || 2) === sp.speed
-                      ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {sp.label}
@@ -604,7 +605,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               ))}
             </div>
           </div>
-          <div className="text-[10px] text-slate-400 bg-sky-950/80 p-2 rounded-lg border border-sky-500/50 text-sky-200">
+          <div className="text-[10px] text-ink-muted bg-probe-soft/80 p-2 rounded-lg border border-probe/50 text-probe">
             🌀 Aerodynamic blades spin automatically when circuit loop is closed and powered.
           </div>
         </div>
@@ -614,7 +615,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && device.type === 'appliance_ac' && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Set Temperature Display
             </label>
             <div className="grid grid-cols-5 gap-1">
@@ -624,8 +625,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   onClick={() => onUpdateDeviceProperty(device.id, 'setTemp', deg)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.setTemp || 16) === deg
-                      ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {deg}°C
@@ -635,7 +636,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Inverter Compressor Capacity
             </label>
             <div className="grid grid-cols-3 gap-1">
@@ -649,8 +650,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   onClick={() => onUpdateDeviceProperty(device.id, 'wattage', hp.watts)}
                   className={`py-1 text-[11px] font-mono font-bold rounded-lg border transition ${
                     (device.state.wattage || 1200) === hp.watts
-                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {hp.label}
@@ -665,7 +666,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && (device.type === 'socket_duplex' || device.type === 'socket_schuko') && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Perspective Inspection View
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -673,8 +674,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'viewMode', 'front')}
                 className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition flex items-center justify-center gap-1.5 ${
                   device.state.viewMode !== 'rear'
-                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-ok text-surface border-ok shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 <span>👁️ Front Plate</span>
@@ -683,8 +684,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'viewMode', 'rear')}
                 className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition flex items-center justify-center gap-1.5 ${
                   device.state.viewMode === 'rear'
-                    ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-probe text-on-probe border-probe shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 <span>🔧 Rear Modules</span>
@@ -693,11 +694,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
 
           {/* Educational Callout on Terminal Polarity */}
-          <div className="p-2.5 rounded-xl bg-amber-950/75 border border-amber-500/60 text-amber-100 text-[11px] space-y-1">
-            <div className="font-bold text-amber-200 flex items-center gap-1">
+          <div className="p-2.5 rounded-md bg-warning-soft/75 border border-warning/60 text-warning text-[11px] space-y-1">
+            <div className="font-bold text-warning flex items-center gap-1">
               <span>🇵🇭 PEC Terminal Polarity:</span>
             </div>
-            <p className="text-[10px] text-amber-200 leading-tight">
+            <p className="text-[10px] text-warning leading-tight">
               • <strong>Brass Screws (Bottom)</strong>: Line 1 & Line 2 (Hot)<br/>
               • <strong>Silver Screws (Top)</strong>: Neutral 1 & Neutral 2<br/>
               • <strong>Green Screw (Center)</strong>: Equipment Ground (PE)<br/>
@@ -711,7 +712,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       {device && (device.type.includes('junction_box')) && (
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Enclosure Material & Standard
             </label>
             <div className="grid grid-cols-2 gap-1.5">
@@ -719,8 +720,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'boxMaterial', 'orange_pvc')}
                 className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition flex items-center justify-center gap-1.5 ${
                   device.type === 'junction_box_octagonal_orange' || device.state.boxMaterial === 'orange_pvc'
-                    ? 'bg-orange-600 text-white border-orange-700 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-warning-fill text-ink border-warning shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 <span>🟠 Orange PVC</span>
@@ -729,14 +730,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 onClick={() => onUpdateDeviceProperty(device.id, 'boxMaterial', 'galvanized_steel')}
                 className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition flex items-center justify-center gap-1.5 ${
                   device.state.boxMaterial === 'galvanized_steel' && device.type !== 'junction_box_octagonal_orange'
-                    ? 'bg-slate-600 text-white border-slate-500 shadow-sm'
-                    : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    ? 'bg-surface-hover text-ink border-border-strong shadow-sm'
+                    : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                 }`}
               >
                 <span>⚙️ Metal Steel</span>
               </button>
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block">
+            <span className="text-[9px] text-ink-muted mt-1 block">
               Philippine residential installations widely use 4" orange PVC octagonal boxes for conduit drops.
             </span>
           </div>
@@ -745,8 +746,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- 2P BREAKER HOUSING STYLE --- */}
       {device && device.type === 'mcb_2p' && (
-        <div className="space-y-2 mt-2 pt-2 border-t border-slate-700/80">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+        <div className="space-y-2 mt-2 pt-2 border-t border-border/80">
+          <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
             Breaker Housing Form Factor
           </label>
           <div className="grid grid-cols-2 gap-1.5">
@@ -754,8 +755,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               onClick={() => onUpdateDeviceProperty(device.id, 'mccbStyle', 'industrial_black')}
               className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
                 device.state.mccbStyle === 'industrial_black'
-                  ? 'bg-slate-700 text-white border-sky-400 shadow-sm'
-                  : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                  ? 'bg-surface-hover text-ink border-probe shadow-sm'
+                  : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
               }`}
             >
               <span>⚡ Industrial Black</span>
@@ -764,8 +765,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               onClick={() => onUpdateDeviceProperty(device.id, 'mccbStyle', 'din_rail')}
               className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
                 device.state.mccbStyle !== 'industrial_black'
-                  ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
-                  : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                  ? 'bg-probe text-on-probe border-probe shadow-sm'
+                  : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
               }`}
             >
               <span>⚪ DIN-Rail Module</span>
@@ -776,18 +777,18 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- PUSH BUTTON STATION CONTROLS --- */}
       {device && device.type === 'push_button_station' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+          <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
             Station Actuators (Click or Press)
           </label>
           <div className="grid grid-cols-2 gap-2">
             <button
               {...holdProps(device.id, 'startPressed', onPatchDeviceState)}
               onClick={() => !onPatchDeviceState && onUpdateDeviceProperty(device.id, 'startPressed', !device.state.startPressed)}
-              className={`py-2 px-3 text-xs font-bold rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
+              className={`py-2 px-3 text-xs font-bold rounded-md border flex flex-col items-center justify-center gap-1 transition ${
                 device.state.startPressed
-                  ? 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-300'
-                  : 'bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-200 border-emerald-500/60'
+                  ? 'bg-ok text-surface border-ok shadow-md ring-2 ring-ok/40'
+                  : 'bg-ok-soft/80 hover:bg-ok-soft/90 text-ok border-ok/60'
               }`}
             >
               <span className="text-base font-black">I</span>
@@ -796,17 +797,17 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             <button
               {...holdProps(device.id, 'stopPressed', onPatchDeviceState)}
               onClick={() => !onPatchDeviceState && onUpdateDeviceProperty(device.id, 'stopPressed', !device.state.stopPressed)}
-              className={`py-2 px-3 text-xs font-bold rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
+              className={`py-2 px-3 text-xs font-bold rounded-md border flex flex-col items-center justify-center gap-1 transition ${
                 device.state.stopPressed
-                  ? 'bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-300'
-                  : 'bg-rose-950/80 hover:bg-rose-900/90 text-rose-200 border-rose-500/60'
+                  ? 'bg-danger text-surface border-danger shadow-1'
+                  : 'bg-danger-soft/80 hover:bg-danger-soft/90 text-danger border-danger/60'
               }`}
             >
               <span className="text-base font-black">O</span>
               <span className="text-[10px] uppercase">{device.state.stopPressed ? 'Depressed (NC Open)' : 'Stop (NC Closed)'}</span>
             </button>
           </div>
-          <span className="text-[9px] text-slate-400 block">
+          <span className="text-[9px] text-ink-muted block">
             Hold to press — both are momentary (spring return). START 3-4 is NO, STOP 1-2 is NC.
           </span>
         </div>
@@ -814,21 +815,21 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- EMERGENCY STOP CONTROLS --- */}
       {device && device.type === 'push_button_estop' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+          <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
             Safety Mushroom Actuator
           </label>
           <button
             onClick={() => onUpdateDeviceProperty(device.id, 'latched', !device.state.latched)}
-            className={`w-full py-2.5 px-3 text-xs font-bold rounded-xl border flex items-center justify-center gap-2 transition ${
+            className={`w-full py-2.5 px-3 text-xs font-bold rounded-md border flex items-center justify-center gap-2 transition ${
               device.state.latched
-                ? 'bg-rose-600 text-white border-rose-700 shadow-md animate-pulse'
-                : 'bg-amber-950/80 hover:bg-amber-900/90 text-amber-200 border-amber-500/60'
+                ? 'bg-danger text-surface border-danger shadow-1'
+                : 'bg-warning-soft/80 hover:bg-warning-soft/90 text-warning border-warning/60'
             }`}
           >
-            <span>{device.state.latched ? '🛑 E-STOP LATCHED (Contacts Open)' : '✅ E-STOP ARMED (Contacts Closed)'}</span>
+            <span>{device.state.latched ? 'E-STOP LATCHED (contacts open)' : 'E-STOP ARMED (contacts closed)'}</span>
           </button>
-          <span className="text-[9px] text-slate-400 block">
+          <span className="text-[9px] text-ink-muted block">
             Click to slam or twist-to-release. Latched state forcefully opens NC safety contacts.
           </span>
         </div>
@@ -836,29 +837,29 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- PILOT LIGHT INDICATOR CONTROLS --- */}
       {device && device.type === 'pilot_light_indicator' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
               Lens Color
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${device.state.lit ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${device.state.lit ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
               {device.state.lit ? '● ILLUMINATED' : '○ OFF'}
             </span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
             {[
-              { id: 'green', label: 'Green', color: '#22c55e', bg: 'bg-emerald-500' },
-              { id: 'red', label: 'Red', color: '#ef4444', bg: 'bg-rose-500' },
-              { id: 'amber', label: 'Amber', color: '#f59e0b', bg: 'bg-amber-500' },
-              { id: 'blue', label: 'Blue', color: '#3b82f6', bg: 'bg-blue-500' },
+              { id: 'green', label: 'Green', color: '#34e27a', bg: 'bg-lamp-green-on' },
+              { id: 'red', label: 'Red', color: '#ff4136', bg: 'bg-lamp-red-on' },
+              { id: 'amber', label: 'Amber', color: '#ffb12b', bg: 'bg-lamp-amber-on' },
+              { id: 'blue', label: 'Blue', color: '#4a93ff', bg: 'bg-lamp-blue-on' },
             ].map((col) => (
               <button
                 key={col.id}
                 onClick={() => onUpdateDeviceProperty(device.id, 'pilotColor', col.id)}
                 className={`py-1.5 px-1 text-xs font-bold rounded-lg border flex items-center justify-center gap-1 transition ${
                   (device.state.pilotColor || 'green') === col.id
-                    ? 'ring-2 ring-sky-400 border-sky-400 shadow-sm'
-                    : 'border-slate-700 hover:border-slate-600'
+                    ? 'ring-2 ring-probe border-probe shadow-sm'
+                    : 'border-border hover:border-border-strong'
                 }`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full ${col.bg}`}></span>
@@ -871,17 +872,17 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- 3-POLE MOTOR CONTACTOR CONTROLS --- */}
       {device && device.type === 'contactor_3p' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
               Coil Status (A1-A2)
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.coilEnergized ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.coilEnergized ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
               {device.state.coilEnergized ? '⚡ ENERGIZED (PULLED IN)' : '○ DE-ENERGIZED'}
             </span>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Rated Motor Current (AC-3)
             </label>
             <div className="grid grid-cols-4 gap-1">
@@ -891,8 +892,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.ratedAmps || 18) === amps
-                      ? 'bg-slate-800 text-white border-slate-900 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-surface-sunken text-ink border-border shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {amps}A
@@ -907,7 +908,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               { k: 'Aux NC 21-22', on: !(device.state.coilEnergized || device.state.manualOverride), no: false },
               { k: 'Line current', on: (device.state.measuredAmps || 0) > 0, no: true, val: `${(device.state.measuredAmps || 0).toFixed(2)} A` },
             ].map((c) => (
-              <div key={c.k} className={`rounded-lg border px-2 py-1 ${c.on ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-200' : 'bg-slate-900/80 border-slate-700 text-slate-400'}`}>
+              <div key={c.k} className={`rounded-lg border px-2 py-1 ${c.on ? 'bg-ok-soft/80 border-ok/60 text-ok' : 'bg-surface/80 border-border text-ink-muted'}`}>
                 <div className="font-bold">{c.k}</div>
                 <div>{c.val ?? (c.on ? 'CLOSED' : 'OPEN')}</div>
               </div>
@@ -915,19 +916,19 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tag</label>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">Tag</label>
               <input
                 value={device.state.tag || ''}
                 onChange={(e) => onUpdateDeviceProperty(device.id, 'tag', e.target.value.toUpperCase().slice(0, 6))}
-                className="w-full h-7 px-2 text-xs font-mono font-bold rounded-lg border border-slate-700 bg-slate-900 text-slate-100"
+                className="w-full h-7 px-2 text-xs font-mono font-bold rounded-lg border border-border bg-surface text-ink"
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Role</label>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">Role</label>
               <select
                 value={device.state.role || ''}
                 onChange={(e) => onUpdateDeviceProperty(device.id, 'role', e.target.value || undefined)}
-                className="w-full h-7 px-1.5 text-xs font-mono font-bold rounded-lg border border-slate-700 bg-slate-900 text-slate-100"
+                className="w-full h-7 px-1.5 text-xs font-mono font-bold rounded-lg border border-border bg-surface text-ink"
               >
                 <option value="">— (DOL)</option>
                 <option value="FOR">FOR (forward)</option>
@@ -941,8 +942,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               onClick={() => patchState('viewMode', device.state.viewMode === 'cutaway' ? 'front' : 'cutaway')}
               className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
                 device.state.viewMode === 'cutaway'
-                  ? 'bg-sky-600 text-white border-sky-700'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600'
+                  ? 'bg-probe text-on-probe border-probe'
+                  : 'bg-surface-sunken hover:bg-surface-hover text-ink border-border-strong'
               }`}
               title="Reveal the coil, armature, return spring and moving contact bridges"
             >
@@ -952,14 +953,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               onClick={() => patchState('manualOverride', !device.state.manualOverride)}
               className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition ${
                 device.state.manualOverride
-                  ? 'bg-amber-600 text-white border-amber-700'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600'
+                  ? 'bg-warning-fill text-ink border-warning'
+                  : 'bg-surface-sunken hover:bg-surface-hover text-ink border-border-strong'
               }`}
             >
               {device.state.manualOverride ? 'Plunger Forced IN' : 'Test Plunger'}
             </button>
           </div>
-          <span className="text-[9px] text-slate-400 block">
+          <span className="text-[9px] text-ink-muted block">
             Coil OFF: return spring holds NC 21-22 closed. Coil ON: armature pulls in — main poles &amp; NO 13-14 close and NC 21-22 opens.
           </span>
         </div>
@@ -967,15 +968,15 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- THERMAL OVERLOAD RELAY (TOR) --- */}
       {device && device.type === 'thermal_overload_relay' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Relay Status</label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.tripped ? 'bg-orange-950/90 text-orange-300 border border-orange-500/50 animate-pulse' : 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50'}`}>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Relay Status</label>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.tripped ? 'bg-warning-soft/90 text-warning border border-warning/50 animate-pulse' : 'bg-ok-soft/90 text-ok border border-ok/50'}`}>
               {device.state.tripped ? '⚠ TRIPPED (95-96 OPEN)' : '● READY (95-96 CLOSED)'}
             </span>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Ampere Dial Setting (Ir)
             </label>
             <div className="grid grid-cols-6 gap-1">
@@ -984,20 +985,20 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   key={a}
                   onClick={() => patchState('tripAmps', a)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
-                    (device.state.tripAmps || 6) === a ? 'bg-sky-700 text-white border-sky-800 shadow-sm' : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    (device.state.tripAmps || 6) === a ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {a}A
                 </button>
               ))}
             </div>
-            <div className="mt-1.5 h-2 rounded-full bg-slate-900 border border-slate-700 overflow-hidden">
+            <div className="mt-1.5 h-2 rounded-full bg-surface border border-border overflow-hidden">
               <div
-                className={`h-full transition-all ${((device.state.measuredAmps || 0) / (device.state.tripAmps || 6)) > 1 ? 'bg-rose-500' : 'bg-amber-400'}`}
+                className={`h-full transition-all ${((device.state.measuredAmps || 0) / (device.state.tripAmps || 6)) > 1 ? 'bg-danger' : 'bg-warning-fill'}`}
                 style={{ width: `${Math.min(100, ((device.state.measuredAmps || 0) / (device.state.tripAmps || 6)) * 100)}%` }}
               />
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block font-mono">
+            <span className="text-[9px] text-ink-muted mt-1 block font-mono">
               Thermal image: {(device.state.measuredAmps || 0).toFixed(2)}A of {device.state.tripAmps || 6}A setting. Set Ir to the motor nameplate FLA.
             </span>
           </div>
@@ -1005,19 +1006,19 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             <button
               onClick={() => patchState('tripped', true)}
               disabled={!!device.state.tripped}
-              className="py-2 text-xs font-black rounded-xl border bg-rose-950/80 hover:bg-rose-900/90 text-rose-200 border-rose-500/60 disabled:opacity-50"
+              className="py-2 text-xs font-black rounded-md border bg-danger-soft/80 hover:bg-danger-soft/90 text-danger border-danger/60 disabled:opacity-50"
             >
               TEST (Trip)
             </button>
             <button
               onClick={() => onPatchDeviceState ? onPatchDeviceState(device.id, { tripped: false, tripReason: undefined }) : onUpdateDeviceProperty(device.id, 'tripped', false)}
               disabled={!device.state.tripped}
-              className="py-2 text-xs font-black rounded-xl border bg-blue-600 hover:bg-blue-700 text-white border-blue-700 disabled:opacity-40"
+              className="py-2 text-xs font-black rounded-md border bg-probe hover:bg-probe text-on-probe border-probe disabled:opacity-40"
             >
               R · RESET
             </button>
           </div>
-          <span className="text-[9px] text-slate-400 block">
+          <span className="text-[9px] text-ink-muted block">
             95-96 NC is wired in series with the coil circuit; 97-98 NO lights a fault pilot lamp when tripped.
           </span>
         </div>
@@ -1025,10 +1026,10 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- CONTROL TRANSFORMER --- */}
       {device && device.type === 'control_transformer' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Secondary (X1-X2)</label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.secondaryLive ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Secondary (X1-X2)</label>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.secondaryLive ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
               {device.state.secondaryLive ? `● ${device.state.secondaryVolts || 220}V LIVE` : '○ DE-ENERGIZED'}
             </span>
           </div>
@@ -1038,21 +1039,21 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               { k: 'Secondary', v: `${device.state.secondaryVolts || 220}V` },
               { k: 'Ratio', v: `${((device.state.primaryVolts || 440) / (device.state.secondaryVolts || 220)).toFixed(1)}:1` },
             ].map((c) => (
-              <div key={c.k} className="rounded-lg border border-slate-700 bg-slate-900 text-slate-100 py-1">
-                <div className="text-[9px] font-bold text-slate-400 uppercase">{c.k}</div>
-                <div className="text-xs font-mono font-black text-slate-100">{c.v}</div>
+              <div key={c.k} className="rounded-lg border border-border bg-surface text-ink py-1">
+                <div className="text-[9px] font-bold text-ink-muted uppercase">{c.k}</div>
+                <div className="text-xs font-mono font-black text-ink">{c.v}</div>
               </div>
             ))}
           </div>
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">VA Rating</label>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">VA Rating</label>
             <div className="grid grid-cols-4 gap-1">
               {[100, 250, 500, 1000].map((va) => (
                 <button
                   key={va}
                   onClick={() => onUpdateDeviceProperty(device.id, 'vaRating', va)}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
-                    (device.state.vaRating || 250) === va ? 'bg-slate-800 text-white border-slate-900' : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                    (device.state.vaRating || 250) === va ? 'bg-surface-sunken text-ink border-border' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {va}
@@ -1060,7 +1061,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               ))}
             </div>
           </div>
-          <span className="text-[9px] text-slate-400 block">
+          <span className="text-[9px] text-ink-muted block">
             Connect H1-H2 across two phases (e.g. L1-L2 at 440V). X1 becomes the 220V control hot rail, X2 the control return.
           </span>
         </div>
@@ -1068,29 +1069,29 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- 3-PHASE 440V FEEDER --- */}
       {device && device.type === 'source_3phase_440v' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
           <button
             onClick={() => patchState('closed', device.state.closed === false)}
-            className={`w-full py-2 text-xs font-black rounded-xl border transition ${
-              device.state.closed !== false ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-slate-800 text-slate-300 border-slate-700'
+            className={`w-full py-2 text-xs font-black rounded-md border transition ${
+              device.state.closed !== false ? 'bg-ok text-surface border-ok' : 'bg-surface-sunken text-ink border-border'
             }`}
           >
             {device.state.closed !== false ? '● MAIN ISOLATOR ON — L1 / L2 / L3 LIVE' : '○ MAIN ISOLATOR OFF'}
           </button>
           <div className="grid grid-cols-3 gap-1.5 text-center">
             {[
-              { k: 'L1', c: 'bg-red-600' },
-              { k: 'L2', c: 'bg-yellow-400' },
-              { k: 'L3', c: 'bg-blue-600' },
+              { k: 'L1', c: 'bg-cond-red' },
+              { k: 'L2', c: 'bg-cond-blue' },
+              { k: 'L3', c: 'bg-cond-black ring-1 ring-wire-casing' },
             ].map((ph) => (
-              <div key={ph.k} className="rounded-lg border border-slate-700 bg-slate-900 text-slate-100 py-1 flex items-center justify-center gap-1.5">
+              <div key={ph.k} className="rounded-lg border border-border bg-surface text-ink py-1 flex items-center justify-center gap-1.5">
                 <span className={`w-2.5 h-2.5 rounded-full ${ph.c}`} />
                 <span className="text-xs font-mono font-black">{ph.k}</span>
-                <span className="text-[9px] font-mono text-slate-400">{Math.round((device.state.lineVoltage || 440) / Math.sqrt(3))}V</span>
+                <span className="text-[9px] font-mono text-ink-muted">{Math.round((device.state.lineVoltage || 440) / Math.sqrt(3))}V</span>
               </div>
             ))}
           </div>
-          <span className="text-[9px] text-slate-400 block font-mono">
+          <span className="text-[9px] text-ink-muted block font-mono">
             {device.state.lineVoltage || 440}V line-to-line · {device.state.frequency || 60}Hz · sequence L1→L2→L3 (CW).
           </span>
         </div>
@@ -1098,21 +1099,21 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- FORWARD / REVERSE / STOP STATION --- */}
       {device && device.type === 'push_button_fwd_rev' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+          <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
             Momentary Operators (hold to press)
           </label>
           <div className="grid grid-cols-3 gap-1.5">
             {[
-              { key: 'stopPressed', label: 'STOP', sub: 'NC 1-2', on: 'bg-rose-600 text-white border-rose-700', off: 'bg-rose-950/80 text-rose-200 border-rose-500/60' },
-              { key: 'fwdPressed', label: 'FWD ▶', sub: 'NO 3-4', on: 'bg-emerald-600 text-white border-emerald-700', off: 'bg-emerald-950/80 text-emerald-200 border-emerald-500/60' },
-              { key: 'revPressed', label: '◀ REV', sub: 'NO 5-6', on: 'bg-amber-500 text-white border-amber-600', off: 'bg-amber-950/80 text-amber-200 border-amber-500/60' },
+              { key: 'stopPressed', label: 'STOP', sub: 'NC 1-2', on: 'bg-danger text-surface border-danger', off: 'bg-danger-soft/80 text-danger border-danger/60' },
+              { key: 'fwdPressed', label: 'FWD ▶', sub: 'NO 3-4', on: 'bg-ok text-surface border-ok', off: 'bg-ok-soft/80 text-ok border-ok/60' },
+              { key: 'revPressed', label: '◀ REV', sub: 'NO 5-6', on: 'bg-warning-fill text-ink border-warning', off: 'bg-warning-soft/80 text-warning border-warning/60' },
             ].map((b) => (
               <button
                 key={b.key}
                 {...holdProps(device.id, b.key, onPatchDeviceState)}
                 onClick={() => !onPatchDeviceState && onUpdateDeviceProperty(device.id, b.key, !device.state[b.key])}
-                className={`py-2 rounded-xl border text-xs font-black flex flex-col items-center transition ${device.state[b.key] ? b.on : b.off}`}
+                className={`py-2 rounded-md border text-xs font-black flex flex-col items-center transition ${device.state[b.key] ? b.on : b.off}`}
               >
                 {b.label}
                 <span className="text-[9px] font-mono font-bold opacity-80">{b.sub}</span>
@@ -1124,12 +1125,12 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- INDUSTRIAL AC INDUCTION MOTOR CONTROLS --- */}
       {device && (device.type === 'motor_ac_industrial' || device.type === 'motor_6lead_star_delta') && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
           <div className="flex justify-between items-center gap-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
               Motor Status
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.motorFault ? 'bg-rose-950/90 text-rose-300 border border-rose-500/50 animate-pulse' : device.state.running ? (device.state.starterMode === 'wye' ? 'bg-amber-950/90 text-amber-300 border border-amber-500/50 animate-pulse' : 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 animate-pulse') : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.motorFault ? 'bg-danger-soft/90 text-danger border border-danger/50 animate-pulse' : device.state.running ? (device.state.starterMode === 'wye' ? 'bg-warning-soft/90 text-warning border border-warning/50 animate-pulse' : 'bg-ok-soft/90 text-ok border border-ok/50 animate-pulse') : 'bg-surface-sunken text-ink border border-border'}`}>
               {device.state.motorFault
                 ? `⚠ ${device.state.motorFault}`
                 : device.state.running
@@ -1144,7 +1145,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             </span>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Nameplate Power Rating
             </label>
             <div className="grid grid-cols-4 gap-1">
@@ -1170,15 +1171,15 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   }}
                   className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
                     (device.state.wattage || (device.type === 'motor_6lead_star_delta' ? 5500 : 2200)) === m.w
-                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-                      : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700'
+                      ? 'bg-ok text-surface border-ok shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
                   }`}
                 >
                   {m.label}
                 </button>
               ))}
             </div>
-            <span className="text-[9px] text-slate-400 mt-1 block font-mono">
+            <span className="text-[9px] text-ink-muted mt-1 block font-mono">
               {device.type === 'motor_6lead_star_delta'
                 ? `Rated: ${(device.state.wattage || 5500)} W · 6-Lead Y/Δ · line current ${(device.state.measuredAmps || 0).toFixed(2)} A. Star reduces starting current to 33%.`
                 : `Rated: ${(device.state.wattage || 2200)} W · 440V 3-phase TEFC · line current ${(device.state.measuredAmps || 0).toFixed(2)} A. Swap any two of U1/V1/W1 to reverse rotation.`}
@@ -1189,37 +1190,37 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- MICRO PLC CONTROLLER CONTROLS --- */}
       {device && device.type === 'plc_micro_controller' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
               PLC CPU Mode
             </label>
             <button
               onClick={() => onUpdateDeviceProperty(device.id, 'plcRun', device.state.plcRun === false ? true : false)}
               className={`text-xs font-bold font-mono px-3 py-1 rounded-lg border transition ${
                 device.state.plcRun !== false
-                  ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-                  : 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                  ? 'bg-ok text-surface border-ok shadow-sm'
+                  : 'bg-warning-fill text-ink border-warning shadow-sm'
               }`}
             >
               {device.state.plcRun !== false ? 'RUN MODE' : 'STOP MODE'}
             </button>
           </div>
-          <div className="bg-slate-900 text-slate-100 p-2 rounded-xl font-mono text-[10px] space-y-1">
-            <div className="flex justify-between border-b border-slate-700 pb-1">
-              <span className="text-slate-400">Digital Inputs:</span>
-              <span className="text-cyan-400">
+          <div className="bg-surface text-ink p-2 rounded-md font-mono text-[10px] space-y-1">
+            <div className="flex justify-between border-b border-border pb-1">
+              <span className="text-ink-muted">Digital Inputs:</span>
+              <span className="text-probe">
                 I1:{device.state.plcInputs?.i1 ? '1' : '0'} I2:{device.state.plcInputs?.i2 ? '1' : '0'} I3:{device.state.plcInputs?.i3 ? '1' : '0'} I4:{device.state.plcInputs?.i4 ? '1' : '0'}
               </span>
             </div>
             <div className="flex justify-between pt-0.5">
-              <span className="text-slate-400">Relay Outputs:</span>
-              <span className="text-amber-400">
+              <span className="text-ink-muted">Relay Outputs:</span>
+              <span className="text-warning">
                 Q1:{device.state.plcOutputs?.q1 ? '1' : '0'} Q2:{device.state.plcOutputs?.q2 ? '1' : '0'} Q3:{device.state.plcOutputs?.q3 ? '1' : '0'} Q4:{device.state.plcOutputs?.q4 ? '1' : '0'}
               </span>
             </div>
           </div>
-          <span className="text-[9px] text-slate-400 block font-mono">
+          <span className="text-[9px] text-ink-muted block font-mono">
             Embedded Ladder: I1 → Coil Q1, I2 → Coil Q2.
           </span>
         </div>
@@ -1227,16 +1228,16 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
       {/* --- DPDT ICE-CUBE RELAY CONTROLS --- */}
       {device && device.type === 'industrial_relay_dpdt' && (
-        <div className="space-y-3 mt-2 pt-2 border-t border-slate-700/80">
+        <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
           <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
               Relay Coil Status (A1-A2)
             </label>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.coilEnergized ? 'bg-purple-950/90 text-purple-300 border border-purple-500/50' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.coilEnergized ? 'bg-probe-soft/90 text-probe border border-probe/50' : 'bg-surface-sunken text-ink border border-border'}`}>
               {device.state.coilEnergized ? '● ENERGIZED' : '○ DE-ENERGIZED'}
             </span>
           </div>
-          <span className="text-[9px] text-slate-400 block">
+          <span className="text-[9px] text-ink-muted block">
             8-Pin DPDT Form-C Contacts (Common 11/21, NC 12/22, NO 14/24).
           </span>
         </div>
@@ -1259,19 +1260,19 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         ];
         return (
           <div className="space-y-3">
-            <div className="text-[11px] text-slate-300 leading-snug">
-              Changes below apply to <strong className="text-sky-300">all {wires.length} selected conductors</strong>
+            <div className="text-[11px] text-ink leading-snug">
+              Changes below apply to <strong className="text-probe">all {wires.length} selected conductors</strong>
               {groupDeviceCount > 1 ? ` (${groupDeviceCount} devices are also selected)` : ''}.
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
                 Conductor Cross-Section / Gauge (AWG + mm²)
               </label>
               <select
                 value={commonGauge}
                 onChange={(e) => e.target.value && apply({ wireGauge: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono focus:outline-none focus:border-rose-500"
+                className="w-full bg-surface border border-border rounded-lg px-2.5 py-1 text-xs text-ink font-mono focus:outline-none focus:border-probe"
               >
                 {commonGauge === '' && <option value="">Mixed ({gauges.length} sizes) - pick one to apply to all</option>}
                 {wireStandards.map((ws) => (
@@ -1281,12 +1282,12 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 ))}
               </select>
               {gauges.length > 1 && (
-                <div className="mt-1 text-[10px] font-mono text-slate-500 leading-snug">Now: {gauges.join(' | ')}</div>
+                <div className="mt-1 text-[10px] font-mono text-ink-muted leading-snug">Now: {gauges.join(' | ')}</div>
               )}
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
                 Insulation Color
               </label>
               <div className="grid grid-cols-6 gap-1.5">
@@ -1294,41 +1295,41 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                   <button
                     key={i}
                     onClick={() => apply({ color: swatch.color })}
-                    style={{ backgroundColor: swatch.color }}
+                    style={{ backgroundColor: conductorColor(swatch.color) }}
                     className={`h-6 rounded border transition-transform ${
                       colorSet.length === 1 && colorSet[0] === swatch.color
-                        ? 'border-sky-400 scale-110 shadow-md ring-2 ring-sky-400/40'
-                        : 'border-slate-600 hover:scale-105'
+                        ? 'border-probe scale-110 shadow-md ring-2 ring-probe/40'
+                        : 'border-border-strong hover:scale-105'
                     }`}
                     title={swatch.name}
                   />
                 ))}
               </div>
-              <label className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+              <label className="mt-2 flex items-center gap-2 text-[10px] text-ink-muted">
                 <span className="font-bold uppercase tracking-wider">Custom</span>
                 <input
                   type="color"
                   value={colorSet.length === 1 && /^#[0-9a-fA-F]{6}$/.test(colorSet[0]) ? colorSet[0] : '#444444'}
                   onChange={(e) => apply({ color: e.target.value })}
-                  className="h-6 w-10 bg-transparent border border-slate-600 rounded cursor-pointer"
+                  className="h-6 w-10 bg-transparent border border-border-strong rounded cursor-pointer"
                 />
-                {colorSet.length > 1 && <span className="font-mono text-slate-500">{colorSet.length} colors now</span>}
+                {colorSet.length > 1 && <span className="font-mono text-ink-muted">{colorSet.length} colors now</span>}
               </label>
             </div>
 
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Selected conductors</div>
+              <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-1">Selected conductors</div>
               <div className="max-h-24 overflow-y-auto space-y-0.5">
                 {wires.map((w) => {
                   const a = devices.find((d) => d.id === w.fromDeviceId);
                   const b = devices.find((d) => d.id === w.toDeviceId);
                   return (
-                    <div key={w.id} className="flex items-center gap-1.5 text-[10px] font-mono text-slate-300">
-                      <span className="inline-block w-2.5 h-2.5 rounded-sm border border-slate-600" style={{ backgroundColor: w.color }} />
+                    <div key={w.id} className="flex items-center gap-1.5 text-[10px] font-mono text-ink">
+                      <span className="inline-block w-2.5 h-2.5 rounded-sm border border-border-strong" style={{ backgroundColor: conductorColor(w.color) }} />
                       <span className="truncate">
                         {a?.name?.split(' ')[0] || 'Dev'} {'\u2192'} {b?.name?.split(' ')[0] || 'Dev'}
                       </span>
-                      <span className="ml-auto text-slate-500 shrink-0">{w.wireGauge.split(' ')[0]}</span>
+                      <span className="ml-auto text-ink-muted shrink-0">{w.wireGauge.split(' ')[0]}</span>
                     </div>
                   );
                 })}
@@ -1343,7 +1344,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         <div className="space-y-3">
           {/* Wire Tag / Circuit Label */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Wire Tag / Circuit Label
             </label>
             <input
@@ -1352,19 +1353,19 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               maxLength={18}
               placeholder="e.g. CKT-1 L1, T1, SW-RET"
               onChange={(e) => onUpdateWireProperty(wire.id, { label: e.target.value })}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono placeholder:text-slate-600 focus:outline-none focus:border-sky-500"
+              className="w-full bg-surface border border-border rounded-lg px-2.5 py-1 text-xs text-ink font-mono placeholder:text-ink-muted focus:outline-none focus:border-probe"
             />
           </div>
 
           {/* Gauge Selector */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Conductor Cross-Section / Gauge
             </label>
             <select
               value={wire.wireGauge}
               onChange={(e) => onUpdateWireProperty(wire.id, { wireGauge: e.target.value })}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono focus:outline-none focus:border-rose-500"
+              className="w-full bg-surface border border-border rounded-lg px-2.5 py-1 text-xs text-ink font-mono focus:outline-none focus:border-probe"
             >
               {wireStandards.map((ws) => (
                 <option key={ws.id} value={ws.name}>
@@ -1376,7 +1377,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
           {/* Wire Color */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
               Insulation Color
             </label>
             <div className="grid grid-cols-6 gap-1.5">
@@ -1391,11 +1392,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 <button
                   key={i}
                   onClick={() => onUpdateWireProperty(wire.id, { color: swatch.color })}
-                  style={{ backgroundColor: swatch.color }}
+                  style={{ backgroundColor: conductorColor(swatch.color) }}
                   className={`h-6 rounded border transition-transform ${
                     wire.color === swatch.color
-                      ? 'border-sky-400 scale-110 shadow-md ring-2 ring-sky-400/40'
-                      : 'border-slate-600 hover:scale-105'
+                      ? 'border-probe scale-110 shadow-md ring-2 ring-probe/40'
+                      : 'border-border-strong hover:scale-105'
                   }`}
                   title={swatch.name}
                 />
@@ -1405,9 +1406,9 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
           {/* Wire Run Length */}
           <div>
-            <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+            <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
               <span className="font-bold uppercase tracking-wider">Conductor Length</span>
-              <span className="font-mono text-slate-100 font-bold">{wire.lengthMeters || 5} meters</span>
+              <span className="font-mono text-ink font-bold">{wire.lengthMeters || 5} meters</span>
             </div>
             <input
               type="range"
@@ -1416,25 +1417,25 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               step={1}
               value={wire.lengthMeters || 5}
               onChange={(e) => onUpdateWireProperty(wire.id, { lengthMeters: Number(e.target.value) })}
-              className="w-full accent-rose-600 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+              className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
             />
           </div>
 
           {/* Electrical Metrics for this Wire */}
-          <div className="bg-[#172235] p-2.5 rounded-xl border border-slate-700 flex items-center justify-between text-xs font-mono">
+          <div className="bg-surface-sunken p-2.5 rounded-md border border-border flex items-center justify-between text-xs font-mono">
             <div>
-              <span className="text-[9px] text-slate-400 block font-sans">CURRENT</span>
-              <span className="font-bold text-slate-100">{(wire.currentAmps || 0).toFixed(2)} A</span>
+              <span className="text-[9px] text-ink-muted block font-sans">CURRENT</span>
+              <span className="font-bold text-ink">{(wire.currentAmps || 0).toFixed(2)} A</span>
             </div>
             <div>
-              <span className="text-[9px] text-slate-400 block font-sans">VOLTAGE DROP</span>
-              <span className={`font-bold ${(wire.voltageDropPercent || 0) > 3 ? 'text-rose-400' : 'text-emerald-400'}`}>
+              <span className="text-[9px] text-ink-muted block font-sans">VOLTAGE DROP</span>
+              <span className={`font-bold ${(wire.voltageDropPercent || 0) > 3 ? 'text-danger' : 'text-ok'}`}>
                 {(wire.voltageDropPercent || 0).toFixed(2)} %
               </span>
             </div>
             <div>
-              <span className="text-[9px] text-slate-400 block font-sans">LIMIT</span>
-              <span className="text-slate-400 font-bold">≤ 3.0%</span>
+              <span className="text-[9px] text-ink-muted block font-sans">LIMIT</span>
+              <span className="text-ink-muted font-bold">≤ 3.0%</span>
             </div>
           </div>
 
@@ -1442,10 +1443,10 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           {wire.waypoints && wire.waypoints.length > 0 && (
             <button
               onClick={() => onUpdateWireProperty(wire.id, { waypoints: undefined })}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-bold rounded-xl transition shadow-sm"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-surface-sunken hover:bg-surface-hover border border-border-strong text-ink text-xs font-bold rounded-md transition shadow-sm"
               title="Reset manual orthogonal shifts back to automatic collision-free routing"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+              <RotateCcw className="w-3.5 h-3.5 text-ink-muted" />
               <span>Reset Wire Routing to Auto</span>
             </button>
           )}
@@ -1457,33 +1458,33 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             const fromTerm = fromDev?.terminals.find((t) => t.id === wire.fromTerminalId);
             const toTerm = toDev?.terminals.find((t) => t.id === wire.toTerminalId);
             return (
-              <div className="bg-[#172235] p-2.5 rounded-xl border border-slate-700 space-y-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="bg-surface-sunken p-2.5 rounded-md border border-border space-y-2">
+                <span className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
                   Endpoint Ports (Rewire Without Deleting)
                 </span>
                 <div className="space-y-1.5 text-[11px]">
-                  <div className="flex items-center justify-between gap-2 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-700/80">
-                    <span className="text-slate-300 font-mono truncate">
-                      <strong className="text-sky-400">FROM:</strong> {fromDev?.name?.split(' ')[0] || 'Dev'}:{fromTerm?.label || wire.fromTerminalId}
+                  <div className="flex items-center justify-between gap-2 bg-surface/80 px-2 py-1 rounded-lg border border-border/80">
+                    <span className="text-ink font-mono truncate">
+                      <strong className="text-probe">FROM:</strong> {fromDev?.name?.split(' ')[0] || 'Dev'}:{fromTerm?.label || wire.fromTerminalId}
                     </span>
                     {onRequestRewire && (
                       <button
                         onClick={() => onRequestRewire(wire.id, 'from')}
-                        className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-[10px] shrink-0 transition"
+                        className="px-2 py-0.5 rounded bg-probe hover:bg-probe text-on-probe font-bold text-[10px] shrink-0 transition"
                         title="Pick a new port for the FROM end"
                       >
                         ⇄ Rewire
                       </button>
                     )}
                   </div>
-                  <div className="flex items-center justify-between gap-2 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-700/80">
-                    <span className="text-slate-300 font-mono truncate">
-                      <strong className="text-amber-400">TO:</strong> {toDev?.name?.split(' ')[0] || 'Dev'}:{toTerm?.label || wire.toTerminalId}
+                  <div className="flex items-center justify-between gap-2 bg-surface/80 px-2 py-1 rounded-lg border border-border/80">
+                    <span className="text-ink font-mono truncate">
+                      <strong className="text-warning">TO:</strong> {toDev?.name?.split(' ')[0] || 'Dev'}:{toTerm?.label || wire.toTerminalId}
                     </span>
                     {onRequestRewire && (
                       <button
                         onClick={() => onRequestRewire(wire.id, 'to')}
-                        className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-[10px] shrink-0 transition"
+                        className="px-2 py-0.5 rounded bg-probe hover:bg-probe text-on-probe font-bold text-[10px] shrink-0 transition"
                         title="Pick a new port for the TO end"
                       >
                         ⇄ Rewire
@@ -1494,7 +1495,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 {onDisconnectWire && (
                   <button
                     onClick={() => onDisconnectWire(wire.id)}
-                    className="w-full py-1 px-2.5 rounded-lg bg-rose-950/70 hover:bg-rose-900/80 border border-rose-700/70 text-rose-200 text-[11px] font-bold transition"
+                    className="w-full py-1 px-2.5 rounded-lg bg-danger-soft/70 hover:bg-danger-soft/80 border border-danger/70 text-danger text-[11px] font-bold transition"
                   >
                     Disconnect Wire
                   </button>
@@ -1506,23 +1507,23 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       )}
 
       {/* Footer Action Buttons (Rotate, Duplicate, Delete) */}
-      <div className="pt-3 mt-3 border-t border-slate-700/80 flex items-center justify-between gap-2">
+      <div className="pt-3 mt-3 border-t border-border/80 flex items-center justify-between gap-2">
         {device && (
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => onRotateDevice && onRotateDevice(device)}
-              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-bold rounded-lg transition"
+              className="flex items-center gap-1 px-2.5 py-1 bg-surface-sunken hover:bg-surface-hover text-ink border border-border-strong text-xs font-bold rounded-lg transition"
               title="Rotate 90° clockwise (Shortcut: R)"
             >
-              <RotateCw className="w-3.5 h-3.5 text-slate-300" />
+              <RotateCw className="w-3.5 h-3.5 text-ink" />
               <span>Rotate</span>
             </button>
             <button
               onClick={() => onDuplicateDevice && onDuplicateDevice(device)}
-              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-bold rounded-lg transition"
+              className="flex items-center gap-1 px-2.5 py-1 bg-surface-sunken hover:bg-surface-hover text-ink border border-border-strong text-xs font-bold rounded-lg transition"
               title="Duplicate device (Shortcut: Ctrl+C, Ctrl+V)"
             >
-              <Copy className="w-3.5 h-3.5 text-slate-300" />
+              <Copy className="w-3.5 h-3.5 text-ink" />
               <span>Duplicate</span>
             </button>
           </div>
@@ -1530,7 +1531,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
 
         <button
           onClick={onDeleteSelected}
-          className="flex items-center gap-1 text-xs font-bold text-rose-400 hover:text-rose-700 transition ml-auto"
+          className="flex items-center gap-1 text-xs font-bold text-danger hover:opacity-80 transition ml-auto"
           title="Delete selected item (Shortcut: Del / Backspace)"
         >
           <Trash2 className="w-3.5 h-3.5" />

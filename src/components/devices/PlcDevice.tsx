@@ -22,12 +22,12 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
   };
 
   const topTerminals: Array<{ relX: number; label: string; color: string }> = [
-    { relX: 0.12, label: 'L1', color: '#f87171' },
-    { relX: 0.24, label: 'N', color: '#60a5fa' },
-    { relX: 0.44, label: 'I1', color: '#e2e8f0' },
-    { relX: 0.58, label: 'I2', color: '#e2e8f0' },
-    { relX: 0.72, label: 'I3', color: '#e2e8f0' },
-    { relX: 0.86, label: 'I4', color: '#e2e8f0' },
+    { relX: 0.12, label: 'L1', color: 'var(--lamp-red-on)' },
+    { relX: 0.24, label: 'N', color: 'var(--lamp-blue-on)' },
+    { relX: 0.44, label: 'I1', color: 'var(--mat-housing-shade)' },
+    { relX: 0.58, label: 'I2', color: 'var(--mat-housing-shade)' },
+    { relX: 0.72, label: 'I3', color: 'var(--mat-housing-shade)' },
+    { relX: 0.86, label: 'I4', color: 'var(--mat-housing-shade)' },
   ];
 
   const qGroups: Array<{ label: string; cxRel: number; r1: number; r2: number; active: boolean }> = [
@@ -40,19 +40,19 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
   return (
     <g className="select-none">
       {/* Architectural CAD Shadow */}
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="rgba(15, 23, 42, 0.16)" />
+      <rect x={x + 2} y={y + 3} width={width} height={height} rx={4} fill="transparent" />
 
       {/* Grey/Slate Industrial LOGO! Enclosure */}
-      <rect x={x} y={y} width={width} height={height} rx={4} fill="#9ca3af" stroke="#0f172a" strokeWidth={1.3} />
+      <rect x={x} y={y} width={width} height={height} rx={4} fill="var(--mat-steel)" stroke="var(--mat-line)" strokeWidth={1.3} />
 
       {/* Top Power & Digital Input Terminal Bay */}
-      <rect x={x + 2} y={y + 2} width={width - 4} height={17.5} rx={2} fill="#4b5563" stroke="#1f2937" strokeWidth={0.7} />
+      <rect x={x + 2} y={y + 2} width={width - 4} height={17.5} rx={2} fill="var(--silk-muted)" stroke="var(--mat-housing-dark)" strokeWidth={0.7} />
       {[0.34, 0.51, 0.65, 0.79].map((r) => (
-        <line key={`pt-${r}`} x1={x + width * r} y1={y + 2} x2={x + width * r} y2={y + 19.5} stroke="#1f2937" strokeWidth={0.8} />
+        <line key={`pt-${r}`} x1={x + width * r} y1={y + 2} x2={x + width * r} y2={y + 19.5} stroke="var(--mat-housing-dark)" strokeWidth={0.8} />
       ))}
 
       {/* Embedded Top Terminal Label Strip */}
-      <rect x={x + 2} y={y + 19.5} width={width - 4} height={7.5} fill="#1f2937" />
+      <rect x={x + 2} y={y + 19.5} width={width - 4} height={7.5} fill="var(--mat-housing-dark)" />
       {topTerminals.map((t) => (
         <text
           key={`plct-${t.label}`}
@@ -61,7 +61,7 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
           textAnchor="middle"
           fontSize="4.6"
           fontWeight="900"
-          fontFamily="ui-monospace, monospace"
+          fontFamily="var(--font-mono)"
           fill={t.color}
         >
           {t.label}
@@ -69,14 +69,14 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
       ))}
 
       {/* Dark Navy LOGO! Header Band */}
-      <rect x={x + 2} y={y + 27} width={width - 4} height={11} fill="#0f172a" />
-      <text x={x + 7} y={y + 34.4} fontSize="5.4" fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#38bdf8" letterSpacing="0.4">
+      <rect x={x + 2} y={y + 27} width={width - 4} height={11} fill="var(--mat-line)" />
+      <text x={x + 7} y={y + 34.4} fontSize="5.4" fontWeight="900" fontFamily="var(--font-display)" fill="var(--nameplate-tag)" letterSpacing="0.4">
         VOLTLAB
       </text>
-      <text x={x + 41} y={y + 34.4} fontSize="5.4" fontWeight="900" fontFamily="ui-sans-serif, system-ui" fill="#ffffff">
+      <text x={x + 41} y={y + 34.4} fontSize="5.4" fontWeight="900" fontFamily="var(--font-display)" fill="var(--silk-on-dark)">
         LOGO!
       </text>
-      <text x={x + width - 6} y={y + 34.1} textAnchor="end" fontSize="3.8" fontWeight="700" fontFamily="ui-monospace, monospace" fill="#cbd5e1">
+      <text x={x + width - 6} y={y + 34.1} textAnchor="end" fontSize="3.8" fontWeight="700" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
         AC/DC 115..240V · RUN
       </text>
 
@@ -84,21 +84,21 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
       {/* Left: Monochrome/Backlit LOGO! LCD Screen */}
       <g onMouseDown={stopCanvas} onClick={toggleMenu} className="cursor-pointer">
         <title>Click PLC LCD to cycle menu / I/O monitor</title>
-        <rect x={x + 6} y={y + 40} width={78} height={47} rx={2} fill="#0f172a" stroke="#1e293b" strokeWidth={1} />
-        <rect x={x + 8} y={y + 42} width={74} height={43} rx={1} fill={powered ? '#f8fafc' : '#1e293b'} />
+        <rect x={x + 6} y={y + 40} width={78} height={47} rx={2} fill="var(--mat-line)" stroke="var(--mat-housing-dark)" strokeWidth={1} />
+        <rect x={x + 8} y={y + 42} width={74} height={43} rx={1} fill={powered ? 'var(--mat-housing)' : 'var(--mat-housing-dark)'} />
 
         {powered ? (
           pageIdx === 0 ? (
             <g>
               {/* Classic LOGO! inverted cursor row */}
-              <rect x={x + 9} y={y + 43} width={72} height={7.5} fill="#0f172a" />
-              <text x={x + 11.5} y={y + 48.5} fontSize="4.8" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#ffffff">
+              <rect x={x + 9} y={y + 43} width={72} height={7.5} fill="var(--mat-line)" />
+              <text x={x + 11.5} y={y + 48.5} fontSize="4.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
                 {'>'} Monitor I/O
               </text>
-              <circle cx={x + 76} cy={y + 46.8} r={1.8} fill="#22c55e" />
+              <circle cx={x + 76} cy={y + 46.8} r={1.8} fill="var(--lamp-green-on)" />
 
               {/* Input Row */}
-              <text x={x + 11} y={y + 58} fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#334155">
+              <text x={x + 11} y={y + 58} fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
                 IN
               </text>
               {(['i1', 'i2', 'i3', 'i4'] as const).map((k, idx) => {
@@ -106,8 +106,8 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
                 const on = !!inputs[k];
                 return (
                   <g key={k}>
-                    <rect x={bx} y={y + 52} width={11} height={8} rx={1} fill={on ? '#16a34a' : '#e2e8f0'} stroke="#64748b" strokeWidth={0.5} />
-                    <text x={bx + 5.5} y={y + 57.6} textAnchor="middle" fontSize="4.3" fontWeight="900" fontFamily="ui-monospace, monospace" fill={on ? '#ffffff' : '#334155'}>
+                    <rect x={bx} y={y + 52} width={11} height={8} rx={1} fill={on ? 'var(--cond-green)' : 'var(--mat-housing-shade)'} stroke="var(--mat-line-soft)" strokeWidth={0.5} />
+                    <text x={bx + 5.5} y={y + 57.6} textAnchor="middle" fontSize="4.3" fontWeight="900" fontFamily="var(--font-mono)" fill={on ? 'var(--silk-on-dark)' : 'var(--silk)'}>
                       I{idx + 1}
                     </text>
                   </g>
@@ -115,7 +115,7 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
               })}
 
               {/* Output Row */}
-              <text x={x + 11} y={y + 70} fontSize="4.4" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#334155">
+              <text x={x + 11} y={y + 70} fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
                 OUT
               </text>
               {(['q1', 'q2', 'q3', 'q4'] as const).map((k, idx) => {
@@ -123,42 +123,42 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
                 const on = !!outputs[k];
                 return (
                   <g key={k}>
-                    <rect x={bx} y={y + 64} width={11} height={8} rx={1} fill={on ? '#ea580c' : '#e2e8f0'} stroke="#64748b" strokeWidth={0.5} />
-                    <text x={bx + 5.5} y={y + 69.6} textAnchor="middle" fontSize="4.3" fontWeight="900" fontFamily="ui-monospace, monospace" fill={on ? '#ffffff' : '#334155'}>
+                    <rect x={bx} y={y + 64} width={11} height={8} rx={1} fill={on ? 'var(--mat-pvc-orange)' : 'var(--mat-housing-shade)'} stroke="var(--mat-line-soft)" strokeWidth={0.5} />
+                    <text x={bx + 5.5} y={y + 69.6} textAnchor="middle" fontSize="4.3" fontWeight="900" fontFamily="var(--font-mono)" fill={on ? 'var(--silk-on-dark)' : 'var(--silk)'}>
                       Q{idx + 1}
                     </text>
                   </g>
                 );
               })}
 
-              <text x={x + 11} y={y + 81} fontSize="4" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#475569">
+              <text x={x + 11} y={y + 81} fontSize="4" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk-muted)">
                 LAN · RUN · 60Hz
               </text>
             </g>
           ) : (
             <g>
-              <rect x={x + 9} y={y + 43} width={72} height={7.5} fill="#0f172a" />
-              <text x={x + 11.5} y={y + 48.5} fontSize="4.8" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#ffffff">
+              <rect x={x + 9} y={y + 43} width={72} height={7.5} fill="var(--mat-line)" />
+              <text x={x + 11.5} y={y + 48.5} fontSize="4.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
                 {'>'} Program Menu
               </text>
               {['Start', 'Setup', 'Diagnostics'].map((item, idx) => (
-                <text key={item} x={x + 12} y={y + 59 + idx * 9} fontSize="4.5" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#0f172a">
+                <text key={item} x={x + 12} y={y + 59 + idx * 9} fontSize="4.5" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk)">
                   {item}
                 </text>
               ))}
             </g>
           )
         ) : (
-          <text x={x + 45} y={y + 65} textAnchor="middle" fontSize="4.8" fontWeight="800" fontFamily="ui-monospace, monospace" fill="#64748b">
+          <text x={x + 45} y={y + 65} textAnchor="middle" fontSize="4.8" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk-muted)">
             NO POWER (L1/N)
           </text>
         )}
       </g>
 
       {/* Right: Memory slot detail + 4-way navigation diamond + ESC/OK buttons */}
-      <rect x={x + 90} y={y + 40} width={58} height={9} rx={1.5} fill="#4b5563" stroke="#1f2937" strokeWidth={0.6} />
-      <circle cx={x + 97} cy={y + 44.5} r={2.2} fill={powered ? '#22c55e' : '#64748b'} />
-      <text x={x + 102} y={y + 46} fontSize="3.8" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#f8fafc">
+      <rect x={x + 90} y={y + 40} width={58} height={9} rx={1.5} fill="var(--silk-muted)" stroke="var(--mat-housing-dark)" strokeWidth={0.6} />
+      <circle cx={x + 97} cy={y + 44.5} r={2.2} fill={powered ? 'var(--lamp-green-on)' : 'var(--mat-line-soft)'} />
+      <text x={x + 102} y={y + 46} fontSize="3.8" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
         {powered ? 'RUN/OK' : 'STOP'}
       </text>
 
@@ -171,26 +171,26 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
           { px: x + 131, py: y + 62, sym: '►' },
         ].map((b, i) => (
           <g key={`nav-${i}`}>
-            <rect x={b.px - 5} y={b.py - 4.5} width={10} height={9} rx={1.5} fill="#f1f5f9" stroke="#334155" strokeWidth={0.8} />
-            <text x={b.px} y={b.py + 1.8} textAnchor="middle" fontSize="4.5" fill="#1e293b">
+            <rect x={b.px - 5} y={b.py - 4.5} width={10} height={9} rx={1.5} fill="var(--mat-housing)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.8} />
+            <text x={b.px} y={b.py + 1.8} textAnchor="middle" fontSize="4.5" fill="var(--silk)">
               {b.sym}
             </text>
           </g>
         ))}
 
         {/* ESC (Gray) and OK (Bright Green) bottom buttons */}
-        <rect x={x + 98} y={y + 79} width={16} height={9} rx={1.5} fill="#e2e8f0" stroke="#334155" strokeWidth={0.8} />
-        <text x={x + 106} y={y + 85} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#1e293b">
+        <rect x={x + 98} y={y + 79} width={16} height={9} rx={1.5} fill="var(--mat-housing-shade)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.8} />
+        <text x={x + 106} y={y + 85} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
           ESC
         </text>
-        <rect x={x + 124} y={y + 79} width={16} height={9} rx={1.5} fill="#16a34a" stroke="#065f46" strokeWidth={0.8} />
-        <text x={x + 132} y={y + 85} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#ffffff">
+        <rect x={x + 124} y={y + 79} width={16} height={9} rx={1.5} fill="var(--cond-green)" stroke="var(--lamp-green-off)" strokeWidth={0.8} />
+        <text x={x + 132} y={y + 85} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
           OK
         </text>
       </g>
 
       {/* Bottom Relay Output Grouping Bar */}
-      <rect x={x + 2} y={y + height - 29} width={width - 4} height={9} fill="#1f2937" />
+      <rect x={x + 2} y={y + height - 29} width={width - 4} height={9} fill="var(--mat-housing-dark)" />
       {qGroups.map((q) => (
         <g key={`qg-${q.label}`}>
           <rect
@@ -199,7 +199,7 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
             width={width * (q.r2 - q.r1) + 12}
             height={7}
             rx={1}
-            fill={q.active ? '#16a34a' : '#334155'}
+            fill={q.active ? 'var(--cond-green)' : 'var(--mat-housing-dark-face)'}
           />
           <text
             x={x + width * q.cxRel}
@@ -207,8 +207,8 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
             textAnchor="middle"
             fontSize="4.5"
             fontWeight="900"
-            fontFamily="ui-monospace, monospace"
-            fill="#ffffff"
+            fontFamily="var(--font-mono)"
+            fill="var(--silk-on-dark)"
           >
             {q.label} (1-2)
           </text>
@@ -216,9 +216,9 @@ export const PlcDevice: React.FC<DeviceComponentProps> = (props) => {
       ))}
 
       {/* Bottom Relay Output Terminal Bay */}
-      <rect x={x + 2} y={y + height - 19.5} width={width - 4} height={17.5} rx={2} fill="#4b5563" stroke="#1f2937" strokeWidth={0.7} />
+      <rect x={x + 2} y={y + height - 19.5} width={width - 4} height={17.5} rx={2} fill="var(--silk-muted)" stroke="var(--mat-housing-dark)" strokeWidth={0.7} />
       {[0.33, 0.59, 0.81].map((r) => (
-        <line key={`qb-${r}`} x1={x + width * r} y1={y + height - 19.5} x2={x + width * r} y2={y + height - 2} stroke="#1f2937" strokeWidth={0.9} />
+        <line key={`qb-${r}`} x1={x + width * r} y1={y + height - 19.5} x2={x + width * r} y2={y + height - 2} stroke="var(--mat-housing-dark)" strokeWidth={0.9} />
       ))}
 
       <DeviceTerminals {...props} hideLabel={() => true} />

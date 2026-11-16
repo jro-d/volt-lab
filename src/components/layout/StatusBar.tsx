@@ -42,7 +42,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   };
 
   return (
-    <footer className="h-7 shrink-0 flex items-center justify-between gap-4 px-3 bg-[#f4f0eb] border-t border-[#e6dfd5] text-[11px] font-mono text-stone-600 select-none z-20">
+    <footer className="h-7 shrink-0 flex items-center justify-between gap-4 px-3 bg-surface-sunken border-t border-border text-[11px] font-mono text-ink-muted select-none z-20">
       <div className="flex items-center gap-4 min-w-0">
         <span className="w-28 tabular-nums" title="Cursor position in workbench units">
           X: {Math.round(cursorX)}, Y: {Math.round(cursorY)}
@@ -50,7 +50,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <span className="w-20 tabular-nums">Zoom: {Math.round(zoom * 100)}%</span>
         <button
           onClick={cycleSnap}
-          className="px-2 py-0.5 rounded border border-stone-300 bg-white hover:bg-stone-50 font-bold text-stone-700 transition"
+          className="px-2 py-0.5 rounded border border-border-strong bg-surface hover:bg-surface-sunken font-bold text-ink transition"
           title="Cycle grid snapping: 10px → 5px → OFF"
         >
           Snap: {snapSize === 0 ? 'OFF' : `${snapSize}px`}
@@ -58,14 +58,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <span className="flex items-center gap-1.5 font-semibold truncate">
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              wiring ? 'bg-rose-500' : isSimulating ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+              wiring ? 'bg-probe' : isSimulating ? 'bg-ok animate-pulse' : 'bg-warning-fill'
             }`}
           />
           Mode: {mode}
         </span>
       </div>
 
-      <div className="hidden xl:flex items-center gap-2 text-[10px] text-stone-400 truncate" title="Keyboard shortcuts">
+      <div className="hidden xl:flex items-center gap-2 text-[10px] text-ink-muted truncate" title="Keyboard shortcuts">
         {[
           ['Drag', 'select'],
           ['Dbl-click', 'inspect'],
@@ -76,13 +76,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           ['Space+drag', 'pan'],
         ].map(([k, v]) => (
           <span key={k} className="flex items-center gap-1">
-            <kbd className="px-1 py-px rounded border border-stone-300 bg-white text-stone-600 font-bold">{k}</kbd>
+            <kbd className="px-1 py-px rounded-xs border border-border bg-surface text-ink-muted font-semibold">{k}</kbd>
             {v}
           </span>
         ))}
       </div>
 
-      <div className="font-semibold text-stone-700 truncate">
+      <div className="font-semibold text-ink truncate">
         {standardLabel} • {gridVoltage}V {gridFrequency}Hz • Connected: {Math.round(totalWatts)}W ({totalAmps.toFixed(2)}A)
       </div>
     </footer>

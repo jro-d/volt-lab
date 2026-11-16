@@ -41,21 +41,21 @@ export const JunctionBoxDevice: React.FC<DeviceComponentProps> = (props) => {
   return (
     <g className="select-none">
       {/* Subtle CAD Shadow */}
-      <polygon points={pts(-1)} transform="translate(2, 3)" fill="rgba(15, 23, 42, 0.14)" />
+      <polygon points={pts(-1)} transform="translate(2, 3)" fill="transparent" />
 
       {/* Outer Octagonal Flange */}
       <polygon
         points={pts(0)}
-        fill={isOrangePvc ? '#ea580c' : '#cbd5e1'}
-        stroke="#0f172a"
+        fill={isOrangePvc ? 'var(--mat-pvc-orange)' : 'var(--mat-housing-shade)'}
+        stroke="var(--mat-line)"
         strokeWidth={1.3}
       />
 
       {/* Recessed Box Basin */}
       <polygon
         points={pts(9)}
-        fill={isOrangePvc ? '#9a3412' : '#475569'}
-        stroke="#1e293b"
+        fill={isOrangePvc ? 'var(--mat-pvc-orange-dark)' : 'var(--silk-muted)'}
+        stroke="var(--mat-housing-dark)"
         strokeWidth={1}
       />
 
@@ -66,17 +66,17 @@ export const JunctionBoxDevice: React.FC<DeviceComponentProps> = (props) => {
         [x + 4.5, cy],
         [x + width - 4.5, cy],
       ].map(([kx, ky], i) => (
-        <circle key={`ko-${i}`} cx={kx} cy={ky} r={3.6} fill="none" stroke={isOrangePvc ? '#fed7aa' : '#e2e8f0'} strokeWidth={0.8} strokeDasharray="1.8 1" />
+        <circle key={`ko-${i}`} cx={kx} cy={ky} r={3.6} fill="none" stroke={isOrangePvc ? '#fed7aa' : 'var(--mat-housing-shade)'} strokeWidth={0.8} strokeDasharray="1.8 1" />
       ))}
 
       {/* Internal Wire-Nut Terminal Bridge Block */}
-      <rect x={x + 15} y={y + 13} width={width - 30} height={height - 26} rx={3.5} fill="#0f172a" stroke="#334155" strokeWidth={0.9} opacity={0.92} />
+      <rect x={x + 15} y={y + 13} width={width - 30} height={height - 26} rx={3.5} fill="var(--mat-line)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} opacity={0.92} />
 
       {/* Embedded Material Switch Pill centered cleanly between left & right columns */}
       <g onMouseDown={stopCanvas} onClick={handleToggleMaterial} className="cursor-pointer">
         <title>Click to switch between Orange uPVC Box and GI Galvanized Steel Box</title>
-        <rect x={cx - 19} y={cy - 6} width={38} height={12} rx={2.5} fill="#1e293b" stroke="#f59e0b" strokeWidth={0.7} />
-        <text x={cx} y={cy + 2} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="ui-monospace, monospace" fill="#fef08a">
+        <rect x={cx - 19} y={cy - 6} width={38} height={12} rx={2.5} fill="var(--mat-housing-dark)" stroke="var(--lamp-amber-on)" strokeWidth={0.7} />
+        <text x={cx} y={cy + 2} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-white-on)">
           {isOrangePvc ? '4" PVC' : '4" GI'}
         </text>
       </g>
@@ -94,8 +94,8 @@ export const JunctionBoxDevice: React.FC<DeviceComponentProps> = (props) => {
             textAnchor={isLeft ? 'end' : 'start'}
             fontSize="3.8"
             fontWeight="900"
-            fontFamily="ui-monospace, monospace"
-            fill={t.type === 'phase' ? '#fca5a5' : t.type === 'neutral' ? '#93c5fd' : t.type === 'earth' ? '#4ade80' : '#fdba74'}
+            fontFamily="var(--font-mono)"
+            fill={t.type === 'phase' ? 'var(--lamp-red-on)' : t.type === 'neutral' ? 'var(--lamp-blue-on)' : t.type === 'earth' ? 'var(--lamp-green-on)' : '#fdba74'}
           >
             {t.label}
           </text>

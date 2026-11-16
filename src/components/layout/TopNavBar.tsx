@@ -26,7 +26,27 @@ import {
   Trash2,
   Rows3,
   FileCode2,
+  Sun,
+  Moon,
 } from 'lucide-react';
+
+/** Light / dark theme, saved per browser. The initial class is set in index.html before first paint. */
+const useTheme = () => {
+  const [dark, setDark] = React.useState(() => document.documentElement.classList.contains('dark'));
+  const toggle = React.useCallback(() => {
+    setDark((d) => {
+      const next = !d;
+      document.documentElement.classList.toggle('dark', next);
+      try {
+        localStorage.setItem('voltlab-theme', next ? 'dark' : 'light');
+      } catch {
+        /* storage unavailable: theme lasts for this visit only */
+      }
+      return next;
+    });
+  }, []);
+  return { dark, toggle };
+};
 
 interface TopNavBarProps {
   standard: CodeStandard;
@@ -83,14 +103,14 @@ const RibbonButton: React.FC<{
     onClick={onClick}
     disabled={disabled}
     title={title}
-    className={`flex items-center gap-1.5 h-8 px-2 rounded-lg text-xs font-bold border transition shrink-0 ${
+    className={`flex items-center gap-1.5 h-8 px-2 rounded-md text-xs font-medium border transition shrink-0 ${
       disabled
-        ? 'bg-transparent border-transparent text-stone-300 cursor-not-allowed'
+        ? 'bg-transparent border-transparent text-ink-faint cursor-not-allowed'
         : active
-        ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
+        ? 'bg-probe text-on-probe border-probe shadow-1'
         : danger
-        ? 'bg-white border-stone-200 text-rose-600 hover:bg-rose-50 hover:border-rose-200 shadow-sm'
-        : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300 hover:text-stone-900 shadow-sm'
+        ? 'bg-surface border-border text-danger hover:bg-danger-soft hover:border-danger/40 shadow-1'
+        : 'bg-surface border-border text-ink hover:bg-surface-hover hover:border-border-strong shadow-1'
     }`}
   >
     {children}
@@ -98,7 +118,7 @@ const RibbonButton: React.FC<{
   </button>
 );
 
-const Divider = () => <div className="w-px h-6 bg-stone-200 mx-1 shrink-0" />;
+const Divider = () => <div className="w-px h-6 bg-border mx-1 shrink-0" />;
 
 export const TopNavBar: React.FC<TopNavBarProps> = ({
   standard,
@@ -137,24 +157,25 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   onAlignVertical,
 }) => {
   const hz = standard === 'PEC' ? 60 : 50;
+  const theme = useTheme();
 
   return (
-    <header className="bg-[#faf8f5] border-b border-[#ece6de] px-3 h-14 shrink-0 z-30 select-none shadow-[0_1px_4px_rgba(0,0,0,0.03)] flex items-center justify-between gap-3">
+    <header className="bg-surface border-b border-border px-3 h-14 shrink-0 z-30 select-none shadow-1 flex items-center justify-between gap-3">
       {/* ───────── LEFT GROUP: Project & File ───────── */}
       <div className="flex items-center gap-1.5 min-w-0">
         <div className="flex items-center gap-2 pr-2 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center shadow-sm shrink-0">
-            <Zap className="w-4 h-4 text-white fill-white" />
+          <div className="w-8 h-8 rounded-md bg-brand flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 text-on-brand fill-current" />
           </div>
           <div className="min-w-0 hidden xl:block">
-            <div className="text-[13px] font-serif font-bold text-stone-900 leading-tight flex items-center gap-1.5">
+            <div className="text-[18px] font-display font-bold text-ink leading-none tracking-[-0.01em] flex items-center gap-1.5">
               VoltLab
-              <span className="text-[9px] font-mono font-bold px-1.5 py-px rounded-full bg-rose-50 text-rose-600 border border-rose-200/80">
+              <span className="text-[9px] font-mono font-semibold px-1.5 py-px rounded-sm bg-brand-soft text-brand-ink tracking-normal">
                 CAD
               </span>
             </div>
             <div
-              className="text-[11px] font-mono text-stone-500 truncate max-w-[180px]"
+              className="text-[11px] font-mono text-ink-muted truncate max-w-[180px]"
               title={activeLabTitle || 'Blank Installation Canvas'}
             >
               {activeLabTitle || 'Blank Installation Canvas'}
@@ -165,7 +186,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         <Divider />
 
         <RibbonButton onClick={onOpenLabs} title="Open Example Wirings & Learning Labs" label="Examples">
-          <BookOpen className="w-4 h-4 text-rose-600" />
+          <BookOpen className="w-4 h-4" />
         </RibbonButton>
         <RibbonButton onClick={onImportJson} title="Open project (Import JSON)" label="Import">
           <Upload className="w-4 h-4" />
@@ -179,7 +200,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             title="Save self-contained offline HTML (opens directly to your wiring)"
             label="Save HTML"
           >
-            <FileCode2 className="w-4 h-4 text-teal-600" />
+            <FileCode2 className="w-4 h-4" />
           </RibbonButton>
         )}
         <RibbonButton
@@ -208,10 +229,10 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         <button
           onClick={onToggleSimulation}
           title={isSimulating ? 'Stop simulation and return to Edit Mode' : 'Energize the grid and start simulation'}
-          className={`flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-lg text-xs font-bold border shadow-sm transition shrink-0 ${
+          className={`flex items-center gap-1.5 h-8 pl-3 pr-3.5 rounded-md text-xs font-semibold border shadow-1 transition shrink-0 ${
             isSimulating
-              ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700'
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+              ? 'bg-danger hover:opacity-90 text-surface border-danger'
+              : 'bg-brand hover:bg-brand-strong text-on-brand border-brand hover:border-brand-strong'
           }`}
         >
           {isSimulating ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
@@ -222,11 +243,11 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         <div
           className={`hidden xl:flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-[10px] font-mono font-bold shrink-0 ${
             isSimulating
-              ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-              : 'bg-slate-100 border-amber-300 text-amber-800'
+              ? 'bg-ok-soft border-ok/40 text-ok'
+              : 'bg-surface-sunken border-warning/40 text-warning'
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+          <span className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-ok animate-pulse' : 'bg-warning-fill'}`} />
           {isSimulating ? `LIVE SIMULATING (${gridVoltage}V)` : 'EDIT MODE (DE-ENERGIZED)'}
         </div>
 
@@ -242,7 +263,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         </RibbonButton>
 
         {/* View mode switcher */}
-        <div className="flex items-center bg-white p-0.5 rounded-lg border border-stone-200 shadow-sm shrink-0">
+        <div className="flex items-center gap-0.5 bg-surface-sunken p-0.5 rounded-md shrink-0">
           {([
             { id: 'realistic', label: 'Realistic', icon: Eye, tip: 'Realistic physical wiring workbench' },
             { id: 'split', label: 'Dual View', icon: Layers, tip: 'Split dual view (physical workbench + live ladder / SLD)' },
@@ -253,8 +274,8 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
               key={v.id}
               onClick={() => onViewModeChange(v.id)}
               title={v.tip}
-              className={`flex items-center gap-1 px-2 h-7 rounded-md text-xs font-medium transition-all ${
-                viewMode === v.id ? 'bg-stone-800 text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              className={`flex items-center gap-1 px-2 h-7 rounded-sm text-xs font-medium transition-all ${
+                viewMode === v.id ? 'bg-surface text-ink font-semibold shadow-1' : 'text-ink-muted hover:text-ink'
               }`}
             >
               <v.icon className="w-3.5 h-3.5" />
@@ -316,7 +337,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             title="Digital Multimeter & Clamp Meter (Click wire for Amps, or 2 terminals for Volts)"
             label="DMM"
           >
-            <Zap className="w-4 h-4 text-amber-500" />
+            <Zap className="w-4 h-4" />
           </RibbonButton>
         )}
       </div>
@@ -327,7 +348,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           <button
             onClick={onResetSimulation}
             title="Re-arm all tripped breakers"
-            className="flex items-center gap-1 h-8 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-mono text-xs font-bold animate-pulse shadow shrink-0"
+            className="flex items-center gap-1 h-8 px-2.5 rounded-lg bg-danger hover:opacity-90 text-surface font-mono text-xs font-bold shadow-1 shrink-0"
           >
             <ShieldAlert className="w-3.5 h-3.5" />
             <span>{trippedCount} TRIPPED</span>
@@ -338,8 +359,8 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
         <div
           className={`hidden xl:flex items-center gap-1 h-8 px-2 rounded-lg border text-[10px] font-bold shrink-0 ${
             isCompliant
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-              : 'bg-amber-50 border-amber-200 text-amber-800'
+              ? 'bg-ok-soft border-ok/40 text-ok'
+              : 'bg-warning-soft border-warning/40 text-warning'
           }`}
           title={isCompliant ? 'No code violations detected' : 'Open the inspector for code violations'}
         >
@@ -347,24 +368,24 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           {isCompliant ? 'Compliant' : 'Violations'}
         </div>
 
-        <div className="flex items-center bg-white p-0.5 rounded-lg border border-stone-200 shadow-sm shrink-0">
+        <div className="flex items-center gap-0.5 bg-surface-sunken p-0.5 rounded-md shrink-0">
           <button
             onClick={() => onStandardChange('PEC')}
-            className={`px-2.5 h-7 rounded-md text-xs font-bold transition-all ${
-              standard === 'PEC' ? 'bg-rose-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
+            className={`px-2.5 h-7 rounded-sm text-xs font-semibold transition-all ${
+              standard === 'PEC' ? 'bg-surface text-ink shadow-1' : 'text-ink-muted hover:text-ink'
             }`}
             title="Philippine Electrical Code (60Hz, AWG, Black/Red/White/Green)"
           >
-            🇵🇭 PEC<span className="hidden xl:inline"> 2017</span>
+            PEC<span className="hidden xl:inline"> 2017</span>
           </button>
           <button
             onClick={() => onStandardChange('IEC')}
-            className={`px-2.5 h-7 rounded-md text-xs font-bold transition-all ${
-              standard === 'IEC' ? 'bg-sky-600 text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
+            className={`px-2.5 h-7 rounded-sm text-xs font-semibold transition-all ${
+              standard === 'IEC' ? 'bg-surface text-ink shadow-1' : 'text-ink-muted hover:text-ink'
             }`}
             title={`International Electrotechnical Commission (${hz}Hz, metric mm², Brown/Blue/Green-Yellow)`}
           >
-            🌐 IEC<span className="hidden xl:inline"> 60364</span>
+            IEC<span className="hidden xl:inline"> 60364</span>
           </button>
         </div>
 
@@ -375,6 +396,9 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           label="Inspector"
         >
           <PanelRight className="w-4 h-4" />
+        </RibbonButton>
+        <RibbonButton onClick={theme.toggle} title={theme.dark ? 'Switch to light theme' : 'Switch to dark theme'}>
+          {theme.dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </RibbonButton>
       </div>
     </header>
