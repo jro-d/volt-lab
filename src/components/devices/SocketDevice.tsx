@@ -1,22 +1,19 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import { DeviceProps, Mono, Pill, Silk, Strap, Terminals, TermIds, WallPlate } from './kit';
 
 /**
- * EduVolt-style ROYU Duplex Universal Wall Receptacle / Schuko Outlet.
- * Horizontal dual-gang geometry sized inside width x height with embedded [FRONT/REAR] toggle
- * and zero overlapping terminal/receptacle labels.
+ * Duplex receptacle (PH wide-series / NEMA 5-15, or Schuko). Front: two outlets with the ground
+ * screw between them. Rear: brass line screws, silver neutral screws, green ground and the
+ * break-off tabs that tie the two halves together. Click REAR / FRONT to flip.
  */
-export const SocketDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height } = device;
+export const SocketDevice: React.FC<DeviceProps> = (props) => {
+  const { device, onPatchState, onToggleState } = props;
+  const { width: W, height: H } = device;
   const isSchuko = device.type === 'socket_schuko';
-  const isPowered = !!device.state.powered;
+  const powered = !!device.state.powered;
   const isRearView = device.state.viewMode === 'rear';
-  const cx = x + width / 2;
-  const cy = y + height / 2;
-
-  const handleFlipView = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const tabBroken = !!device.state.tabBroken;
+  const flip = () => {
     const next = isRearView ? 'front' : 'rear';
     if (onPatchState) onPatchState(device.id, { viewMode: next });
     else {
@@ -24,106 +21,58 @@ export const SocketDevice: React.FC<DeviceComponentProps> = (props) => {
       onToggleState?.({ ...device, state: { ...device.state, viewMode: next } });
     }
   };
+  const p = (id: string) => {
+    const t = device.terminals.find((x) => x.id === id);
+    return { x: W * (t?.relX ?? 0), y: H * (t?.relY ?? 0) };
+  };
+  const outletX = [p('line').x, p('line_out').x];
+  const cy = H / 2;
+
+  const outlet = (ox: number) =>
+    isSchuko ? (
+      <g key={ox}>
+        <circle cx={ox} cy={cy} r={13} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={0.9} />
+        <circle cx={ox - 4.5} cy={cy} r={1.8} fill="var(--mat-line)" />
+        <circle cx={ox + 4.5} cy={cy} r={1.8} fill="var(--mat-line)" />
+        <rect x={ox - 1.5} y={cy - 13} width={3} height={4} fill="var(--mat-steel)" />
+        <rect x={ox - 1.5} y={cy + 9} width={3} height={4} fill="var(--mat-steel)" />
+      </g>
+    ) : (
+      <g key={ox}>
+        {/* NEMA 5-15 face: rounded-square boss, two slots, round ground hole */}
+        <rect x={ox - 12} y={cy - 15} width={24} height={30} rx={8} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={0.9} />
+        <rect x={ox - 7} y={cy - 8} width={2.2} height={8} rx={0.6} fill="var(--mat-line)" />
+        <rect x={ox + 4.8} y={cy - 8} width={2.2} height={9.5} rx={0.6} fill="var(--mat-line)" />
+        <path d={`M${ox - 2.6} ${cy + 9}a2.6 2.6 0 0 1 5.2 0v2.4h-5.2z`} fill="var(--mat-line)" />
+        {powered && <circle cx={ox + 8} cy={cy + 11} r={1.2} fill="var(--lamp-green-on)" />}
+      </g>
+    );
 
   return (
-    <g className="select-none">
-      {/* Architectural CAD shadow */}
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="transparent" />
-
-      {/* Outer Contoured Molded Wallplate */}
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={5}
-        fill={isRearView ? 'var(--mat-housing-dark-face)' : 'var(--mat-housing)'}
-        stroke={isPowered ? 'var(--cond-green)' : 'var(--mat-line)'}
-        strokeWidth={1.3}
-      />
-
-      {/* Embedded Top Neutral Pocket Bar + Center [FRONT / REAR] Switch Pill */}
-      <rect x={x + 3} y={y + 2} width={width - 6} height={14} rx={2} fill="var(--mat-housing-dark)" />
-      <text x={x + width * 0.14} y={y + 10.6} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-        N1
-      </text>
-      <text x={x + width * 0.86} y={y + 10.6} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-        N2
-      </text>
-      <g onMouseDown={stopCanvas} onClick={handleFlipView} className="cursor-pointer">
-        <title>Flip between Front Receptacle Plate and Rear Strap Wiring</title>
-        <rect x={cx - 15} y={y + 3.8} width={30} height={10} rx={2} fill={isRearView ? 'var(--act-blue)' : 'var(--mat-housing-dark-face)'} stroke="var(--lamp-blue-on)" strokeWidth={0.5} />
-        <text x={cx} y={y + 10.4} textAnchor="middle" fontSize="4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-          {isRearView ? 'FRONT' : 'REAR'}
-        </text>
-      </g>
-
-      {isSchuko ? (
-        !isRearView ? (
-          <g>
-            <circle cx={cx} cy={cy} r={Math.min(width, height) * 0.25} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.1} />
-            <circle cx={cx - 10} cy={cy} r={3} fill="var(--mat-line)" />
-            <circle cx={cx + 10} cy={cy} r={3} fill="var(--mat-line)" />
-            <circle cx={x + width - 11} cy={y + 24} r={2.4} fill={isPowered ? 'var(--lamp-green-on)' : 'var(--mat-housing-shade)'} stroke="var(--mat-line)" strokeWidth={0.5} />
-          </g>
-        ) : (
-          <g>
-            <rect x={x + 8} y={y + 18} width={width - 16} height={height - 36} rx={3} fill="var(--nameplate)" stroke="var(--silk-muted)" strokeWidth={0.9} />
-            <text x={cx} y={cy + 2} textAnchor="middle" fontSize="5" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-              SCHUKO REAR L · PE · N
-            </text>
-          </g>
-        )
-      ) : !isRearView ? (
-        /* Horizontal 2-Gang ROYU Universal Receptacle Face */
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      {isRearView ? (
         <g>
-          <rect x={x + 5} y={y + 18} width={width - 10} height={height - 36} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-steel)" strokeWidth={0.8} />
-
-          {/* Left & Right Universal 3-Prong Receptacle Wells (flanking center PE screw at x=cx) */}
-          {[x + width * 0.26, x + width * 0.74].map((gx, idx) => (
-            <g key={`sockg-${idx}`} transform={`translate(${gx}, ${cy})`}>
-              <rect x={-16} y={-12} width={32} height={24} rx={3} fill="var(--mat-housing)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} />
-              {/* Phase & Neutral Universal Shutter Slots */}
-              <rect x={-11} y={-5} width={6.5} height={3} rx={0.8} fill="var(--mat-line)" />
-              <rect x={4.5} y={-5} width={6.5} height={3} rx={0.8} fill="var(--mat-line)" />
-              {/* D-Shaped Ground Slot */}
-              <path d="M -2.5 2.5 L 2.5 2.5 L 2.5 6.5 A 2.5 2.5 0 0 1 -2.5 6.5 Z" fill="var(--cond-green)" stroke="var(--mat-line)" strokeWidth={0.5} />
-              <circle cx={12} cy={-8} r={1.8} fill={isPowered ? 'var(--lamp-green-on)' : 'var(--mat-housing-shade)'} />
-            </g>
-          ))}
-
-          {/* Galvanized Center PE Strap under PE screw */}
-          <rect x={cx - 8} y={cy - 10} width={16} height={20} rx={2} fill="var(--mat-housing-shade)" stroke="var(--silk-muted)" strokeWidth={0.7} />
-          <text x={cx} y={cy + 14.5} textAnchor="middle" fontSize="3.9" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--cond-green)">
-            PE
-          </text>
+          <rect className="d-steel" x={0} y={cy - 6} width={W} height={12} rx={2} />
+          <rect className="d-dark" x={10} y={4} width={W - 20} height={H - 8} rx={4} />
+          {/* line side (brass, bottom) and neutral side (silver, top) bus strips with break-off tabs */}
+          <Strap d={`M${outletX[0]} ${p('line').y - 7}V${cy + 10}M${outletX[1]} ${p('line_out').y - 7}V${cy + 10}`} live={powered} w={3} />
+          {!tabBroken && <rect className="d-brass" x={outletX[0] + 4} y={H - 16} width={outletX[1] - outletX[0] - 8} height={3.5} rx={1.5} />}
+          <path d={`M${outletX[0]} ${p('neutral').y + 7}V${cy - 10}M${outletX[1]} ${p('neutral_out').y + 7}V${cy - 10}`} stroke="var(--mat-steel)" strokeWidth={3} strokeLinecap="round" />
+          <rect className="d-steel" x={outletX[0] + 4} y={13} width={outletX[1] - outletX[0] - 8} height={3.5} rx={1.5} />
+          <Mono x={W / 2} y={H - 19} size={3.6} anchor="middle" fill="var(--mat-brass)">{tabBroken ? 'TAB BROKEN · SPLIT' : 'BRASS TAB'}</Mono>
+          <Mono x={W / 2} y={22.5} size={3.6} anchor="middle" onDark>SILVER = N</Mono>
         </g>
       ) : (
-        /* Rear Busbar & Strap Assembly */
         <g>
-          <rect x={x + 5} y={y + 18} width={width - 10} height={height - 36} rx={3} fill="var(--nameplate)" stroke="var(--mat-line)" strokeWidth={0.9} />
-          <line x1={x + 16} y1={y + 24} x2={x + width - 16} y2={y + 24} stroke="var(--lamp-blue-on)" strokeWidth={2} />
-          <line x1={x + 16} y1={y + height - 24} x2={x + width - 16} y2={y + height - 24} stroke="var(--act-red)" strokeWidth={2} />
-          <rect x={cx - 8} y={cy - 8} width={16} height={16} rx={2} fill="var(--cond-green)" stroke="var(--lamp-green-off)" strokeWidth={0.8} />
-          <text x={x + 14} y={cy + 1.5} fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-            GALV BUS
-          </text>
+          <WallPlate w={W} h={H} />
+          {outletX.map(outlet)}
+          <Silk x={W / 2} y={12} size={4.2} anchor="middle" bold fill="var(--brand)">ROYU</Silk>
         </g>
       )}
 
-      {/* Embedded Bottom Line Pocket Bar */}
-      <rect x={x + 3} y={y + height - 16} width={width - 6} height={14} rx={2} fill="var(--mat-housing-dark)" />
-      <text x={x + width * 0.14} y={y + height - 7.5} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-red-on)">
-        L1
-      </text>
-      <text x={cx} y={y + height - 7.5} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-display)" fill="var(--act-red)">
-        ROYU 16A 250V~
-      </text>
-      <text x={x + width * 0.86} y={y + height - 7.5} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-red-on)">
-        L2
-      </text>
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <Pill cx={W / 2} cy={H - 9} w={18} label={isRearView ? 'FRONT' : 'REAR'} active={isRearView} title="Flip between the faceplate and the rear wiring (brass = line, silver = neutral)" onToggle={flip} />
+      <TermIds device={device} local size={4.2} onDark={isRearView} side={(t) => (t.id === 'ground' ? 'below' : t.relX < 0.5 ? 'left' : 'right')} />
+      <Terminals {...props} local />
     </g>
   );
 };

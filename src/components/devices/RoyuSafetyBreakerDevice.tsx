@@ -1,152 +1,93 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import { Bay, DeviceProps, Flag, Housing, Lever, Mono, Nameplate, Screw, Silk, SymEarth, Terminals, TermIds, act, deviceTag, makePatch } from './kit';
 
 /**
- * EduVolt-style ROYU 2P Enclosed Safety Breaker (ACU Disconnect, NEMA 1).
- * Embedded toggle for Inspect Lugs / Front Cover inside header — no floating external pills.
+ * ROYU 2P safety breaker in a surface enclosure (residential ACU / water-heater disconnect).
+ * Closed cover: the lever shows through the cover window. Open cover: the bolt-on breaker,
+ * copper stabs and lugs are visible. Click COVER to open/close; click the lever to switch.
  */
-export const RoyuSafetyBreakerDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height } = device;
+export const RoyuSafetyBreakerDevice: React.FC<DeviceProps> = (props) => {
+  const { device } = props;
+  const { width: W, height: H } = device;
+  const patch = makePatch(props);
   const isTripped = !!device.state.tripped;
   const isClosed = !!device.state.closed && !isTripped;
   const ratedAmps = device.state.ratedAmps || 30;
   const isCoverOpen = !!device.state.enclosureCoverOpen;
-  const cx = x + width / 2;
-  const cy = y + height / 2;
+  const toggle = () => (isTripped ? patch({ tripped: false, closed: true }) : patch({ closed: !device.state.closed }));
+  const pos = isTripped ? 0.5 : isClosed ? 0 : 1;
 
-  const patch = (p: Record<string, any>) => {
-    if (onPatchState) onPatchState(device.id, p);
-    else {
-      Object.assign(device.state, p);
-      onToggleState?.({ ...device, state: { ...device.state, ...p } });
-    }
-  };
-
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isTripped) patch({ tripped: false, closed: true });
-    else patch({ closed: !device.state.closed });
-  };
-
-  const handleToggleCover = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    patch({ enclosureCoverOpen: !isCoverOpen });
-  };
+  const tTop = H * 0.1;
+  const bayH = tTop * 2 - 2;
+  const botBayY = H - 2 - bayH;
+  const coverY = 2 + bayH + 3;
+  const coverH = botBayY - 3 - coverY;
+  const cx = W / 2;
 
   return (
-    <g className="select-none">
-      {/* Subtle CAD shadow */}
-      <rect x={x + 2} y={y + 3} width={width} height={height} rx={5} fill="transparent" />
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      {/* Enclosure back box with mounting ears */}
+      <rect className="d-shade" x={-3} y={H / 2 - 10} width={4} height={20} rx={1.5} />
+      <rect className="d-shade" x={W - 1} y={H / 2 - 10} width={4} height={20} rx={1.5} />
+      <Housing w={W} h={H} />
+      <Bay x={3} y={2} w={W - 6} h={bayH} />
+      <Bay x={3} y={botBayY} w={W - 6} h={bayH} />
 
-      {/* Outer NEMA 1 Surface Enclosure */}
-      <rect x={x} y={y} width={width} height={height} rx={5} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1.4} />
-
-      {/* Top Conduit Entry & Line Terminal Bay (L1, L2) */}
-      <rect x={x + 2} y={y + 2} width={width - 4} height={20} rx={3} fill="var(--mat-housing-dark)" />
-      <rect x={x + 2} y={y + 22} width={width - 4} height={8} fill="var(--nameplate)" />
-      <text x={x + width * 0.28} y={y + 27.6} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-red-on)">
-        L1 IN
-      </text>
-      <text x={x + width * 0.72} y={y + 27.6} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-        L2 IN
-      </text>
-
-      {/* Embedded ROYU Header + Cover Inspection Toggle (No floating external pill) */}
-      <rect x={x + 3} y={y + 31} width={width - 6} height={14} rx={2} fill="var(--mat-line)" />
-      <text x={x + 7} y={y + 40} fontSize="5.6" fontWeight="900" fontFamily="var(--font-display)" fill="var(--act-red)">
-        ROYU
-      </text>
-      <g onMouseDown={stopCanvas} onClick={handleToggleCover} className="cursor-pointer">
-        <title>{isCoverOpen ? 'Close front cover' : 'Open cover to inspect internal bolt-on breaker & lugs'}</title>
-        <rect x={x + width - 38} y={y + 33} width={33} height={10} rx={2} fill={isCoverOpen ? 'var(--act-blue)' : 'var(--mat-housing-dark-face)'} stroke="var(--lamp-blue-on)" strokeWidth={0.6} />
-        <text x={x + width - 21.5} y={y + 39.8} textAnchor="middle" fontSize="4.1" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-          {isCoverOpen ? 'COVER' : 'LUGS'}
-        </text>
-      </g>
-
-      {!isCoverOpen ? (
+      {isCoverOpen ? (
+        /* Interior: bolt-on 2P breaker on copper stabs */
         <g>
-          {/* Molded Front Cover Panel */}
-          <rect x={x + 4} y={y + 47} width={width - 8} height={height - 77} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-line-soft)" strokeWidth={1} />
-          <text x={cx} y={y + 57} textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-            SAFETY BREAKER {ratedAmps}A
-          </text>
-
-          {/* Breaker Window Housing */}
-          <rect x={cx - 19} y={cy - 10} width={38} height={32} rx={3} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={1} />
-          {/* Flag Window */}
-          <rect x={cx - 14} y={cy - 7} width={28} height={6} rx={1} fill={isTripped ? 'var(--lamp-amber-on)' : isClosed ? 'var(--cond-red)' : 'var(--cond-green)'} />
-          <text x={cx} y={cy - 2.3} textAnchor="middle" fontSize="4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-            {isTripped ? 'TRIP' : isClosed ? 'I-ON' : 'O-OFF'}
-          </text>
-
-          {/* Tactile Switch Rocker */}
-          <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
-            <title>Click to toggle ROYU 2P Safety Breaker (or reset trip)</title>
-            <rect
-              x={cx - 12}
-              y={isTripped ? cy + 5 : isClosed ? cy + 1 : cy + 10}
-              width={24}
-              height={10}
-              rx={2}
-              fill="var(--nameplate)"
-              stroke="var(--mat-steel)"
-              strokeWidth={0.8}
-            />
-            <line x1={cx - 7} y1={isTripped ? cy + 10 : isClosed ? cy + 6 : cy + 15} x2={cx + 7} y2={isTripped ? cy + 10 : isClosed ? cy + 6 : cy + 15} stroke="var(--mat-housing)" strokeWidth={1.1} />
+          <rect className="d-shade" x={6} y={coverY} width={W - 12} height={coverH} rx={2} />
+          <path d={`M${W * 0.28} ${coverY}V${coverY + 10}M${W * 0.72} ${coverY}V${coverY + 10}`} stroke="var(--mat-copper)" strokeWidth={3} />
+          <rect className="d-dark" x={14} y={coverY + 10} width={W - 28} height={coverH - 22} rx={2} />
+          <Nameplate x={16} y={coverY + 12} w={W - 32} h={7} tag={deviceTag(device)} text={`2P ${ratedAmps}A`} size={4.6} />
+          <g {...act(toggle)}>
+            <title>Click the lever to switch (or reset a trip)</title>
+            <Lever cx={cx} y={coverY + 22} slotH={24} w={20} pos={pos} color="var(--act-black)" />
           </g>
-
-          <text x={cx} y={cy + 31} textAnchor="middle" fontSize="4.2" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk-muted)">
-            2P 240V~ · 10kAIC
-          </text>
+          <Flag cx={cx} y={coverY + 49} state={isTripped ? 'trip' : isClosed ? 'on' : 'off'} />
+          {/* load-side lugs */}
+          {[W * 0.28, W * 0.72].map((lx) => (
+            <g key={lx} className="pointer-events-none">
+              <rect className="d-copper" x={lx - 5} y={coverY + coverH - 11} width={10} height={7} rx={1} />
+              <circle cx={lx} cy={coverY + coverH - 7.5} r={2} fill="var(--mat-copper-dark)" />
+            </g>
+          ))}
+          <Silk x={cx} y={coverY + coverH - 13} size={4} anchor="middle" muted>LUGS</Silk>
         </g>
       ) : (
+        /* Front cover with lever window */
         <g>
-          {/* Open Enclosure Bay revealing Internal Busbars & Bolt-On Breaker */}
-          <rect x={x + 4} y={y + 47} width={width - 8} height={height - 77} rx={3} fill="var(--mat-housing-dark)" stroke="var(--mat-line)" strokeWidth={1} />
-          {/* Copper Feed Bus Straps */}
-          <rect x={x + 12} y={y + 49} width={5} height={height - 81} rx={1} fill="var(--mat-copper)" />
-          <rect x={x + width - 17} y={y + 49} width={5} height={height - 81} rx={1} fill="var(--mat-copper)" />
-
-          {/* Exposed Internal 2P Phenolic Breaker */}
-          <rect x={cx - 21} y={cy - 14} width={42} height={42} rx={3} fill="var(--nameplate)" stroke="var(--mat-line-soft)" strokeWidth={1} />
-          <text x={cx} y={cy - 5} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-            ROYU {ratedAmps}A
-          </text>
-          <g onMouseDown={stopCanvas} onClick={handleToggle} className="cursor-pointer">
-            <rect x={cx - 12} y={cy + 1} width={24} height={15} rx={2} fill="var(--mat-line)" stroke="var(--silk-muted)" strokeWidth={0.8} />
-            <rect
-              x={cx - 9}
-              y={isTripped ? cy + 5 : isClosed ? cy + 2.5 : cy + 8.5}
-              width={18}
-              height={6}
-              rx={1.5}
-              fill={isTripped ? 'var(--lamp-amber-on)' : isClosed ? 'var(--cond-red)' : 'var(--cond-green)'}
-            />
+          <rect className="d-face" x={6} y={coverY} width={W - 12} height={coverH} rx={3} />
+          <Screw cx={11} cy={coverY + 5} r={1.8} />
+          <Screw cx={W - 11} cy={coverY + 5} r={1.8} />
+          <Screw cx={11} cy={coverY + coverH - 5} r={1.8} />
+          <Screw cx={W - 11} cy={coverY + coverH - 5} r={1.8} />
+          <rect className="d-nameplate" x={14} y={coverY + 4} width={W - 28} height={9} rx={1.5} />
+          <Silk x={18} y={coverY + 10.6} size={5.6} bold fill="var(--brand)">ROYU</Silk>
+          <Mono x={W - 18} y={coverY + 10.4} size={4.6} anchor="end" onDark>{deviceTag(device)}</Mono>
+          <Silk x={cx} y={coverY + 21} size={5} anchor="middle" bold>SAFETY BREAKER</Silk>
+          {/* window */}
+          <rect x={cx - 15} y={coverY + 24} width={30} height={30} rx={2.5} fill="var(--mat-line)" />
+          <g {...act(toggle)}>
+            <title>Click the lever to switch (or reset a trip)</title>
+            <Lever cx={cx} y={coverY + 26} slotH={26} w={20} pos={pos} />
           </g>
-          <text x={cx} y={cy + 24} textAnchor="middle" fontSize="3.9" fontWeight="800" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-            BOLT-ON LUGS
-          </text>
+          <Flag cx={cx} y={coverY + 57} state={isTripped ? 'trip' : isClosed ? 'on' : 'off'} />
+          <Mono x={cx - 14} y={coverY + 69} size={4} anchor="start">{`2P ${ratedAmps}A 240V~`}</Mono>
+          
         </g>
       )}
 
-      {/* Embedded Bottom Silkscreen Band (T1 / PE / T2) */}
-      <rect x={x + 2} y={y + height - 29} width={width - 4} height={8} fill="var(--nameplate)" />
-      <text x={x + width * 0.28} y={y + height - 23.4} textAnchor="middle" fontSize="4.5" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk-on-dark)">
-        T1
-      </text>
-      <text x={cx} y={y + height - 23.4} textAnchor="middle" fontSize="4.5" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-green-on)">
-        PE
-      </text>
-      <text x={x + width * 0.72} y={y + height - 23.4} textAnchor="middle" fontSize="4.5" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-        T2
-      </text>
+      {/* COVER toggle tab */}
+      <g {...act(() => patch({ enclosureCoverOpen: !isCoverOpen }))}>
+        <title>{isCoverOpen ? 'Close the front cover' : 'Open the cover to see the breaker and lugs'}</title>
+        <rect x={W - 30} y={coverY + coverH - 15} width={20} height={7} rx={3.5} fill={isCoverOpen ? 'var(--act-blue)' : 'var(--mat-housing-shade)'} stroke="var(--mat-line)" strokeWidth={0.7} />
+        <Silk x={W - 20} y={coverY + coverH - 10.3} size={4} anchor="middle" bold fill={isCoverOpen ? 'var(--on-act)' : undefined}>COVER</Silk>
+      </g>
+      <SymEarth x={cx} y={botBayY - 1} s={0.5} />
 
-      {/* Bottom Terminal Bay */}
-      <rect x={x + 2} y={y + height - 21} width={width - 4} height={19} rx={3} fill="var(--mat-housing-dark)" />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4.6} side={(t) => (t.relX < 0.4 ? 'left' : t.relX > 0.6 ? 'right' : 'above')} />
+      <Terminals {...props} local />
     </g>
   );
 };

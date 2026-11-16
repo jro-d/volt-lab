@@ -1,108 +1,82 @@
 import React from 'react';
-import { DeviceComponentProps, DeviceTerminals, stopCanvas } from './DeviceTerminals';
+import { DeviceProps, Mono, Pill, Screw, Strap, Terminals, TermIds } from './kit';
 
 /**
- * EduVolt-style 4" Octagonal Utility / Junction Box (Orange PVC or GI Steel).
- * Embedded material toggle button & spaced terminal legend inside cavity (zero floating external pills).
+ * 4" junction box, open: galvanized-steel square box or orange PVC octagonal box. Knockouts on
+ * every side, cover-screw bosses, and the spliced pairs (L, N, PE, SW) joined inside.
+ * The pill switches material (GI ↔ PVC).
  */
-export const JunctionBoxDevice: React.FC<DeviceComponentProps> = (props) => {
-  const { device, onToggleState, onPatchState } = props;
-  const { x, y, width, height, terminals } = device;
-  const isOrangePvc = device.type === 'junction_box_octagonal_orange' || device.state.boxMaterial === 'orange_pvc';
-  const cx = x + width / 2;
-  const cy = y + height / 2;
-
-  const handleToggleMaterial = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const next = isOrangePvc ? 'galvanized_steel' : 'orange_pvc';
+export const JunctionBoxDevice: React.FC<DeviceProps> = (props) => {
+  const { device, onPatchState, onToggleState } = props;
+  const { width: W, height: H } = device;
+  const isPvc = device.type === 'junction_box_octagonal_orange' || device.state.boxMaterial === 'orange_pvc';
+  const isOct = device.type === 'junction_box_octagonal_orange';
+  const toggleMaterial = () => {
+    const next = isPvc ? 'galvanized_steel' : 'orange_pvc';
     if (onPatchState) onPatchState(device.id, { boxMaterial: next });
     else {
       device.state.boxMaterial = next;
       onToggleState?.({ ...device, state: { ...device.state, boxMaterial: next } });
     }
   };
-
-  const pts = (inset: number) => {
-    const w = width - inset * 2;
-    const h = height - inset * 2;
-    const c = Math.min(w, h) * 0.27;
-    return [
-      `${x + inset + c},${y + inset}`,
-      `${x + inset + w - c},${y + inset}`,
-      `${x + inset + w},${y + inset + c}`,
-      `${x + inset + w},${y + inset + h - c}`,
-      `${x + inset + w - c},${y + inset + h}`,
-      `${x + inset + c},${y + inset + h}`,
-      `${x + inset},${y + inset + h - c}`,
-      `${x + inset},${y + inset + c}`,
-    ].join(' ');
+  const c = 9;
+  const outline = isOct
+    ? `M${c * 2.6} 0H${W - c * 2.6}L${W} ${c * 2.6}V${H - c * 2.6}L${W - c * 2.6} ${H}H${c * 2.6}L0 ${H - c * 2.6}V${c * 2.6}z`
+    : `M3 0H${W - 3}a3 3 0 0 1 3 3V${H - 3}a3 3 0 0 1 -3 3H3a3 3 0 0 1 -3 -3V3a3 3 0 0 1 3 -3z`;
+  const bodyFill = isPvc ? 'var(--mat-pvc-orange)' : 'var(--mat-steel)';
+  const bodyStroke = isPvc ? 'var(--mat-pvc-orange-dark)' : 'var(--mat-steel-dark)';
+  const pt = (id: string) => {
+    const t = device.terminals.find((x) => x.id === id);
+    return t ? { x: W * t.relX, y: H * t.relY } : null;
   };
+  const pairs: [string, string, string][] = [
+    ['l_in', 'l_out', 'var(--cond-red)'],
+    ['n_in', 'n_out', 'var(--cond-white)'],
+    ['pe_in', 'pe_out', 'var(--cond-green)'],
+    ['sw_in', 'sw_out', 'var(--cond-yellow)'],
+  ];
+  const knock = [
+    [W / 2, 4], [W / 2, H - 4], [4, H / 2], [W - 4, H / 2],
+  ];
 
   return (
-    <g className="select-none">
-      {/* Subtle CAD Shadow */}
-      <polygon points={pts(-1)} transform="translate(2, 3)" fill="transparent" />
-
-      {/* Outer Octagonal Flange */}
-      <polygon
-        points={pts(0)}
-        fill={isOrangePvc ? 'var(--mat-pvc-orange)' : 'var(--mat-housing-shade)'}
-        stroke="var(--mat-line)"
-        strokeWidth={1.3}
-      />
-
-      {/* Recessed Box Basin */}
-      <polygon
-        points={pts(9)}
-        fill={isOrangePvc ? 'var(--mat-pvc-orange-dark)' : 'var(--silk-muted)'}
-        stroke="var(--mat-housing-dark)"
-        strokeWidth={1}
-      />
-
-      {/* Side Conduit Knockouts */}
-      {[
-        [cx, y + 4.5],
-        [cx, y + height - 4.5],
-        [x + 4.5, cy],
-        [x + width - 4.5, cy],
-      ].map(([kx, ky], i) => (
-        <circle key={`ko-${i}`} cx={kx} cy={ky} r={3.6} fill="none" stroke={isOrangePvc ? '#fed7aa' : 'var(--mat-housing-shade)'} strokeWidth={0.8} strokeDasharray="1.8 1" />
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      <path d={outline} fill={bodyFill} stroke="var(--mat-line)" strokeWidth={1.25} />
+      {/* inner wall + floor */}
+      <path d={outline} fill="none" stroke={bodyStroke} strokeWidth={5} transform={`translate(${W * 0.06} ${H * 0.06}) scale(0.88)`} />
+      <path d={outline} fill={isPvc ? 'var(--mat-pvc-orange-dark)' : 'var(--mat-steel-dark)'} opacity={0.35} transform={`translate(${W * 0.1} ${H * 0.1}) scale(0.8)`} />
+      {/* knockouts */}
+      {knock.map(([kx, ky], i) => (
+        <g key={i} className="pointer-events-none">
+          <circle cx={kx} cy={ky} r={5} fill={bodyFill} stroke={bodyStroke} strokeWidth={0.8} />
+          <circle cx={kx} cy={ky} r={3.4} fill="none" stroke={bodyStroke} strokeWidth={0.5} strokeDasharray="1.2 0.8" />
+        </g>
       ))}
-
-      {/* Internal Wire-Nut Terminal Bridge Block */}
-      <rect x={x + 15} y={y + 13} width={width - 30} height={height - 26} rx={3.5} fill="var(--mat-line)" stroke="var(--mat-housing-dark-face)" strokeWidth={0.9} opacity={0.92} />
-
-      {/* Embedded Material Switch Pill centered cleanly between left & right columns */}
-      <g onMouseDown={stopCanvas} onClick={handleToggleMaterial} className="cursor-pointer">
-        <title>Click to switch between Orange uPVC Box and GI Galvanized Steel Box</title>
-        <rect x={cx - 19} y={cy - 6} width={38} height={12} rx={2.5} fill="var(--mat-housing-dark)" stroke="var(--lamp-amber-on)" strokeWidth={0.7} />
-        <text x={cx} y={cy + 2} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-white-on)">
-          {isOrangePvc ? '4" PVC' : '4" GI'}
-        </text>
-      </g>
-
-      {/* Non-overlapping compact edge labels next to each screw */}
-      {terminals.map((t) => {
-        const tx = x + t.relX * width;
-        const ty = y + t.relY * height;
-        const isLeft = t.relX < 0.5;
+      {/* cover-screw bosses */}
+      {(isOct ? [[W / 2, 11], [W / 2, H - 11]] : [[12, 12], [W - 12, H - 12]]).map(([sx, sy], i) => (
+        <g key={i}>
+          <circle cx={sx} cy={sy} r={4} fill={bodyFill} stroke="var(--mat-line)" strokeWidth={0.6} />
+          <Screw cx={sx} cy={sy} r={2} />
+        </g>
+      ))}
+      {/* spliced pairs */}
+      {pairs.map(([a, b, col]) => {
+        const pa = pt(a);
+        const pb = pt(b);
+        if (!pa || !pb) return null;
         return (
-          <text
-            key={`jbl-${t.id}`}
-            x={isLeft ? tx - 8.5 : tx + 8.5}
-            y={ty + 1.5}
-            textAnchor={isLeft ? 'end' : 'start'}
-            fontSize="3.8"
-            fontWeight="900"
-            fontFamily="var(--font-mono)"
-            fill={t.type === 'phase' ? 'var(--lamp-red-on)' : t.type === 'neutral' ? 'var(--lamp-blue-on)' : t.type === 'earth' ? 'var(--lamp-green-on)' : '#fdba74'}
-          >
-            {t.label}
-          </text>
+          <g key={a} className="pointer-events-none">
+            <path d={`M${pa.x} ${pa.y}L${pb.x} ${pb.y}`} stroke="var(--wire-casing)" strokeWidth={4.4} strokeLinecap="round" />
+            <path d={`M${pa.x} ${pa.y}L${pb.x} ${pb.y}`} stroke={col} strokeWidth={3} strokeLinecap="round" />
+            <Strap d={`M${(pa.x + pb.x) / 2 - 0.1} ${(pa.y + pb.y) / 2}h0.2`} live w={5} />
+          </g>
         );
       })}
+      <Mono x={W / 2} y={H / 2 + 1.6} size={4.4} anchor="middle" fill={isPvc ? 'var(--silk-on-dark)' : 'var(--silk)'}>{isOct ? '4" OCT' : '4" SQ'}</Mono>
+      <Pill cx={W / 2} cy={H / 2 + 9} w={18} label={isPvc ? 'PVC' : 'GI'} title="Switch the box material: orange PVC or galvanized steel" onToggle={toggleMaterial} />
 
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={3.8} onDark={isPvc} side={(t) => (t.relX < 0.5 ? 'left' : 'right')} />
+      <Terminals {...props} local />
     </g>
   );
 };

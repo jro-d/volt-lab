@@ -1,69 +1,57 @@
-import React, { useId } from 'react';
-import { DeviceComponentProps, DeviceTerminals } from './DeviceTerminals';
+import React from 'react';
+import { Bay, DeviceProps, Mono, Terminals, TermIds } from './kit';
 
-/**
- * EduVolt-style Porcelain Keyless Lamp Receptacle & Incandescent/LED A19 Bulb Fixture.
- */
-export const LightFixtureDevice: React.FC<DeviceComponentProps> = (props) => {
+/** A19 incandescent lamp in a porcelain E27 holder. Lit: warm glass, glowing filament and halo. */
+export const LightFixtureDevice: React.FC<DeviceProps> = (props) => {
   const { device } = props;
-  const uid = useId().replace(/:/g, '');
-  const { x, y, width, height } = device;
-  const isLit = !!device.state.lit;
+  const { width: W, height: H } = device;
+  const lit = !!device.state.lit;
   const wattage = device.state.wattage || 60;
-  const cx = x + width / 2;
+  const brightness = typeof device.state.brightness === 'number' ? device.state.brightness : lit ? 1 : 0;
+  const cx = W / 2;
+  const ty = H * (device.terminals[0]?.relY ?? 0.9);
+  const holderY = ty - 22;
+  const bulbCy = holderY - 26;
+  const r = Math.min(19, W / 2 - 6);
 
   return (
-    <g className="select-none">
-      <defs>
-        <radialGradient id={`bulbGlow-${uid}`} cx="50%" cy="42%" r="55%">
-          <stop offset="0%" stopColor="var(--lamp-white-on)" stopOpacity={0.95} />
-          <stop offset="50%" stopColor="var(--act-yellow)" stopOpacity={0.4} />
-          <stop offset="100%" stopColor="var(--lamp-amber-on)" stopOpacity={0} />
-        </radialGradient>
-      </defs>
+    <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
+      {lit && <circle cx={cx} cy={bulbCy} r={r * 2} fill="var(--lamp-glow)" opacity={0.5 + brightness * 0.5} className="pointer-events-none" />}
+      {lit && <circle cx={cx} cy={bulbCy} r={r * 1.4} fill="var(--lamp-glow)" className="pointer-events-none" />}
 
-      {isLit && <circle cx={cx} cy={y + 24} r={38} fill={`url(#bulbGlow-${uid})`} className="pointer-events-none" />}
-
-      {/* Glass Bulb Globe */}
+      {/* Glass envelope */}
       <path
-        d={`M ${cx - 10} ${y + 42} C ${cx - 13} ${y + 34}, ${cx - 21} ${y + 27}, ${cx - 21} ${y + 18} A 21 21 0 1 1 ${cx + 21} ${y + 18} C ${cx + 21} ${y + 27}, ${cx + 13} ${y + 34}, ${cx + 10} ${y + 42} Z`}
-        fill={isLit ? 'var(--act-yellow)' : 'var(--mat-housing)'}
+        d={`M${cx - 8} ${holderY - 2}C${cx - 8} ${bulbCy + r * 0.8} ${cx - r} ${bulbCy + r * 0.6} ${cx - r} ${bulbCy}a${r} ${r} 0 0 1 ${r * 2} 0c0 ${r * 0.6} ${-r + 8} ${r * 0.8} ${-r + 8} ${holderY - 2 - bulbCy}z`}
+        fill={lit ? 'var(--lamp-white-on)' : 'var(--mat-porcelain)'}
+        fillOpacity={lit ? 1 : 0.55}
         stroke="var(--mat-line)"
-        strokeWidth={1.2}
+        strokeWidth={1}
       />
+      <path d={`M${cx - r * 0.55} ${bulbCy - r * 0.45}a${r * 0.7} ${r * 0.7} 0 0 1 ${r * 0.45} ${-r * 0.35}`} fill="none" stroke="#fff" strokeOpacity={0.8} strokeWidth={1.4} strokeLinecap="round" />
+      {/* Stem, lead wires, coiled filament */}
+      <path d={`M${cx - 3} ${holderY - 2}V${bulbCy + 4}M${cx + 3} ${holderY - 2}V${bulbCy + 4}`} stroke="var(--mat-steel-dark)" strokeWidth={0.6} />
+      <path
+        d={`M${cx - 3} ${bulbCy + 4}l0 -6q1.5 -2 3 0t3 0l0 6`}
+        fill="none"
+        stroke={lit ? 'var(--lamp-amber-on)' : 'var(--mat-line-soft)'}
+        strokeWidth={lit ? 1.3 : 0.8}
+        strokeLinejoin="round"
+      />
+      <Mono x={cx} y={bulbCy + 12} size={4.4} anchor="middle" muted={!lit}>{`${wattage}W`}</Mono>
 
-      {/* Tungsten Filament & Leads */}
-      <path d={`M ${cx - 4} ${y + 42} L ${cx - 3} ${y + 27} M ${cx + 4} ${y + 42} L ${cx + 3} ${y + 27}`} stroke="var(--silk-muted)" strokeWidth={0.9} fill="none" />
-      <path d={`M ${cx - 6} ${y + 24} Q ${cx - 3} ${y + 19} ${cx} ${y + 24} Q ${cx + 3} ${y + 19} ${cx + 6} ${y + 24}`} fill="none" stroke={isLit ? 'var(--mat-housing)' : 'var(--mat-line-soft)'} strokeWidth={isLit ? 1.8 : 1.1} />
-
-      <text x={cx} y={y + 36} textAnchor="middle" fontSize="5.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-        {wattage}W
-      </text>
-
-      {/* Edison E27 Brass Screw Neck */}
-      <rect x={cx - 10} y={y + 42} width={20} height={11} rx={1.5} fill="var(--mat-copper)" stroke="var(--mat-line)" strokeWidth={0.9} />
-      {[45, 48, 51].map((dy) => (
-        <line key={dy} x1={cx - 9} y1={y + dy} x2={cx + 9} y2={y + dy} stroke="var(--mat-copper-dark)" strokeWidth={0.8} />
+      {/* E27 screw base */}
+      <rect className="d-steel" x={cx - 8.5} y={holderY - 4} width={17} height={8} rx={1.5} />
+      {[0, 1, 2].map((i) => (
+        <path key={i} d={`M${cx - 8.5} ${holderY - 2.6 + i * 2.4}l17 1`} stroke="var(--mat-steel-dark)" strokeWidth={0.6} />
       ))}
 
-      {/* Glazed Porcelain Receptacle Base & Terminal Pocket */}
-      <rect x={x + 4} y={y + 53} width={width - 8} height={35} rx={4} fill="var(--mat-housing)" stroke="var(--mat-line)" strokeWidth={1.2} />
-      <rect x={x + 6} y={y + 55} width={width - 12} height={11} rx={2} fill="var(--mat-housing-shade)" />
-      <text x={cx} y={y + 62.5} textAnchor="middle" fontSize="4.4" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--silk)">
-        E27 · 230V
-      </text>
+      {/* Porcelain lampholder with terminal bay */}
+      <path className="d-porcelain" d={`M${cx - 14} ${holderY + 4}H${cx + 14}L${W - 4} ${holderY + 11}V${H - 3}a2 2 0 0 1 -2 2H6a2 2 0 0 1 -2 -2V${holderY + 11}z`} />
+      <Mono x={cx} y={holderY + 10.5} size={3.8} anchor="middle" muted>E27 · 230V</Mono>
+      <Bay x={7} y={ty - 8} w={W - 14} h={16} />
 
-      {/* Embedded L / N Pocket Band */}
-      <rect x={x + 6} y={y + 67} width={width - 12} height={7} fill="var(--mat-line)" />
-      <text x={x + width * 0.30} y={y + 72.3} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--mat-pvc-orange)">
-        L
-      </text>
-      <text x={x + width * 0.70} y={y + 72.3} textAnchor="middle" fontSize="4.2" fontWeight="900" fontFamily="var(--font-mono)" fill="var(--lamp-blue-on)">
-        N
-      </text>
-      <rect x={x + 6} y={y + 74} width={width - 12} height={13} rx={2} fill="var(--mat-housing-dark)" />
-
-      <DeviceTerminals {...props} hideLabel={() => true} />
+      <TermIds device={device} local size={4.2} side={(t) => (t.relX < 0.5 ? 'left' : 'right')} />
+      <Terminals {...props} local />
     </g>
   );
 };
