@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard, DeviceType } from './types/electrical';
 import { CodeViolation } from './types/codes';
 import { SparkEvent } from './types/simulation';
-import { LAB_LESSONS, LabLesson, createBlankProject } from './data/labTemplates';
+import { LabLesson, createBlankProject } from './data/labTemplates';
 import { createDeviceFromCatalog } from './data/defaultComponents';
 import { COLOR_STANDARDS, getDefaultWireGauge } from './data/standardsData';
 import { solveCircuit, createDeEnergizedSolution, SolvedCircuit } from './core/circuitSolver';
@@ -19,14 +19,13 @@ import { SchematicCanvas } from './components/canvas/SchematicCanvas';
 import { LadderCanvas } from './components/canvas/LadderCanvas';
 import { LadderRung } from './types/ladder';
 import { sound } from './utils/soundFx';
-import { resetTransientState, resetTripState, toEditModeDevices } from './utils/deviceState';
+import { resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
-import { Trash2, Lock } from 'lucide-react';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
-export type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
+type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
 
 function loadEmbeddedProject(): ElectricalProject | null {
   try {
@@ -1164,8 +1163,7 @@ export const App: React.FC = () => {
               wires={project.wires}
               solved={solved}
               standard={standard}
-                    activeWireColor={activeWireColor}
-              activeWireGauge={activeWireGauge}
+              activeWireColor={activeWireColor}
               selectedDeviceId={selectedDeviceId}
               selectedDeviceIds={selectedGroupIds}
               selectedWireId={selectedWireId}
@@ -1233,8 +1231,7 @@ export const App: React.FC = () => {
                   wires={project.wires}
                   solved={solved}
                   standard={standard}
-                            activeWireColor={activeWireColor}
-                  activeWireGauge={activeWireGauge}
+                  activeWireColor={activeWireColor}
                   selectedDeviceId={selectedDeviceId}
                   selectedDeviceIds={selectedGroupIds}
                   selectedWireId={selectedWireId}

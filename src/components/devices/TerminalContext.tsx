@@ -7,7 +7,7 @@ export interface HighlightedEndpointInfo {
   gauge: string;
 }
 
-export interface TerminalHighlightContextValue {
+interface TerminalHighlightContextValue {
   connectedTerminalKeys: Set<string>;
   highlightedWireEndpoints: Map<string, HighlightedEndpointInfo>;
   selectedWireColor: string | null;

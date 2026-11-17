@@ -30,7 +30,7 @@ const LEGACY_TO_TOKEN: Record<string, string> = {
 };
 
 /** The v2 token name for a stored wire colour, or undefined for a custom colour. */
-export const conductorToken = (stored: string | undefined): string | undefined =>
+const conductorToken = (stored: string | undefined): string | undefined =>
   stored ? LEGACY_TO_TOKEN[stored.toLowerCase()] : undefined;
 
 /** CSS colour to draw a stored wire colour with. Custom colours pass through unchanged. */

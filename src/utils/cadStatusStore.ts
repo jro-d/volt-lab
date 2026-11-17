@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
  * Keeping these out of React state in <App/> means mouse movement only re-renders the status bar,
  * not the whole workbench (devices, wires, inspector...).
  */
-export interface CadStatus {
+interface CadStatus {
   cursorX: number;
   cursorY: number;
   zoom: number;

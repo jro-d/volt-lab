@@ -1,4 +1,4 @@
-import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard } from '../types/electrical';
+import { ElectricalProject, CodeStandard } from '../types/electrical';
 import { createDeviceFromCatalog } from './defaultComponents';
 import { MOTOR_CONTROL_LABS } from './motorControlLabs';
 

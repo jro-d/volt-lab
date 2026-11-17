@@ -14,7 +14,6 @@ interface WiringCanvasProps {
   solved: SolvedCircuit;
   standard: CodeStandard;
   activeWireColor: string;
-  activeWireGauge: string;
   selectedDeviceId: string | null;
   /** Additional Shift+click multi-selection (ordered, first = alignment anchor) */
   selectedDeviceIds?: string[];
@@ -74,7 +73,6 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   solved,
   standard,
   activeWireColor,
-  activeWireGauge,
   selectedDeviceId,
   selectedDeviceIds = [],
   selectedWireId,
@@ -807,7 +805,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                   }
                 }}
                 onOpenInspector={onOpenInspector}
-                onStartSegmentDrag={(wireId, segIdx, isHoriz, pt, waypoints, e) => {
+                onStartSegmentDrag={(wireId, segIdx, isHoriz, _pt, waypoints, e) => {
                   if (isSimulating) {
                     onBlockedEdit?.('simulating');
                     return;

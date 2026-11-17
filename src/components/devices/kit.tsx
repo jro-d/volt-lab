@@ -163,17 +163,6 @@ export const Screw: React.FC<{ cx: number; cy: number; r?: number; m?: 'steel' |
   </g>
 );
 
-/** Row of ventilation slots. */
-export const Vents: React.FC<{ x: number; y: number; w: number; n: number; h?: number; gap?: number; dark?: boolean }> = ({
-  x, y, w, n, h = 1.4, gap = 2.6, dark,
-}) => (
-  <g className="pointer-events-none">
-    {Array.from({ length: n }).map((_, i) => (
-      <rect key={i} x={x} y={y + i * gap} width={w} height={h} rx={h / 2} fill={dark ? 'var(--mat-line)' : 'var(--mat-housing-shade)'} stroke={dark ? 'none' : 'var(--mat-line-soft)'} strokeWidth={0.4} />
-    ))}
-  </g>
-);
-
 /** DIN-rail clip tab at the bottom edge of a modular device. */
 export const DinClip: React.FC<{ cx: number; y: number }> = ({ cx, y }) => (
   <g className="pointer-events-none">
@@ -283,7 +272,7 @@ export const SymEarth: React.FC<Sym> = ({ x, y, s = 1, dark }) => (
 
 /* ─────────────────────────── Layer 5: terminals ─────────────────────────── */
 
-export interface TerminalHandlers {
+interface TerminalHandlers {
   device: ElectricalDevice;
   selectedTerminalId?: string | null;
   hoveredTerminalId?: string | null;

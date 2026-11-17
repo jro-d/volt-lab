@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bay, DeviceProps, Housing, LegendPlate, Mono, Nameplate, PushButton, Screw, SymNC, SymNO, Terminals, TermIds, deviceTag, momentaryPress } from './kit';
+import { Bay, DeviceProps, Housing, LegendPlate, Nameplate, PushButton, Screw, SymNC, SymNO, Terminals, TermIds, deviceTag, momentaryPress } from './kit';
 
 /**
  * Two-button 22 mm control station: START (green, momentary NO 3-4) above STOP (red, momentary NC 1-2).

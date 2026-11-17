@@ -76,7 +76,7 @@ const BREAKER_TYPES = new Set([
 const CW_SEQUENCES = ['L1,L2,L3', 'L2,L3,L1', 'L3,L1,L2'];
 
 /** Approximate 3-phase motor full-load line current (η·pf ≈ 0.6 → close to PEC/NEC FLA tables) */
-export function motorLineAmps(watts: number, lineVolts: number): number {
+function motorLineAmps(watts: number, lineVolts: number): number {
   return watts / (Math.sqrt(3) * lineVolts * 0.6);
 }
 

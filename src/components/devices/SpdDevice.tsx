@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bay, DeviceProps, DinClip, Face, Housing, Mono, Nameplate, Silk, Terminals, TermIds, deviceTag } from './kit';
+import { Bay, DeviceProps, DinClip, Housing, Mono, Nameplate, Silk, Terminals, TermIds, deviceTag } from './kit';
 
 /**
  * Type 2 surge protective device: base with two plug-in MOV cartridges (L–N, N–PE).

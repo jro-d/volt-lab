@@ -100,7 +100,6 @@ export function calculateOrthogonalPath(
   }
 
   const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
 
   // 3. Connect p1 and p2 with guaranteed clearance
   if (startDir === 'down' && endDir === 'down') {
@@ -168,7 +167,7 @@ export function calculateOrthogonalPath(
   return simplifyPath(points);
 }
 
-export function simplifyPath(points: Point[]): Point[] {
+function simplifyPath(points: Point[]): Point[] {
   if (points.length <= 2) return points;
   const result: Point[] = [points[0]];
 
@@ -242,7 +241,7 @@ type Dir = 'up' | 'down' | 'left' | 'right';
  * longer/shorter instead of turning diagonal. Falls back to the automatic orthogonal router
  * when the stored route can no longer be honoured (stem would point back into the device, etc.).
  */
-export function reanchorWaypoints(
+function reanchorWaypoints(
   stored: Point[],
   start: Point,
   end: Point,

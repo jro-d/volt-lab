@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bay, DeviceProps, Face, Housing, Led, Mono, Nameplate, Pill, Screw, Silk, Strap, SymEarth, Terminals, TermIds, act, deviceTag, makePatch } from './kit';
+import { Bay, DeviceProps, Face, Housing, Led, Mono, Nameplate, Pill, Silk, Strap, Terminals, TermIds, act, deviceTag, makePatch } from './kit';
 
 /** 96 mm panel meter and the ATS changeover. */
 export const PanelHardwareDevice: React.FC<DeviceProps> = (props) => {
