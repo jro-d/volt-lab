@@ -59,7 +59,7 @@ const dev = (type: Parameters<typeof createDeviceFromCatalog>[0], x: number, y: 
 // ────────────────────────────────────────────────────────────────────────────────────────────
 // LAB A — DOL starter with 440/220V control transformer and thermal overload relay
 // ────────────────────────────────────────────────────────────────────────────────────────────
-const dolDevices: ElectricalDevice[] = [
+export const dolDevices: ElectricalDevice[] = [
   dev('source_3phase_440v', 40, 30, 'mdol_src', { name: '440V 3Φ 60Hz Ship Feeder' }),
   dev('mcb_3p', 68, 176, 'mdol_q1', { name: 'Q1 Main 3P MCB 16A', state: { ratedAmps: 16, tripCurve: 'D' } }),
   dev('contactor_3p', 60, 330, 'mdol_km1', { name: 'KM1 Line Contactor', state: { tag: 'KM1' } }),
@@ -73,7 +73,7 @@ const dolDevices: ElectricalDevice[] = [
   dev('pilot_light_indicator', 570, 520, 'mdol_pl_flt', { name: 'PL_FAULT Overload Trip', state: { pilotColor: 'red', tag: 'PL_FAULT' } }),
 ];
 
-const dolWires: ElectricalWire[] = [
+export const dolWires: ElectricalWire[] = [
   // ── Power circuit: Feeder → Q1 → KM1 → F2 → M1
   w('dp', 'mdol_src', 'l1', 'mdol_q1', 'in_l1', L1),
   w('dp', 'mdol_src', 'l2', 'mdol_q1', 'in_l2', L2),
@@ -114,7 +114,7 @@ const dolStartRung = () => [
   ...series(el('NC', 'OLR', '95-96', 'mdol_f2', 'trip_nc'), el('NC', 'STOP', '1-2', 'mdol_s1', 'stop')),
   parallel(el('NO', 'START', '3-4', 'mdol_s1', 'start'), el('NO', 'KM1', '13-14', 'mdol_km1', 'aux_no')),
 ];
-const dolTarget: LadderRung[] = [
+export const dolTarget: LadderRung[] = [
   { id: 'tgt_dol_1', blocks: dolStartRung(), output: el('COIL', 'KM1', 'A1-A2', 'mdol_km1', 'coil') },
   { id: 'tgt_dol_2', blocks: dolStartRung(), output: el('LAMP', 'PL_RUN', 'GREEN', 'mdol_pl_run', 'lamp') },
   {

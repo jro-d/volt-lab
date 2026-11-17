@@ -31,6 +31,17 @@ const PANEL_DEVICE_TYPES = new Set([
   'plc_micro_controller',
 ]);
 
+/** Devices that count as overcurrent protection for the conductor they feed (breakers and fuses alike) */
+const OVERCURRENT_PROTECTION_TYPES = new Set([
+  'mcb_1p',
+  'mcb_2p',
+  'mcb_3p',
+  'service_disconnect_2p',
+  'safety_breaker_2p',
+  'fuse_holder_1p',
+  'fuse_switch_disconnector_3p',
+]);
+
 export function analyzeCodeCompliance(
   devices: ElectricalDevice[],
   wires: ElectricalWire[],
@@ -47,7 +58,7 @@ export function analyzeCodeCompliance(
     const toDev = devices.find(d => d.id === wire.toDeviceId);
 
     // Find protecting upstream breaker
-    const breaker = [fromDev, toDev].find(d => d && (d.type === 'mcb_1p' || d.type === 'mcb_2p' || d.type === 'mcb_3p' || d.type === 'service_disconnect_2p' || d.type === 'safety_breaker_2p'));
+    const breaker = [fromDev, toDev].find(d => d && OVERCURRENT_PROTECTION_TYPES.has(d.type));
     const wireStd = wireStandards.find(s => s.name === wire.wireGauge) || wireStandards[0];
 
     if (breaker && wireStd) {
@@ -90,6 +101,26 @@ export function analyzeCodeCompliance(
         recommendation: `Increase wire cross-sectional area or shorten the run distance to minimize $I^2R$ power loss.`
       });
     }
+  }
+
+  // A fuse or fuse switch in the neutral conductor of a TN system: a blown neutral fuse leaves the load live
+  for (const dev of devices) {
+    if (dev.type !== 'fuse_holder_1p' && dev.type !== 'fuse_switch_disconnector_3p') continue;
+    const onNeutral = dev.terminals.some(t => solved.nodePotentials[`${dev.id}:${t.id}`] === 'neutral');
+    if (!onNeutral) continue;
+    violations.push({
+      id: `viol_neutral_fuse_${dev.id}`,
+      codeStandard: standard,
+      severity: 'warning',
+      category: 'shock_hazard',
+      hazardLevel: 'code_infraction',
+      // Clause intentionally left for the user to confirm against their copy of the code
+      articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60364-4-43 (clause to be verified)',
+      title: 'Fuse in the Neutral Conductor',
+      message: `${dev.name || dev.id} sits in a neutral conductor of a TN system. If the neutral link blows or is removed, the load stays connected to the live conductor with no return path, so exposed parts can become live.`,
+      affectedDeviceId: dev.id,
+      recommendation: 'Protect the live conductors with fuses and carry the neutral through a solid link or a bus bar.'
+    });
   }
 
   // 3. Grounding & Bonding Verification (PEC 2.50 / IEC 60364-4-41)

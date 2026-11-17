@@ -29,6 +29,10 @@ export interface SolvedCircuit {
   faults: CircuitFault[];
   trippedDevices: string[];
   tripReasons: Record<string, string>;
+  /** State to persist on devices that cleared a fault without opening as a whole (a blown fuse link) */
+  devicePatches: Record<string, Record<string, unknown>>;
+  /** Peak motor starting current (A) seen by each upstream overcurrent device that is not a breaker (fuses) */
+  inrushByDevice: Record<string, number>;
 }
 
 /**
@@ -61,6 +65,8 @@ export function createDeEnergizedSolution(wires: ElectricalWire[]): SolvedCircui
     faults: [],
     trippedDevices: [],
     tripReasons: {},
+    devicePatches: {},
+    inrushByDevice: {},
   };
 }
 
@@ -98,6 +104,7 @@ export function solveCircuit(
   const sparks: SparkEvent[] = [];
   const trippedDevices: string[] = [];
   const tripReasons: Record<string, string> = {};
+  const devicePatches: Record<string, Record<string, unknown>> = {};
   let faults: CircuitFault[] = [];
 
   const deviceById = new Map(devices.map(d => [d.id, d]));
@@ -590,6 +597,7 @@ export function solveCircuit(
   };
 
   /** Walk the live feed tree upstream from a node and return the first overcurrent device met */
+  const viaTerminalOf: Record<string, string> = {};
   const findUpstreamBreaker = (node: string): ElectricalDevice | undefined => {
     let curr: string | undefined = node;
     const seen = new Set<string>();
@@ -597,6 +605,11 @@ export function solveCircuit(
       seen.add(curr);
       const dev = deviceById.get(devOfNode(curr));
       if (dev && BREAKER_TYPES.has(dev.type) && dev.state.closed && !dev.state.tripped) return dev;
+      // Fuses and other registered devices that can clear the fault where it passes through them
+      if (dev && behaviorFor(dev.type)?.clearsFault?.(dev, curr.slice(curr.lastIndexOf(':') + 1))) {
+        viaTerminalOf[dev.id] = curr.slice(curr.lastIndexOf(':') + 1);
+        return dev;
+      }
       curr = liveParent[curr]?.prevNode;
     }
     return undefined;
@@ -644,7 +657,12 @@ export function solveCircuit(
         : `DEAD SHORT CIRCUIT: Phase directly bonded to ${fault.kind === 'phase_neutral' ? 'Neutral' : 'Earth'}!`,
     });
 
-    if (breaker && !trippedDevices.includes(breaker.id)) {
+    const clearing = breaker ? behaviorFor(breaker.type)?.clearsFault?.(breaker, viaTerminalOf[breaker.id] || '') : null;
+    if (breaker && clearing) {
+      devicePatches[breaker.id] = { ...(devicePatches[breaker.id] || {}), ...clearing.patch };
+      if (clearing.opensDevice && !trippedDevices.includes(breaker.id)) trippedDevices.push(breaker.id);
+      tripReasons[breaker.id] = clearing.reason;
+    } else if (breaker && !trippedDevices.includes(breaker.id)) {
       trippedDevices.push(breaker.id);
       tripReasons[breaker.id] = isPhasePhase
         ? `Magnetic Instantaneous Trip: ${fault.phases?.join('-')} phase-to-phase fault (> 10 kA prospective)`
@@ -1171,7 +1189,7 @@ export function solveCircuit(
       while (curr && !seen.has(curr)) {
         seen.add(curr);
         const up = deviceById.get(devOfNode(curr));
-        if (up && BREAKER_TYPES.has(up.type)) {
+        if (up && (BREAKER_TYPES.has(up.type) || behaviorFor(up.type)?.clearsFault)) {
           motorInrushByBreaker[up.id] = Math.max(motorInrushByBreaker[up.id] || 0, inrushAmps);
         }
         curr = liveParent[curr]?.prevNode;
@@ -1229,6 +1247,8 @@ export function solveCircuit(
     sparks,
     faults,
     trippedDevices,
-    tripReasons
+    tripReasons,
+    devicePatches,
+    inrushByDevice: motorInrushByBreaker,
   };
 }

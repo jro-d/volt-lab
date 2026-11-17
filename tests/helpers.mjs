@@ -1,6 +1,6 @@
 import { createDeviceFromCatalog } from '../src/data/defaultComponents.ts';
 import { solveCircuit } from '../src/core/circuitSolver.ts';
-import { tickSimulation } from '../src/core/simulationTick.ts';
+import { applyProtectiveOutcome, tickSimulation } from '../src/core/simulationTick.ts';
 
 /** A catalog device with optional state overrides. */
 export function dev(type, id, state = {}) {
@@ -22,6 +22,7 @@ export function run(devices, wires, steps, dtSec = 0.5, { standard = 'PEC', volt
   let current = devices;
   for (let i = 0; i < steps; i++) {
     const solved = solveCircuit(current, wires, standard, volts);
+    current = applyProtectiveOutcome(current, solved);
     current = tickSimulation(current, wires, solved, frequency, dtSec);
   }
   return current;

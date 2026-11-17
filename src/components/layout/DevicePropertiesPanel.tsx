@@ -3,6 +3,7 @@ import { ElectricalDevice, ElectricalWire, CodeStandard } from '../../types/elec
 import { getWireStandards, COLOR_STANDARDS } from '../../data/standardsData';
 import { conductorColor } from '../../styles/conductors';
 import { TIMER_MODE_LABEL, TimerMode } from '../../core/behaviors/timerModes';
+import { FUSE_RATINGS } from '../../core/behaviors/fuse';
 import { 
   Sliders, 
   ShieldCheck, 
@@ -1236,6 +1237,116 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </span>
         </div>
       )}
+
+      {/* --- FUSE HOLDER / FUSE SWITCH DISCONNECTOR --- */}
+      {device && (device.type === 'fuse_holder_1p' || device.type === 'fuse_switch_disconnector_3p') && (() => {
+        const is3p = device.type === 'fuse_switch_disconnector_3p';
+        const kind = (device.state.fuseKind as string) || 'gG';
+        const rated = Number(device.state.ratedAmps) || (is3p ? 32 : 16);
+        const links = is3p ? (['l1', 'l2', 'l3'] as const) : ([] as const);
+        const blown1p = !!device.state.blown || !!device.state.tripped;
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const replaceAll = () =>
+          apply(
+            is3p
+              ? { blown_l1: false, blown_l2: false, blown_l3: false, heat_l1: 0, heat_l2: 0, heat_l3: 0, onSec_l1: 0, onSec_l2: 0, onSec_l3: 0 }
+              : { blown: false, tripped: false, closed: true, heat: 0, onSec: 0, tripReason: undefined }
+          );
+        const anyBlown = is3p ? links.some((p) => !!device.state[`blown_${p}`]) : blown1p;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+                {is3p ? 'Fuse Links (3P)' : 'Fuse Link'}
+              </label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${anyBlown ? 'bg-danger-soft/90 text-danger border border-danger/50 animate-pulse' : 'bg-ok-soft/90 text-ok border border-ok/50'}`}>
+                {anyBlown ? '⚠ LINK BLOWN' : '● INTACT'}
+              </span>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">Link Type</label>
+              <div className="grid grid-cols-2 gap-1">
+                {[
+                  { v: 'gG', label: 'gG', sub: 'cable protection' },
+                  { v: 'aM', label: 'aM', sub: 'motor short-circuit' },
+                ].map((k) => (
+                  <button
+                    key={k.v}
+                    onClick={() => apply({ fuseKind: k.v })}
+                    className={`py-1 rounded-lg border text-xs font-mono font-bold flex flex-col items-center transition ${
+                      kind === k.v ? 'bg-ok text-surface border-ok shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                    }`}
+                  >
+                    {k.label}
+                    <span className="text-[9px] font-sans font-normal opacity-80">{k.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">Rated Current</label>
+              <div className="grid grid-cols-4 gap-1">
+                {FUSE_RATINGS.map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => apply({ ratedAmps: a })}
+                    className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                      rated === a ? 'bg-ok text-surface border-ok shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                    }`}
+                  >
+                    {a}A
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {is3p && (
+              <button
+                onClick={() => apply({ closed: device.state.closed === false })}
+                className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${
+                  device.state.closed === false ? 'bg-warning-soft text-warning border-warning/60' : 'bg-ok-soft text-ok border-ok/60'
+                }`}
+              >
+                {device.state.closed === false ? 'HANDLE OPEN (isolated): click to close' : 'HANDLE CLOSED: click to open'}
+              </button>
+            )}
+
+            {is3p && (
+              <div className="grid grid-cols-3 gap-1">
+                {links.map((p) => {
+                  const blown = !!device.state[`blown_${p}`];
+                  return (
+                    <div key={p} className={`rounded-md border px-1 py-1 text-center text-[10px] font-mono font-bold ${blown ? 'bg-danger-soft/80 text-danger border-danger/60' : 'bg-surface-sunken text-ink border-border'}`}>
+                      {p.toUpperCase()} {blown ? 'BLOWN' : 'OK'}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {anyBlown && (
+              <button
+                onClick={replaceAll}
+                className="w-full py-1.5 rounded-lg border border-probe/60 bg-probe-soft/80 text-probe text-xs font-bold hover:bg-probe-soft transition"
+              >
+                Replace fuse{is3p ? ' links' : ''}
+              </button>
+            )}
+
+            <span className="text-[9px] text-ink-muted block">
+              {kind === 'aM'
+                ? 'aM links protect against short circuit only (no overload protection) and ride through a motor start (about 6x for 5 s).'
+                : 'gG links melt on overload (1.6x in about an hour, 2.5x in about 100 s) and instantly on a short circuit. A gG link sized close to the motor current can blow on the start inrush: use aM for motors.'}{' '}
+              Thermal model runs 20x faster than real time so an overload can be watched.
+            </span>
+          </div>
+        );
+      })()}
 
       {/* --- TIMER RELAY (KT) --- */}
       {device && device.type === 'timer_relay' && (() => {

@@ -22,7 +22,7 @@ import { sound } from './utils/soundFx';
 import { resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
-import { needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
+import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
@@ -348,20 +348,17 @@ export const App: React.FC = () => {
 
   const trippedCount = project.devices.filter(d => d.state.tripped).length;
 
-  // Persist protective-device operation: a tripped breaker / RCD really opens (and stays open until re-armed)
+  // Persist protective-device operation: a tripped breaker / RCD really opens (and stays open until re-armed);
+  // a blown fuse link stays blown until it is replaced
   useEffect(() => {
-    if (!isSimulating || analysis.result.trippedDevices.length === 0) return;
-    const tripIds = analysis.result.trippedDevices;
-    const reasons = analysis.result.tripReasons;
+    if (!isSimulating) return;
+    const outcome = analysis.result;
+    if (outcome.trippedDevices.length === 0 && Object.keys(outcome.devicePatches).length === 0) return;
     sound.playTripPop();
-    setProject(prev => ({
-      ...prev,
-      devices: prev.devices.map(d =>
-        tripIds.includes(d.id)
-          ? { ...d, state: { ...d.state, tripped: true, closed: false, tripReason: reasons[d.id] } }
-          : d
-      ),
-    }));
+    setProject(prev => {
+      const devices = applyProtectiveOutcome(prev.devices, outcome);
+      return devices === prev.devices ? prev : { ...prev, devices };
+    });
   }, [isSimulating, analysis]);
 
   // Arc flash: audio + short-lived visual

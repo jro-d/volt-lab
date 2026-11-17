@@ -32,7 +32,9 @@ export interface SchematicNode {
     | 'tor'
     | 'transformer'
     | 'source3p'
-    | 'pushbutton3';
+    | 'pushbutton3'
+    | 'fuse'
+    | 'generator';
   status?: string;
 }
 
@@ -46,7 +48,10 @@ interface SchematicEdge {
 export function generateSchematicModel(devices: ElectricalDevice[], wires: ElectricalWire[]) {
   const nodes: SchematicNode[] = devices.map(d => {
     let symbol: SchematicNode['symbol'] = 'breaker';
-    if (d.type === 'thermal_overload_relay') symbol = 'tor';
+    if (d.type.startsWith('fuse')) symbol = 'fuse';
+    else if (d.type.startsWith('generator')) symbol = 'generator';
+    else if (d.type.startsWith('rcbo')) symbol = 'rcd';
+    else if (d.type === 'thermal_overload_relay') symbol = 'tor';
     else if (d.type === 'control_transformer') symbol = 'transformer';
     else if (d.type === 'source_3phase_440v') symbol = 'source3p';
     else if (d.type === 'push_button_fwd_rev') symbol = 'pushbutton3';
@@ -79,7 +84,7 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
       x: d.x,
       y: d.y,
       symbol,
-      status: d.state.tripped
+      status: d.state.tripped || d.state.blown_l1 || d.state.blown_l2 || d.state.blown_l3
         ? 'TRIPPED'
         : d.state.lit || d.state.coilEnergized || d.state.motorRunning || d.state.secondaryLive
         ? 'ON'

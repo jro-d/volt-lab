@@ -352,6 +352,24 @@ export const SchematicCanvas: React.FC<SchematicCanvasProps> = ({
             <text x={0} y={36} textAnchor="middle" fontSize={8} fontWeight="bold" fill="var(--ink-muted)">{node.label}</text>
           </g>
         );
+      case 'fuse':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            {/* IEC 60617 fuse: rectangle with the conductor running through it */}
+            <rect x={-9} y={-22} width={18} height={44} fill={node.status === 'TRIPPED' ? 'var(--danger-soft)' : 'var(--surface)'} stroke="var(--ink)" strokeWidth={1.5} rx={1.5} />
+            <line x1={0} y1={-30} x2={0} y2={30} stroke="var(--ink)" strokeWidth={1.5} />
+            <text x={0} y={42} textAnchor="middle" fontSize={8} fontWeight="bold" fill="var(--ink-muted)">{node.label}</text>
+          </g>
+        );
+      case 'generator':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <circle cx={0} cy={0} r={22} fill={node.status === 'ON' ? 'var(--ok-soft)' : 'var(--surface)'} stroke="var(--ink)" strokeWidth={2} />
+            <text x={0} y={-3} textAnchor="middle" fontSize={13} fontWeight="900" fill="var(--ink)" fontFamily="var(--font-mono)">G</text>
+            <path d="M -8 8 Q -4 0 0 8 T 8 8" fill="none" stroke="var(--ink)" strokeWidth={1.6} />
+            <text x={0} y={36} textAnchor="middle" fontSize={8} fontWeight="bold" fill="var(--ink-muted)">{node.label}</text>
+          </g>
+        );
       case 'pushbutton3':
         return (
           <g transform={`translate(${node.x}, ${node.y})`}>

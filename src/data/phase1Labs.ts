@@ -1,6 +1,7 @@
 import { ElectricalDevice, ElectricalWire } from '../types/electrical';
 import { createDeviceFromCatalog } from './defaultComponents';
 import type { LabLesson } from './labTemplates';
+import { dolDevices, dolWires, dolTarget } from './motorControlLabs';
 
 /**
  * Roadmap phase 1 labs: timer relay functions, fuses, RCBO and generator / ATS.
@@ -103,6 +104,36 @@ const flashWires: ElectricalWire[] = [
   wr('pl', 'x2', 'nbar', 'n_2', BLUE),
 ];
 
+// ── B2 · gG fuse: overload then short circuit ─────────────────────────────────────────────────
+const gGDevices: ElectricalDevice[] = [
+  dev('kwh_meter_1p', 40, 40, 'src', { name: 'Service Meter (source)' }),
+  dev('fuse_holder_1p', 260, 60, 'f1', { name: 'F1 gG Fuse 6A (too small)', state: { fuseKind: 'gG', ratedAmps: 6 } }),
+  dev('appliance_water_heater', 420, 60, 'wh', { name: 'Instant Water Heater (3.5 kW)', state: { wattage: 3500 } }),
+  dev('switch_1gang', 260, 260, 'sw_short', { name: 'Short-Circuit Test Switch', state: { closed: false } }),
+  dev('neutral_busbar', 560, 60, 'nbar', { name: 'Neutral Busbar' }),
+  dev('earth_busbar', 640, 60, 'pebar', { name: 'PE Busbar', state: { isEarth: true } }),
+];
+const gGWires: ElectricalWire[] = [
+  wr('src', 'l_out', 'f1', 'in_l', RED),
+  wr('f1', 'out_l', 'wh', 'line', RED),
+  wr('f1', 'out_l', 'sw_short', 'l_in', RED),
+  wr('sw_short', 'sw_out', 'nbar', 'n_3', ORANGE),
+  wr('wh', 'neutral', 'nbar', 'n_1', BLUE),
+  wr('src', 'n_out', 'nbar', 'n_main', BLUE),
+  wr('pebar', 'pe_1', 'wh', 'ground', GREEN),
+];
+
+// ── B2 · One blown link on a DOL starter (single-phasing) ─────────────────────────────────────
+// Same starter as the marine DOL lab, with Q1 replaced by a fuse switch disconnector whose L3 link has blown.
+const singlePhaseDevices: ElectricalDevice[] = dolDevices.map((d) =>
+  d.id === 'mdol_q1'
+    ? dev('fuse_switch_disconnector_3p', d.x, d.y, 'mdol_q1', {
+        name: 'Q1 Main Fuse Switch 3P (gG 16A)',
+        state: { fuseKind: 'gG', ratedAmps: 16, blown_l3: true, heat_l3: 1 },
+      })
+    : d
+);
+
 export const PHASE1_LABS: LabLesson[] = [
   {
     id: 'lab-timer-offdelay-fan',
@@ -149,5 +180,42 @@ export const PHASE1_LABS: LabLesson[] = [
       flashDevices,
       flashWires
     ),
+  },
+  {
+    id: 'lab-fuse-gg-overload-short',
+    title: 'Branch Circuit Protected by a gG Fuse: Overload then Short Circuit',
+    subtitle: 'Fuse holder (IEC 60269-1): thermal melt on overload, instant melt on a short circuit',
+    category: 'residential',
+    badge: '🔥 gG Fuse',
+    difficulty: 'Intermediate',
+    description:
+      'A 3.5 kW water heater (about 15 A) is wired to a 6 A gG fuse. The fuse carries 2.5 times its rating, heats up along the gG time-current curve and blows after a few simulated minutes. Replace it with a 16 A link and the heater runs. A test switch bolts the fuse output to neutral to show the instant short-circuit melt.',
+    objectives: [
+      'Press ▶ Simulate: the 6 A fuse heat bar fills (the model runs 20 times faster than real time) and the fuse blows. The heater goes dead and the indicator turns red.',
+      'Stop the simulation, select F1 and use Replace fuse, then set the rating to 16 A in the Device Inspector.',
+      'Run again: the heater draws about 15 A (0.95 times the rating) and the fuse never blows.',
+      'Close the Short-Circuit Test Switch: the fuse blows instantly, with no heating delay.',
+    ],
+    project: labProject('proj_fuse_gg', 'gG Fuse: Overload then Short Circuit', 'Water heater on an undersized gG fuse.', gGDevices, gGWires),
+  },
+  {
+    id: 'lab-fuse-single-phasing',
+    title: 'Fuse Blown on One Phase of a DOL Starter (Single-Phasing)',
+    subtitle: 'Fuse switch disconnector (IEC 60947-3): one link blown leaves the motor on two phases',
+    category: 'industrial',
+    badge: '⚡ Single-Phasing',
+    difficulty: 'Advanced',
+    description:
+      'The marine DOL starter with its main breaker replaced by a 3-pole fuse switch disconnector. The L3 link has already blown. The control transformer is fed from L1 and L2, so the starter still pulls in, but the motor now runs on two phases only: it cannot start a rotating field, draws excess current and the overload relay is its only protection.',
+    objectives: [
+      'Press ▶ Simulate and START the motor: the contactor closes, but the motor shows a single-phasing fault instead of running.',
+      'Select Q1 and look at the L3 link: it is blown (red window).',
+      'Stop the simulation, use Replace fuse links on Q1 and start again: the motor now runs normally.',
+      'Why is a single blown fuse more dangerous to a motor than a tripped 3-pole breaker, which opens all three phases together?',
+    ],
+    project: {
+      ...labProject('proj_fuse_single_phasing', 'DOL Starter with One Blown Fuse Link', 'Fuse switch disconnector with a blown L3 link.', singlePhaseDevices, dolWires, 440),
+      targetLadder: dolTarget,
+    },
   },
 ];

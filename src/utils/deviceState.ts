@@ -54,6 +54,20 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
 
 /** Re-arm a tripped breaker / RCD (closes it and clears the trip reason). */
 export function resetTripState(device: ElectricalDevice): ElectricalDevice {
+  // Entering edit mode also fits a new link in any blown fuse (heat history is cleared)
+  // A blown fuse link stays blown until the user replaces it (unlike a breaker it cannot be re-armed);
+  // only the thermal history of the intact links is cleared.
+  if (device.type === 'fuse_holder_1p') {
+    return { ...device, state: { ...device.state, tripped: !!device.state.blown, tripReason: device.state.blown ? device.state.tripReason : undefined, heat: 0, onSec: 0 } };
+  }
+  if (device.type === 'fuse_switch_disconnector_3p') {
+    const state: Record<string, any> = { ...device.state };
+    for (const p of ['l1', 'l2', 'l3']) {
+      state[`heat_${p}`] = 0;
+      state[`onSec_${p}`] = 0;
+    }
+    return { ...device, state };
+  }
   if (!device.state.tripped) return device;
   return {
     ...device,

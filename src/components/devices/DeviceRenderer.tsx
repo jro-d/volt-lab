@@ -3,6 +3,7 @@ import { ElectricalDevice, DeviceTerminal } from '../../types/electrical';
 import { DeviceIdContext } from './TerminalContext';
 import { KwhMeterDevice } from './KwhMeterDevice';
 import { McbDevice } from './McbDevice';
+import { FuseDevice } from './FuseDevice';
 import { RcdDevice } from './RcdDevice';
 import { SpdDevice } from './SpdDevice';
 import { BusbarDevice } from './BusbarDevice';
@@ -100,6 +101,9 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'mcb_2p':
       case 'mcb_3p':
         return <McbDevice {...commonProps} />;
+      case 'fuse_holder_1p':
+      case 'fuse_switch_disconnector_3p':
+        return <FuseDevice {...commonProps} />;
       case 'rcd_2p':
         return <RcdDevice {...commonProps} />;
       case 'spd_surge':
