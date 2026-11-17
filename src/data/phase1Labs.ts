@@ -107,20 +107,23 @@ const flashWires: ElectricalWire[] = [
 // ── B2 · gG fuse: overload then short circuit ─────────────────────────────────────────────────
 const gGDevices: ElectricalDevice[] = [
   dev('kwh_meter_1p', 40, 40, 'src', { name: 'Service Meter (source)' }),
-  dev('fuse_holder_1p', 260, 60, 'f1', { name: 'F1 gG Fuse 6A (too small)', state: { fuseKind: 'gG', ratedAmps: 6 } }),
-  dev('appliance_water_heater', 420, 60, 'wh', { name: 'Instant Water Heater (3.5 kW)', state: { wattage: 3500 } }),
-  dev('switch_1gang', 260, 260, 'sw_short', { name: 'Short-Circuit Test Switch', state: { closed: false } }),
-  dev('neutral_busbar', 560, 60, 'nbar', { name: 'Neutral Busbar' }),
-  dev('earth_busbar', 640, 60, 'pebar', { name: 'PE Busbar', state: { isEarth: true } }),
+  dev('rcd_2p', 220, 40, 'rcd', { name: 'RCD 30 mA' }),
+  dev('fuse_holder_1p', 380, 60, 'f1', { name: 'F1 gG Fuse 6A (too small)', state: { fuseKind: 'gG', ratedAmps: 6 } }),
+  dev('appliance_water_heater', 520, 60, 'wh', { name: 'Instant Water Heater (3.5 kW)', state: { wattage: 3500 } }),
+  dev('switch_1gang', 380, 260, 'sw_short', { name: 'Short-Circuit Test Switch', state: { closed: false } }),
+  dev('neutral_busbar', 660, 60, 'nbar', { name: 'Neutral Busbar' }),
+  dev('earth_busbar', 740, 60, 'pebar', { name: 'PE Busbar', state: { isEarth: true } }),
 ];
 const gGWires: ElectricalWire[] = [
-  wr('src', 'l_out', 'f1', 'in_l', RED),
-  wr('f1', 'out_l', 'wh', 'line', RED),
-  wr('f1', 'out_l', 'sw_short', 'l_in', RED),
-  wr('sw_short', 'sw_out', 'nbar', 'n_3', ORANGE),
-  wr('wh', 'neutral', 'nbar', 'n_1', BLUE),
-  wr('src', 'n_out', 'nbar', 'n_main', BLUE),
-  wr('pebar', 'pe_1', 'wh', 'ground', GREEN),
+  wr('src', 'l_out', 'rcd', 'in_l', RED, G12),
+  wr('src', 'n_out', 'nbar', 'n_main', BLUE, G12),
+  wr('nbar', 'n_1', 'rcd', 'in_n', BLUE, G12),
+  wr('rcd', 'out_l', 'f1', 'in_l', RED, G12),
+  wr('f1', 'out_l', 'wh', 'line', RED, G12),
+  wr('f1', 'out_l', 'sw_short', 'l_in', RED, G12),
+  wr('sw_short', 'sw_out', 'pebar', 'pe_2', GREEN, G12),
+  wr('rcd', 'out_n', 'wh', 'neutral', BLUE, G12),
+  wr('pebar', 'pe_1', 'wh', 'ground', GREEN, G12),
 ];
 
 // ── B2 · One blown link on a DOL starter (single-phasing) ─────────────────────────────────────
@@ -145,23 +148,23 @@ const rcboDevices: ElectricalDevice[] = [
   dev('earth_busbar', 640, 40, 'pebar', { name: 'PE Busbar', state: { isEarth: true } }),
 ];
 const rcboWires: ElectricalWire[] = [
-  wr('src', 'l_out', 'rcbo_a', 'in_l', RED),
-  wr('src', 'l_out', 'rcbo_b', 'in_l', RED),
-  wr('src', 'n_out', 'nbar', 'n_main', BLUE),
-  wr('nbar', 'n_1', 'rcbo_a', 'in_n', BLUE),
-  wr('nbar', 'n_2', 'rcbo_b', 'in_n', BLUE),
-  wr('rcbo_a', 'out_l', 'sock_a', 'line', RED),
-  wr('rcbo_a', 'out_n', 'sock_a', 'neutral', BLUE),
-  wr('rcbo_b', 'out_l', 'sock_b', 'line', RED),
-  wr('rcbo_b', 'out_n', 'sock_b', 'neutral', BLUE),
-  wr('pebar', 'pe_1', 'sock_a', 'ground', GREEN),
-  wr('pebar', 'pe_2', 'sock_b', 'ground', GREEN),
+  wr('src', 'l_out', 'rcbo_a', 'in_l', RED, G12),
+  wr('src', 'l_out', 'rcbo_b', 'in_l', RED, G12),
+  wr('src', 'n_out', 'nbar', 'n_main', BLUE, G12),
+  wr('nbar', 'n_1', 'rcbo_a', 'in_n', BLUE, G12),
+  wr('nbar', 'n_2', 'rcbo_b', 'in_n', BLUE, G12),
+  wr('rcbo_a', 'out_l', 'sock_a', 'line', RED, G12),
+  wr('rcbo_a', 'out_n', 'sock_a', 'neutral', BLUE, G12),
+  wr('rcbo_b', 'out_l', 'sock_b', 'line', RED, G12),
+  wr('rcbo_b', 'out_n', 'sock_b', 'neutral', BLUE, G12),
+  wr('pebar', 'pe_1', 'sock_a', 'ground', GREEN, G12),
+  wr('pebar', 'pe_2', 'sock_b', 'ground', GREEN, G12),
 ];
 
 // ── B4 · Standby generator and ATS ────────────────────────────────────────────────────────────
 const standbyDevices: ElectricalDevice[] = [
   dev('kwh_meter_1p', 40, 30, 'util', { name: 'Utility Service Meter' }),
-  dev('service_disconnect_2p', 250, 40, 'qmain', { name: 'Utility Main (open it for an outage)', state: { closed: true, tripped: false, ratedAmps: 63 } }),
+  dev('service_disconnect_2p', 250, 40, 'qmain', { name: 'Utility Main (open it for an outage)', state: { closed: true, tripped: false, ratedAmps: 20 } }),
   dev('industrial_relay_dpdt', 400, 40, 'rly', { name: 'K1 Loss-of-Mains Relay' }),
   dev('ats_changeover', 220, 260, 'ats', { name: 'Q2 Automatic Transfer Switch', state: { source: 'normal', autoMode: true, transferDelaySec: 3 } }),
   dev('generator_set_1p', 430, 250, 'gen', { name: 'G1 Standby Generator 5 kVA', state: { ratedKva: 5 } }),
@@ -169,20 +172,20 @@ const standbyDevices: ElectricalDevice[] = [
   dev('light_bulb', 300, 470, 'lamp2', { name: 'Essential Lamp 2' }),
 ];
 const standbyWires: ElectricalWire[] = [
-  wr('util', 'l_out', 'qmain', 'in_l', RED),
-  wr('util', 'n_out', 'qmain', 'in_n', BLUE),
-  wr('qmain', 'out_l', 'ats', 'norm_l', RED),
-  wr('qmain', 'out_n', 'ats', 'norm_n', BLUE),
-  wr('qmain', 'out_l', 'rly', 'a1', RED),
-  wr('qmain', 'out_n', 'rly', 'a2', BLUE),
-  wr('gen', 'l_out', 'ats', 'gen_l', RED),
-  wr('gen', 'n_out', 'ats', 'gen_n', BLUE),
-  wr('gen', 'start_a', 'rly', 'com_1', ORANGE),
-  wr('gen', 'start_b', 'rly', 'nc_1', ORANGE),
-  wr('ats', 'load_l', 'lamp1', 'hot', RED),
-  wr('ats', 'load_n', 'lamp1', 'neutral', BLUE),
-  wr('ats', 'load_l', 'lamp2', 'hot', RED),
-  wr('ats', 'load_n', 'lamp2', 'neutral', BLUE),
+  wr('util', 'l_out', 'qmain', 'in_l', RED, G12),
+  wr('util', 'n_out', 'qmain', 'in_n', BLUE, G12),
+  wr('qmain', 'out_l', 'ats', 'norm_l', RED, G12),
+  wr('qmain', 'out_n', 'ats', 'norm_n', BLUE, G12),
+  wr('qmain', 'out_l', 'rly', 'a1', RED, G12),
+  wr('qmain', 'out_n', 'rly', 'a2', BLUE, G12),
+  wr('gen', 'l_out', 'ats', 'gen_l', RED, G12),
+  wr('gen', 'n_out', 'ats', 'gen_n', BLUE, G12),
+  wr('gen', 'start_a', 'rly', 'com_1', ORANGE, G12),
+  wr('gen', 'start_b', 'rly', 'nc_1', ORANGE, G12),
+  wr('ats', 'load_l', 'lamp1', 'hot', RED, G12),
+  wr('ats', 'load_n', 'lamp1', 'neutral', BLUE, G12),
+  wr('ats', 'load_l', 'lamp2', 'hot', RED, G12),
+  wr('ats', 'load_n', 'lamp2', 'neutral', BLUE, G12),
 ];
 
 export const PHASE1_LABS: LabLesson[] = [
@@ -240,7 +243,7 @@ export const PHASE1_LABS: LabLesson[] = [
     badge: '🔥 gG Fuse',
     difficulty: 'Intermediate',
     description:
-      'A 3.5 kW water heater (about 15 A) is wired to a 6 A gG fuse. The fuse carries 2.5 times its rating, heats up along the gG time-current curve and blows after a few simulated minutes. Replace it with a 16 A link and the heater runs. A test switch bolts the fuse output to neutral to show the instant short-circuit melt.',
+      'A 3.5 kW water heater (about 15 A) is wired to a 6 A gG fuse. The fuse carries 2.5 times its rating, heats up along the gG time-current curve and blows after a few simulated minutes. Replace it with a 16 A link and the heater runs. A test switch bolts the fuse output to earth to show the instant short-circuit melt.',
     objectives: [
       'Press ▶ Simulate: the 6 A fuse heat bar fills (the model runs 20 times faster than real time) and the fuse blows. The heater goes dead and the indicator turns red.',
       'Stop the simulation, select F1 and use Replace fuse, then set the rating to 16 A in the Device Inspector.',

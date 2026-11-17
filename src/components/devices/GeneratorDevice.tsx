@@ -73,7 +73,7 @@ export const GeneratorDevice: React.FC<DeviceProps> = (props) => {
       {loadFrac > 0 && <rect x={9} y={faceY + faceH - 11} width={(W - 18) * Math.min(1, loadFrac / 1.2)} height={4} rx={2} fill={loadFrac > 1 ? 'var(--act-red)' : 'var(--ok)'} />}
       <Mono x={9} y={faceY + faceH - 14} size={3.6} muted>{`LOAD ${loadKw.toFixed(2)} kW`}</Mono>
 
-      <TermIds device={device} local size={3.8} side={(t) => (t.relY < 0.5 ? 'below' : 'above')} />
+      <TermIds device={device} local size={4} side={() => 'right'} text={(t) => (t.label || t.id).replace('START ', 'ST-')} />
       <Terminals {...props} local />
     </g>
   );
