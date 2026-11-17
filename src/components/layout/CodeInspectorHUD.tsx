@@ -7,7 +7,6 @@ import {
   AlertCircle, 
   Info, 
   RotateCcw,
-  Sparkles,
   Zap,
   X
 } from 'lucide-react';

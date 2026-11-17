@@ -2,7 +2,6 @@ import type { LadderRung } from './ladder';
 
 export type CodeStandard = 'PEC' | 'IEC';
 
-export type WiringMode = 'single' | 'dual_ln' | 'triple_lnpe';
 
 export type TerminalType = 
   | 'phase' 
@@ -66,8 +65,6 @@ export type DeviceType =
   | 'appliance_water_heater'
   | 'appliance_fan'
   | 'appliance_ac'
-  | 'motor_3phase_dol'
-  | 'junction_box'
   | 'junction_box_4way'
   | 'junction_box_octagonal_orange'
   | 'splice_wire_nut'
@@ -94,7 +91,6 @@ export type DeviceType =
   | 'switch_3gang'
   | 'dimmer_switch'
   | 'ats_changeover'
-  | 'panelboard_frame'
   | 'panel_meter'
   | 'timer_relay'
   | 'selector_hoa'
@@ -175,7 +171,8 @@ export interface ElectricalWire {
   voltageDropVolts?: number;
   voltageDropPercent?: number;
   waypoints?: { x: number; y: number }[];
-  cableBundleId?: string; // id grouping paired wires (e.g. feed + return)
+  /** @deprecated No longer generated; kept so older saved projects keep type-checking and loading. */
+  cableBundleId?: string;
   conductorRole?: 'feed_live' | 'return_neutral' | 'earth_ground' | 'switched_live' | 'traveler';
   label?: string; // Optional user circuit/wire tag (e.g. CKT-1 L1, T1, SW-RET)
 }

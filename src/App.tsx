@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard, DeviceType, WiringMode } from './types/electrical';
+import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard, DeviceType } from './types/electrical';
 import { CodeViolation } from './types/codes';
 import { SparkEvent } from './types/simulation';
-import { LAB_LESSONS, LabLesson, createBlankProject } from './data/labTemplates';
+import { LabLesson, createBlankProject } from './data/labTemplates';
 import { createDeviceFromCatalog } from './data/defaultComponents';
 import { COLOR_STANDARDS, getDefaultWireGauge } from './data/standardsData';
 import { solveCircuit, createDeEnergizedSolution, SolvedCircuit } from './core/circuitSolver';
@@ -19,13 +19,13 @@ import { SchematicCanvas } from './components/canvas/SchematicCanvas';
 import { LadderCanvas } from './components/canvas/LadderCanvas';
 import { LadderRung } from './types/ladder';
 import { sound } from './utils/soundFx';
-import { resetTransientState, resetTripState, toEditModeDevices } from './utils/deviceState';
-import { migrateLegacyDevices } from './utils/projectMigration';
-import { Trash2, Lock } from 'lucide-react';
+import { resetTripState, toEditModeDevices } from './utils/deviceState';
+import { migrateLegacyProject } from './utils/projectMigration';
+import { inferConductorRole } from './core/conductorRole';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
-export type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
+type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
 
 function loadEmbeddedProject(): ElectricalProject | null {
   try {
@@ -33,7 +33,8 @@ function loadEmbeddedProject(): ElectricalProject | null {
     if (!el?.textContent?.trim()) return null;
     const parsed = JSON.parse(el.textContent);
     if (parsed && Array.isArray(parsed.devices) && Array.isArray(parsed.wires)) {
-      return { ...parsed, devices: toEditModeDevices(migrateLegacyDevices(parsed.devices)) };
+      const migrated = migrateLegacyProject(parsed.devices, parsed.wires);
+      return { ...parsed, devices: toEditModeDevices(migrated.devices), wires: migrated.wires };
     }
   } catch {
     // Fall back to blank canvas if embedded JSON is malformed
@@ -91,7 +92,6 @@ export const App: React.FC = () => {
   }, []);
 
   // Active wire drawing tool state
-  const [wiringMode, setWiringMode] = useState<WiringMode>('single');
   const [activeWireColor, setActiveWireColor] = useState<string>(COLOR_STANDARDS.PEC.phase1);
   const [activeWireGauge, setActiveWireGauge] = useState<string>(getDefaultWireGauge('PEC', 'lighting'));
   const [activeWireLength, setActiveWireLength] = useState<number>(5);
@@ -419,13 +419,12 @@ export const App: React.FC = () => {
     }
   };
 
-  // Connect terminals with support for paired 2-wire (Live + Neutral Return) & 3-wire runs
+  // Connect two terminals with a single conductor; its role is inferred from the terminal types
   const handleConnectWire = (
-    fromDevId: string, 
-    fromTermId: string, 
-    toDevId: string, 
-    toTermId: string,
-    mode: WiringMode = wiringMode
+    fromDevId: string,
+    fromTermId: string,
+    toDevId: string,
+    toTermId: string
   ) => {
     if (isEditBlocked()) return;
     const fromDev = project.devices.find(d => d.id === fromDevId);
@@ -435,66 +434,22 @@ export const App: React.FC = () => {
     pushUndoSnapshot();
     sound.playSwitchClick();
 
-    const newWires: ElectricalWire[] = [];
-    const bundleId = `bundle_${Date.now()}`;
+    const fromTerm = fromDev.terminals.find(t => t.id === fromTermId);
+    const toTerm = toDev.terminals.find(t => t.id === toTermId);
 
-    // Primary wire (the clicked terminals)
-    const primaryWire: ElectricalWire = {
-      id: `w_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      fromDeviceId: fromDevId,
-      fromTerminalId: fromTermId,
-      toDeviceId: toDevId,
-      toTerminalId: toTermId,
-      wireGauge: activeWireGauge,
-      color: activeWireColor,
-      lengthMeters: activeWireLength,
-      cableBundleId: bundleId,
-      conductorRole: 'feed_live'
-    };
-    newWires.push(primaryWire);
-
-    // If Paired 2-Wire Cable Mode (Live + Neutral Return)
-    if (mode === 'dual_ln' || mode === 'triple_lnpe') {
-      // Find matching Neutral terminals on both devices
-      const fromNeutralTerm = fromDev.terminals.find(t => t.type === 'neutral' || t.id.includes('n'));
-      const toNeutralTerm = toDev.terminals.find(t => t.type === 'neutral' || t.id.includes('n'));
-
-      if (fromNeutralTerm && toNeutralTerm && (fromNeutralTerm.id !== fromTermId || toNeutralTerm.id !== toTermId)) {
-        newWires.push({
-          id: `w_${Date.now()}_n_${Math.floor(Math.random() * 1000)}`,
-          fromDeviceId: fromDevId,
-          fromTerminalId: fromNeutralTerm.id,
-          toDeviceId: toDevId,
-          toTerminalId: toNeutralTerm.id,
-          wireGauge: activeWireGauge,
-          color: COLOR_STANDARDS[standard].neutral,
-          lengthMeters: activeWireLength,
-          cableBundleId: bundleId,
-          conductorRole: 'return_neutral'
-        });
+    const newWires: ElectricalWire[] = [
+      {
+        id: `w_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        fromDeviceId: fromDevId,
+        fromTerminalId: fromTermId,
+        toDeviceId: toDevId,
+        toTerminalId: toTermId,
+        wireGauge: activeWireGauge,
+        color: activeWireColor,
+        lengthMeters: activeWireLength,
+        conductorRole: inferConductorRole(fromTerm, toTerm)
       }
-    }
-
-    // If 3-Wire Cable Mode (+ Earth Ground)
-    if (mode === 'triple_lnpe') {
-      const fromEarthTerm = fromDev.terminals.find(t => t.type === 'earth' || t.id.includes('pe') || t.id === 'ground');
-      const toEarthTerm = toDev.terminals.find(t => t.type === 'earth' || t.id.includes('pe') || t.id === 'ground');
-
-      if (fromEarthTerm && toEarthTerm && (fromEarthTerm.id !== fromTermId || toEarthTerm.id !== toTermId)) {
-        newWires.push({
-          id: `w_${Date.now()}_pe_${Math.floor(Math.random() * 1000)}`,
-          fromDeviceId: fromDevId,
-          fromTerminalId: fromEarthTerm.id,
-          toDeviceId: toDevId,
-          toTerminalId: toEarthTerm.id,
-          wireGauge: activeWireGauge,
-          color: COLOR_STANDARDS[standard].earth,
-          lengthMeters: activeWireLength,
-          cableBundleId: bundleId,
-          conductorRole: 'earth_ground'
-        });
-      }
-    }
+    ];
 
     // Filter out wires that already exist
     const nonDuplicates = newWires.filter(nw => 
@@ -1019,7 +974,8 @@ export const App: React.FC = () => {
           // Imported projects always open de-energized in Edit Mode
           setIsSimulating(false);
           setSparkFlash([]);
-          setProject({ ...imported, devices: toEditModeDevices(migrateLegacyDevices(imported.devices)) });
+          const migrated = migrateLegacyProject(imported.devices, imported.wires);
+          setProject({ ...imported, devices: toEditModeDevices(migrated.devices), wires: migrated.wires });
           setSelectedDeviceId(null);
           setSelectedGroupIds([]);
           setSelectedWireId(null);
@@ -1155,11 +1111,9 @@ export const App: React.FC = () => {
       {/* Conductor & Cable Tool Ribbon Dock */}
       <ConductorToolDock
         standard={standard}
-        wiringMode={wiringMode}
         activeWireColor={activeWireColor}
         activeWireGauge={activeWireGauge}
         activeWireLength={activeWireLength}
-        onSelectWiringMode={setWiringMode}
         onSelectWireColor={setActiveWireColor}
         onSelectWireGauge={setActiveWireGauge}
         onSelectWireLength={setActiveWireLength}
@@ -1209,9 +1163,7 @@ export const App: React.FC = () => {
               wires={project.wires}
               solved={solved}
               standard={standard}
-              wiringMode={wiringMode}
               activeWireColor={activeWireColor}
-              activeWireGauge={activeWireGauge}
               selectedDeviceId={selectedDeviceId}
               selectedDeviceIds={selectedGroupIds}
               selectedWireId={selectedWireId}
@@ -1279,9 +1231,7 @@ export const App: React.FC = () => {
                   wires={project.wires}
                   solved={solved}
                   standard={standard}
-                  wiringMode={wiringMode}
                   activeWireColor={activeWireColor}
-                  activeWireGauge={activeWireGauge}
                   selectedDeviceId={selectedDeviceId}
                   selectedDeviceIds={selectedGroupIds}
                   selectedWireId={selectedWireId}

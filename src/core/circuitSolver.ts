@@ -76,7 +76,7 @@ const BREAKER_TYPES = new Set([
 const CW_SEQUENCES = ['L1,L2,L3', 'L2,L3,L1', 'L3,L1,L2'];
 
 /** Approximate 3-phase motor full-load line current (η·pf ≈ 0.6 → close to PEC/NEC FLA tables) */
-export function motorLineAmps(watts: number, lineVolts: number): number {
+function motorLineAmps(watts: number, lineVolts: number): number {
   return watts / (Math.sqrt(3) * lineVolts * 0.6);
 }
 
@@ -215,7 +215,7 @@ export function solveCircuit(
         addEdge(terminalKey(dev.id, 'in_1'), terminalKey(dev.id, 'out_2'));
         addEdge(terminalKey(dev.id, 'in_2'), terminalKey(dev.id, 'out_1'));
       }
-    } else if (dev.type === 'junction_box' || dev.type === 'junction_box_4way' || dev.type === 'junction_box_octagonal_orange') {
+    } else if (dev.type === 'junction_box_4way' || dev.type === 'junction_box_octagonal_orange') {
       // Terminals belonging to the same spliceGroup are bonded together
       for (let i = 0; i < dev.terminals.length; i++) {
         for (let j = i + 1; j < dev.terminals.length; j++) {
@@ -734,16 +734,6 @@ export function solveCircuit(
       if (isPowered) {
         totalWatts += dev.state.wattage || 1200;
       }
-    } else if (dev.type === 'motor_3phase_dol') {
-      const l1Pot = nodePotentials[terminalKey(dev.id, 'l1')];
-      const l2Pot = nodePotentials[terminalKey(dev.id, 'l2')];
-      const l3Pot = nodePotentials[terminalKey(dev.id, 'l3')];
-      const isRunning = l1Pot === 'live' && (l2Pot === 'live' || l2Pot === 'neutral') && (l3Pot === 'live' || l3Pot === 'neutral');
-      deviceEnergized[dev.id] = isRunning;
-      dev.state.running = isRunning;
-      if (isRunning) {
-        totalWatts += dev.state.wattage || 2200;
-      }
     } else if (dev.type === 'motor_ac_industrial') {
       const tk = ['u1', 'v1', 'w1'].map(t => terminalKey(dev.id, t));
       const pots = tk.map(k => nodePotentials[k]);
@@ -999,9 +989,6 @@ export function solveCircuit(
     } else if (dev.type === 'appliance_water_heater') {
       const w = dev.state.wattage || 3500;
       traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
-    } else if (dev.type === 'motor_3phase_dol') {
-      const w = dev.state.wattage || 2200;
-      traceLoadCurrent(terminalKey(dev.id, 'l1'), terminalKey(dev.id, 'l2'), w / gridVoltage);
     } else if (dev.type === 'motor_ac_industrial') {
       const w = dev.state.wattage || 2200;
       const isThreePhase = !!nodePhases[terminalKey(dev.id, 'u1')];
@@ -1165,8 +1152,8 @@ export function solveCircuit(
 
   const motorInrushByBreaker: Record<string, number> = {};
   for (const dev of devices) {
-    if ((dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'motor_3phase_dol') && deviceEnergized[dev.id]) {
-      const startKey = terminalKey(dev.id, dev.type === 'motor_3phase_dol' ? 'l1' : 'u1');
+    if ((dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta') && deviceEnergized[dev.id]) {
+      const startKey = terminalKey(dev.id, 'u1');
       const runAmps = dev.state.measuredAmps || (dev.state.wattage || 2200) / gridVoltage;
       const inrushMult = hasVfdUpstream(startKey)
         ? 1.8

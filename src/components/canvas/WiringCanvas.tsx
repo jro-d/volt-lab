@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ElectricalDevice, ElectricalWire, DeviceTerminal, CodeStandard, WiringMode, DeviceType } from '../../types/electrical';
+import { ElectricalDevice, ElectricalWire, DeviceTerminal, CodeStandard, DeviceType } from '../../types/electrical';
 import { DeviceRenderer } from '../devices/DeviceRenderer';
 import { TerminalHighlightContext, HighlightedEndpointInfo } from '../devices/TerminalContext';
 import { WireRenderer } from './WireRenderer';
@@ -13,9 +13,7 @@ interface WiringCanvasProps {
   wires: ElectricalWire[];
   solved: SolvedCircuit;
   standard: CodeStandard;
-  wiringMode: WiringMode;
   activeWireColor: string;
-  activeWireGauge: string;
   selectedDeviceId: string | null;
   /** Additional Shift+click multi-selection (ordered, first = alignment anchor) */
   selectedDeviceIds?: string[];
@@ -36,7 +34,7 @@ interface WiringCanvasProps {
   onOpenInspector?: () => void;
   onUpdateDevicePosition: (id: string, x: number, y: number) => void;
   onUpdateMultipleDevicePositions?: (updates: { id: string; x: number; y: number }[]) => void;
-  onConnectWire: (fromDevId: string, fromTermId: string, toDevId: string, toTermId: string, mode?: WiringMode) => void;
+  onConnectWire: (fromDevId: string, fromTermId: string, toDevId: string, toTermId: string) => void;
   rewiringTarget?: { wireId: string; moveEnd: 'from' | 'to' } | null;
   onSetRewiringTarget?: (target: { wireId: string; moveEnd: 'from' | 'to' } | null) => void;
   onRewireWire?: (wireId: string, moveEnd: 'from' | 'to', newDeviceId: string, newTerminalId: string) => void;
@@ -74,9 +72,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   wires,
   solved,
   standard,
-  wiringMode,
   activeWireColor,
-  activeWireGauge,
   selectedDeviceId,
   selectedDeviceIds = [],
   selectedWireId,
@@ -366,7 +362,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     } else {
       // Complete connection if clicking a different terminal
       if (wiringStart.dev.id !== device.id || wiringStart.term.id !== terminal.id) {
-        onConnectWire(wiringStart.dev.id, wiringStart.term.id, device.id, terminal.id, wiringMode);
+        onConnectWire(wiringStart.dev.id, wiringStart.term.id, device.id, terminal.id);
       }
       setWiringStart(null);
     }
@@ -809,7 +805,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                   }
                 }}
                 onOpenInspector={onOpenInspector}
-                onStartSegmentDrag={(wireId, segIdx, isHoriz, pt, waypoints, e) => {
+                onStartSegmentDrag={(wireId, segIdx, isHoriz, _pt, waypoints, e) => {
                   if (isSimulating) {
                     onBlockedEdit?.('simulating');
                     return;

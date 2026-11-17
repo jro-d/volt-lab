@@ -417,27 +417,6 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     ]
   },
   {
-    type: 'motor_3phase_dol',
-    category: 'load',
-    name: '3-Phase Induction Motor & Starter',
-    defaultLabel: 'MOTOR-3P',
-    width: 140,
-    height: 140,
-    description: '3-Phase 2.2kW motor with integrated contactor, overload relay, and Start/Stop push buttons.',
-    defaultProperties: {
-      wattage: 2200,
-      powerFactor: 0.85,
-      running: false,
-      rpm: 0,
-    },
-    terminals: [
-      { id: 'l1', name: 'Line 1 (L1)', type: 'phase', relX: 0.20, relY: 0.10, label: 'L1' },
-      { id: 'l2', name: 'Line 2 (L2)', type: 'phase2', relX: 0.40, relY: 0.10, label: 'L2' },
-      { id: 'l3', name: 'Line 3 (L3)', type: 'phase3', relX: 0.60, relY: 0.10, label: 'L3' },
-      { id: 'pe', name: 'Frame Earth (PE)', type: 'earth', relX: 0.80, relY: 0.10, label: 'PE' },
-    ]
-  },
-  {
     type: 'junction_box_4way',
     category: 'splice',
     name: '4-Way Junction Box (J-Box)',
@@ -1004,24 +983,6 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
       { id: 'gen_n', name: 'Generator N', type: 'neutral', relX: 0.82, relY: 0.08, label: 'G-N', phaseLabel: 'N' },
       { id: 'load_l', name: 'Load Out L1', type: 'load', relX: 0.35, relY: 0.92, label: 'LOAD L', phaseLabel: 'L' },
       { id: 'load_n', name: 'Load Out N', type: 'neutral', relX: 0.65, relY: 0.92, label: 'LOAD N', phaseLabel: 'N' },
-    ],
-  },
-  {
-    type: 'panelboard_frame',
-    category: 'protection',
-    name: '8-Branch Distribution Panelboard Frame',
-    defaultLabel: 'LP-1',
-    width: 340,
-    height: 240,
-    productStandard: 'IEC 61439-3 / NEMA 1',
-    modelNumber: '8-Branch Panelboard',
-    mountingType: 'surface_nema3r',
-    pecReference: 'PEC 2017 Art. 4.08 (Switchboards & Panelboards)',
-    description: 'Surface/flush steel panelboard enclosure with integrated Neutral & Grounding busbars.',
-    defaultProperties: { label: 'LP-1 (230V 1Φ)' },
-    terminals: [
-      { id: 'n_bus', name: 'Neutral Busbar', type: 'neutral', relX: 0.14, relY: 0.88, label: 'N-BUS', phaseLabel: 'N' },
-      { id: 'pe_bus', name: 'Ground Busbar', type: 'earth', relX: 0.86, relY: 0.88, label: 'PE-BUS', phaseLabel: 'PE' },
     ],
   },
   {

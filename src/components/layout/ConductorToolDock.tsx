@@ -1,38 +1,28 @@
 import React, { useState } from 'react';
-import { CodeStandard, WiringMode } from '../../types/electrical';
+import { CodeStandard } from '../../types/electrical';
 import { COLOR_STANDARDS, getWireStandards } from '../../data/standardsData';
 import { Cable, ChevronDown, ChevronUp } from 'lucide-react';
 import { conductorColor } from '../../styles/conductors';
 
 interface ConductorToolDockProps {
   standard: CodeStandard;
-  wiringMode: WiringMode;
   activeWireColor: string;
   activeWireGauge: string;
   activeWireLength: number;
-  onSelectWiringMode: (mode: WiringMode) => void;
   onSelectWireColor: (color: string) => void;
   onSelectWireGauge: (gauge: string) => void;
   onSelectWireLength: (length: number) => void;
   isLocked?: boolean;
 }
 
-const MODE_LABEL: Record<WiringMode, string> = {
-  single: '1-Wire',
-  dual_ln: '2-Wire L+N',
-  triple_lnpe: '3-Wire +PE',
-};
-
 /**
  * Compact, collapsible conductor & cable tool strip that sits at the top of the canvas.
  */
 export const ConductorToolDock: React.FC<ConductorToolDockProps> = ({
   standard,
-  wiringMode,
   activeWireColor,
   activeWireGauge,
   activeWireLength,
-  onSelectWiringMode,
   onSelectWireColor,
   onSelectWireGauge,
   onSelectWireLength,
@@ -70,7 +60,6 @@ export const ConductorToolDock: React.FC<ConductorToolDockProps> = ({
 
         {!isExpanded && (
           <div className="flex items-center gap-2 text-[11px] font-mono text-ink-muted shrink-0">
-            <span className="font-bold">{MODE_LABEL[wiringMode]}</span>
             <span className="w-3.5 h-3.5 rounded border border-border-strong" style={{ backgroundColor: conductorColor(activeWireColor) }} />
             <span className="truncate max-w-[180px]">{activeWireGauge}</span>
             <span>{activeWireLength} m</span>
@@ -79,30 +68,6 @@ export const ConductorToolDock: React.FC<ConductorToolDockProps> = ({
 
         {isExpanded && (
           <>
-            {/* Conductor pairing */}
-            <div className="flex items-center gap-0.5 bg-surface-sunken p-0.5 rounded-md shrink-0">
-              {(['single', 'dual_ln', 'triple_lnpe'] as WiringMode[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => onSelectWiringMode(m)}
-                  title={
-                    m === 'single'
-                      ? 'Single conductor (manual line, neutral or earth)'
-                      : m === 'dual_ln'
-                      ? 'Paired 2-wire cable: Feed (Live) + Return (Neutral)'
-                      : '3-wire cable: Live + Neutral Return + Earth Ground'
-                  }
-                  className={`px-2 h-6 text-[11px] font-semibold rounded-sm transition ${
-                    wiringMode === m
-                      ? 'bg-surface text-ink shadow-1'
-                      : 'text-ink-muted hover:text-ink'
-                  }`}
-                >
-                  {MODE_LABEL[m]}
-                </button>
-              ))}
-            </div>
-
             {/* Colour swatches */}
             <div className="flex items-center gap-1 shrink-0">
               {swatches.map((s, i) => (

@@ -36,7 +36,7 @@ export interface SchematicNode {
   status?: string;
 }
 
-export interface SchematicEdge {
+interface SchematicEdge {
   id: string;
   fromId: string;
   toId: string;

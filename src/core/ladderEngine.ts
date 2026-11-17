@@ -169,7 +169,7 @@ function buildNets(devices: ElectricalDevice[], wires: ElectricalWire[]) {
 }
 
 /** Factor a set of element sequences into a series-parallel tree */
-export function buildSeriesParallel<T extends { key: string }>(
+function buildSeriesParallel<T extends { key: string }>(
   seqs: T[][],
   toNode: (el: T) => LadderNode
 ): LadderNode {
@@ -377,7 +377,7 @@ export function rungToNode(rung: LadderRung): LadderNode {
 }
 
 /** Convert a general series-parallel tree to the block model (one level of parallelism) */
-export function nodeToBlocks(node: LadderNode, idPrefix: string): LadderRung['blocks'] {
+function nodeToBlocks(node: LadderNode, idPrefix: string): LadderRung['blocks'] {
   const flat = (n: LadderNode): LadderElement[] =>
     n.kind === 'el' ? [n.el] : n.items.flatMap(flat);
   const blocks: LadderRung['blocks'] = [];
@@ -392,7 +392,7 @@ export function nodeToBlocks(node: LadderNode, idPrefix: string): LadderRung['bl
 }
 
 /** Enumerate all series paths through a block-model rung */
-export function rungPaths(rung: LadderRung): LadderElement[][] {
+function rungPaths(rung: LadderRung): LadderElement[][] {
   let paths: LadderElement[][] = [[]];
   for (const b of rung.blocks) {
     const next: LadderElement[][] = [];
@@ -402,7 +402,7 @@ export function rungPaths(rung: LadderRung): LadderElement[][] {
   return paths;
 }
 
-export const elementRef = (el: LadderElement) =>
+const elementRef = (el: LadderElement) =>
   el.deviceId && el.contactKey ? `${el.deviceId}:${el.contactKey}` : `tag:${el.tag}:${el.sub}:${el.kind}`;
 
 /** Build a ready-made student ladder from the physical wiring */
@@ -575,37 +575,6 @@ export function verifyLadderAgainstPhysical(
     }
   }
   return msgs;
-}
-
-// ───────────────────────── Live evaluation ─────────────────────────
-
-export interface ElementLiveState {
-  powered: boolean; // voltage present on the input side
-  passes: boolean; // conducting
-  closed: boolean;
-}
-
-/** Walk a ladder tree propagating power left→right using the element closed-states */
-export function evaluateLadder(
-  node: LadderNode,
-  inPowered: boolean,
-  isClosed: (el: LadderElement) => boolean,
-  out: Record<string, ElementLiveState>
-): boolean {
-  if (node.kind === 'el') {
-    const closed = isClosed(node.el);
-    const passes = inPowered && closed;
-    out[node.el.id] = { powered: inPowered, passes, closed };
-    return passes;
-  }
-  if (node.kind === 'series') {
-    let p = inPowered;
-    for (const c of node.items) p = evaluateLadder(c, p, isClosed, out);
-    return p;
-  }
-  let any = false;
-  for (const c of node.items) any = evaluateLadder(c, inPowered, isClosed, out) || any;
-  return any;
 }
 
 /** Grid size of a ladder tree in cells */

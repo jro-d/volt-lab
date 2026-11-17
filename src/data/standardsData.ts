@@ -1,7 +1,7 @@
 import { WireGaugeStandard, ConduitFillStandard } from '../types/codes';
 import { CodeStandard } from '../types/electrical';
 
-export const PEC_WIRE_STANDARDS: WireGaugeStandard[] = [
+const PEC_WIRE_STANDARDS: WireGaugeStandard[] = [
   {
     id: 'pec-14awg',
     name: '14 AWG (2.0 mm²)',
@@ -70,7 +70,7 @@ export const PEC_WIRE_STANDARDS: WireGaugeStandard[] = [
   }
 ];
 
-export const IEC_WIRE_STANDARDS: WireGaugeStandard[] = [
+const IEC_WIRE_STANDARDS: WireGaugeStandard[] = [
   {
     id: 'iec-1.5mm',
     name: '1.5 mm²',

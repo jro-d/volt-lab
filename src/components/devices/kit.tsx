@@ -21,7 +21,7 @@ const TAG_PREFIX: Partial<Record<string, string>> = {
   safety_breaker_2p: 'Q', contactor_3p: 'KM', thermal_overload_relay: 'F', industrial_relay_dpdt: 'K',
   timer_relay: 'KT', push_button_station: 'S', push_button_fwd_rev: 'S', push_button_estop: 'S0',
   selector_hoa: 'SA', limit_switch: 'SQ', pilot_light_indicator: 'H', motor_ac_industrial: 'M',
-  motor_6lead_star_delta: 'M', motor_3phase_dol: 'Q', control_transformer: 'T', vfd_drive: 'U',
+  motor_6lead_star_delta: 'M', control_transformer: 'T', vfd_drive: 'U',
   plc_micro_controller: 'A', kwh_meter_1p: 'P', kwh_meter_3p: 'P', panel_meter: 'P', ats_changeover: 'Q',
   source_3phase_440v: 'X',
 };
@@ -163,17 +163,6 @@ export const Screw: React.FC<{ cx: number; cy: number; r?: number; m?: 'steel' |
   </g>
 );
 
-/** Row of ventilation slots. */
-export const Vents: React.FC<{ x: number; y: number; w: number; n: number; h?: number; gap?: number; dark?: boolean }> = ({
-  x, y, w, n, h = 1.4, gap = 2.6, dark,
-}) => (
-  <g className="pointer-events-none">
-    {Array.from({ length: n }).map((_, i) => (
-      <rect key={i} x={x} y={y + i * gap} width={w} height={h} rx={h / 2} fill={dark ? 'var(--mat-line)' : 'var(--mat-housing-shade)'} stroke={dark ? 'none' : 'var(--mat-line-soft)'} strokeWidth={0.4} />
-    ))}
-  </g>
-);
-
 /** DIN-rail clip tab at the bottom edge of a modular device. */
 export const DinClip: React.FC<{ cx: number; y: number }> = ({ cx, y }) => (
   <g className="pointer-events-none">
@@ -283,7 +272,7 @@ export const SymEarth: React.FC<Sym> = ({ x, y, s = 1, dark }) => (
 
 /* ─────────────────────────── Layer 5: terminals ─────────────────────────── */
 
-export interface TerminalHandlers {
+interface TerminalHandlers {
   device: ElectricalDevice;
   selectedTerminalId?: string | null;
   hoveredTerminalId?: string | null;

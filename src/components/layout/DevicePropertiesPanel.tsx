@@ -8,7 +8,6 @@ import {
   Zap, 
   Trash2, 
   X,
-  Gauge,
   RotateCcw,
   RotateCw,
   Copy

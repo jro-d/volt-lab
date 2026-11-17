@@ -1,5 +1,5 @@
-import { DeviceType, ElectricalDevice } from '../types/electrical';
-import { COMPONENT_CATALOG } from '../data/defaultComponents';
+import { DeviceType, ElectricalDevice, ElectricalWire } from '../types/electrical';
+import { COMPONENT_CATALOG, createDeviceFromCatalog } from '../data/defaultComponents';
 
 /**
  * Upgrades devices from projects saved by older VoltLab versions.
@@ -50,4 +50,87 @@ export function migrateLegacyDevices(devices: ElectricalDevice[]): ElectricalDev
     }
     return dev;
   });
+}
+
+/**
+ * Device types that were removed and replaced by another device, with the terminal id each old
+ * terminal maps to. Wires attached to a converted device are re-pointed through this table.
+ */
+const REPLACED_DEVICES: Record<string, { to: DeviceType; terminals: Record<string, string> }> = {
+  motor_3phase_dol: { to: 'motor_ac_industrial', terminals: { l1: 'u1', l2: 'v1', l3: 'w1', pe: 'pe' } },
+  // The generic junction box never had a catalog entry; its splice terminals share the octagonal box's ids
+  junction_box: { to: 'junction_box_octagonal_orange', terminals: {} },
+};
+
+/**
+ * Upgrades a whole saved project (devices and wires). Devices of a removed type are rebuilt from the
+ * replacement catalog entry (keeping id, position, rotation and wattage), and wires that ended on them
+ * are re-pointed at the matching terminal. Call this from every load path.
+ */
+export function migrateLegacyProject(
+  devices: ElectricalDevice[],
+  wires: ElectricalWire[]
+): { devices: ElectricalDevice[]; wires: ElectricalWire[] } {
+  const remap: Record<string, Record<string, string>> = {};
+  // Wire ends that move to a different device (panelboard bus bars become two separate bus bars)
+  const moved: Record<string, Record<string, { deviceId: string; terminalId: string }>> = {};
+
+  const splitDevices: ElectricalDevice[] = [];
+  for (const dev of devices) {
+    if ((dev.type as string) !== 'panelboard_frame') {
+      splitDevices.push(dev);
+      continue;
+    }
+    // The old panelboard frame only offered a neutral and an earth bus terminal, so it becomes
+    // a neutral bus bar (keeps the id) plus an earth bus bar placed beside it.
+    const neutralBar = createDeviceFromCatalog('neutral_busbar', dev.x + 33, dev.y + 40, dev.id);
+    const earthBar = createDeviceFromCatalog('earth_busbar', dev.x + 277, dev.y + 40, `${dev.id}_pe`);
+    if (dev.rotation) {
+      neutralBar.rotation = dev.rotation;
+      earthBar.rotation = dev.rotation;
+    }
+    splitDevices.push(neutralBar, earthBar);
+    moved[dev.id] = {
+      n_bus: { deviceId: neutralBar.id, terminalId: 'n_main' },
+      pe_bus: { deviceId: earthBar.id, terminalId: 'pe_main' },
+    };
+  }
+
+  const converted = splitDevices.map((dev) => {
+    const rule = REPLACED_DEVICES[dev.type as string];
+    if (!rule) return dev;
+    const fresh = createDeviceFromCatalog(rule.to, dev.x, dev.y, dev.id);
+    if (dev.rotation) fresh.rotation = dev.rotation;
+    if (typeof dev.state?.wattage === 'number') fresh.state.wattage = dev.state.wattage;
+    remap[dev.id] = rule.terminals;
+    return fresh;
+  });
+
+  const fixedWires = wires.map((w) => {
+    const mFrom = moved[w.fromDeviceId]?.[w.fromTerminalId];
+    const mTo = moved[w.toDeviceId]?.[w.toTerminalId];
+    if (mFrom || mTo) {
+      return {
+        ...w,
+        ...(mFrom ? { fromDeviceId: mFrom.deviceId, fromTerminalId: mFrom.terminalId } : {}),
+        ...(mTo ? { toDeviceId: mTo.deviceId, toTerminalId: mTo.terminalId } : {}),
+      };
+    }
+    const from = remap[w.fromDeviceId]?.[w.fromTerminalId];
+    const to = remap[w.toDeviceId]?.[w.toTerminalId];
+    return from || to
+      ? { ...w, fromTerminalId: from ?? w.fromTerminalId, toTerminalId: to ?? w.toTerminalId }
+      : w;
+  });
+
+  // Drop wires whose end terminal does not exist on the replacement device
+  const termsById = new Map<string, Set<string>>();
+  for (const dev of converted) termsById.set(dev.id, new Set(dev.terminals.map((t) => t.id)));
+  const validWires = fixedWires.filter(
+    (w) =>
+      !((w.fromDeviceId in remap || w.fromDeviceId in moved) && !termsById.get(w.fromDeviceId)?.has(w.fromTerminalId)) &&
+      !((w.toDeviceId in remap || w.toDeviceId in moved) && !termsById.get(w.toDeviceId)?.has(w.toTerminalId))
+  );
+
+  return { devices: migrateLegacyDevices(converted), wires: validWires };
 }
