@@ -34,8 +34,9 @@ export const SocketDevice: React.FC<DeviceProps> = (props) => {
         <circle cx={ox} cy={cy} r={13} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={0.9} />
         <circle cx={ox - 4.5} cy={cy} r={1.8} fill="var(--mat-line)" />
         <circle cx={ox + 4.5} cy={cy} r={1.8} fill="var(--mat-line)" />
-        <rect x={ox - 1.5} y={cy - 13} width={3} height={4} fill="var(--mat-steel)" />
-        <rect x={ox - 1.5} y={cy + 9} width={3} height={4} fill="var(--mat-steel)" />
+        {/* side earthing clips */}
+        <rect x={ox - 14.5} y={cy - 2.5} width={4} height={5} rx={0.8} fill="var(--mat-steel)" />
+        <rect x={ox + 10.5} y={cy - 2.5} width={4} height={5} rx={0.8} fill="var(--mat-steel)" />
       </g>
     ) : (
       <g key={ox}>

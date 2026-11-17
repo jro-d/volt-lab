@@ -8,6 +8,7 @@ import { Bay, DeviceProps, Housing, Led, Mono, Nameplate, SealHole, Silk, Termin
 export const KwhMeterDevice: React.FC<DeviceProps> = (props) => {
   const { device } = props;
   const { width: W, height: H } = device;
+  const three = device.type === 'kwh_meter_3p';
   const on = device.state.energized !== false;
   const kwh = Number(device.state.kwh ?? 0);
   const v = device.state.voltageIn || 230;
@@ -16,7 +17,7 @@ export const KwhMeterDevice: React.FC<DeviceProps> = (props) => {
   const bayY = ty - 9;
   const coverY = bayY - 22;
   const cx = W / 2;
-  const reading = kwh.toFixed(1).padStart(7, '0');
+  const reading = three ? kwh.toFixed(2).padStart(8, '0') : kwh.toFixed(1).padStart(7, '0');
 
   return (
     <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
@@ -25,7 +26,7 @@ export const KwhMeterDevice: React.FC<DeviceProps> = (props) => {
       <Housing w={W} h={H} m="light" rx={5} />
       {/* clear cover outline */}
       <rect x={4} y={4} width={W - 8} height={coverY - 6} rx={4} fill="var(--mat-housing-shade)" opacity={0.35} stroke="var(--mat-line-soft)" strokeWidth={0.6} />
-      <Nameplate x={10} y={10} w={W - 20} h={9} tag={deviceTag(device) || 'P'} center="kWh METER" text="CL.1" size={5} />
+      <Nameplate x={10} y={10} w={W - 20} h={9} tag={deviceTag(device) || 'P'} center={three ? 'kWh METER 3Φ' : 'kWh METER'} text="CL.1" size={5} />
 
       {/* LCD register */}
       <rect className="d-dark-face" x={14} y={24} width={W - 28} height={30} rx={2.5} />
@@ -36,15 +37,19 @@ export const KwhMeterDevice: React.FC<DeviceProps> = (props) => {
 
       {/* Test LED + optical port */}
       <Led cx={24} cy={66} r={2.2} on={on} color="red" />
-      <Mono x={30} y={67.6} size={4.2}>1600 imp/kWh</Mono>
+      {three ? (
+        <Mono x={30} y={67.6} size={4.2}>{`L1 ${Number(device.state.l1Amps || 0).toFixed(1)}A  L2 ${Number(device.state.l2Amps || 0).toFixed(1)}A  L3 ${Number(device.state.l3Amps || 0).toFixed(1)}A`}</Mono>
+      ) : (
+        <Mono x={30} y={67.6} size={4.2}>1600 imp/kWh</Mono>
+      )}
       <circle cx={W - 24} cy={66} r={7} fill="var(--mat-housing-dark-face)" stroke="var(--mat-line)" strokeWidth={0.8} />
       <circle cx={W - 24} cy={66} r={3} fill="var(--mat-line)" />
       <Silk x={W - 24} y={77.5} size={3.6} anchor="middle" muted>OPTO</Silk>
 
       {/* Rating plate */}
       <rect className="d-face" x={14} y={84} width={W - 28} height={coverY - 92} rx={1.5} />
-      <Mono x={18} y={91} size={4.2}>{`${v}V  10(60)A  ${hz}Hz`}</Mono>
-      <Mono x={18} y={97.5} size={3.6} muted>IEC 62053-21 · 1Φ 2W</Mono>
+      <Mono x={18} y={91} size={4.2}>{three ? `${v}V  10(100)A  ${hz}Hz` : `${v}V  10(60)A  ${hz}Hz`}</Mono>
+      <Mono x={18} y={97.5} size={3.6} muted>{three ? 'IEC 62053-21 · 3Φ 4W' : 'IEC 62053-21 · 1Φ 2W'}</Mono>
       <Silk x={18} y={105} size={3.8} muted>UTILITY REVENUE METER</Silk>
       {/* barcode */}
       {Array.from({ length: 22 }).map((_, i) => (

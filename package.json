@@ -10,8 +10,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "build:standalone": "tsc && vite build --config vite.standalone.config.ts && node scripts/build-standalone.mjs",
+    "check:catalog": "node scripts/check-catalog.mjs",
+    "build": "node scripts/check-catalog.mjs && tsc && vite build",
+    "build:standalone": "node scripts/check-catalog.mjs && tsc && vite build --config vite.standalone.config.ts && node scripts/build-standalone.mjs",
     "preview": "vite preview",
     "test": "node tests/run-all.mjs"
   },

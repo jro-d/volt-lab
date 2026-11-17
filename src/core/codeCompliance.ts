@@ -8,6 +8,7 @@ import { parsePhysicalLadder } from './ladderEngine';
 const PANEL_DEVICE_TYPES = new Set([
   'source_3phase_440v',
   'kwh_meter_1p',
+  'kwh_meter_3p',
   'service_disconnect_2p',
   'rcd_2p',
   'spd_surge',
@@ -187,7 +188,8 @@ export function analyzeCodeCompliance(
       const lPot = solved.nodePotentials[`${sw.id}:line`] || solved.nodePotentials[`${sw.id}:l_in`];
       const nPot = solved.nodePotentials[`${sw.id}:neutral`] || solved.nodePotentials[`${sw.id}:n_in`];
 
-      if (lPot === 'neutral' && nPot === 'live') {
+      // A Schuko plug is reversible, so line/neutral swapped at the receptacle is not a polarity fault
+      if (sw.type !== 'socket_schuko' && lPot === 'neutral' && nPot === 'live') {
         violations.push({
           id: `viol_reversed_polarity_${sw.id}`,
           codeStandard: standard,

@@ -22,6 +22,7 @@ import { sound } from './utils/soundFx';
 import { resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
+import { needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
@@ -333,38 +334,17 @@ export const App: React.FC = () => {
     });
   };
 
-  // On-Delay Timer Relay (KT1) & live Panel Meter telemetry tick while simulating
+  // Time-dependent devices (timer relays, energy meters, fuses, generators ...) advance while simulating
   React.useEffect(() => {
-    if (!isSimulating) return;
-    const hasTimers = project.devices.some((d) => d.type === 'timer_relay');
-    if (!hasTimers) return;
+    if (!isSimulating || !needsTick(project.devices)) return;
     const id = window.setInterval(() => {
       setProject((prev) => {
-        let changed = false;
-        const devices = prev.devices.map((d) => {
-          if (d.type !== 'timer_relay') return d;
-          const isCoilHot = !!solved.deviceEnergized[d.id];
-          const delaySec = typeof d.state.delaySec === 'number' ? d.state.delaySec : 5;
-          const prevElapsed = typeof d.state.elapsedSec === 'number' ? d.state.elapsedSec : 0;
-          const prevTimedOut = !!d.state.timedOut;
-          const prevEnergized = !!d.state.energized;
-
-          if (!isCoilHot) {
-            if (!prevEnergized && prevElapsed === 0 && !prevTimedOut) return d;
-            changed = true;
-            return { ...d, state: { ...d.state, energized: false, elapsedSec: 0, timedOut: false } };
-          }
-          const nextElapsed = Math.min(delaySec, Number((prevElapsed + 0.5).toFixed(1)));
-          const nextTimedOut = nextElapsed >= delaySec;
-          if (prevEnergized && prevElapsed === nextElapsed && prevTimedOut === nextTimedOut) return d;
-          changed = true;
-          return { ...d, state: { ...d.state, energized: true, elapsedSec: nextElapsed, timedOut: nextTimedOut } };
-        });
-        return changed ? { ...prev, devices } : prev;
+        const devices = tickSimulation(prev.devices, prev.wires, solved, prev.gridFrequency, TICK_SECONDS);
+        return devices === prev.devices ? prev : { ...prev, devices };
       });
-    }, 500);
+    }, TICK_SECONDS * 1000);
     return () => window.clearInterval(id);
-  }, [isSimulating, project.devices, solved.deviceEnergized]);
+  }, [isSimulating, project.devices, solved]);
 
   const trippedCount = project.devices.filter(d => d.state.tripped).length;
 

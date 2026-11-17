@@ -30,6 +30,13 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorDirection' in state) state.motorDirection = null;
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
+  if (device.type === 'kwh_meter_3p') {
+    // The energy register is kept; only the live readout clears
+    state.energized = false;
+    state.l1Amps = 0;
+    state.l2Amps = 0;
+    state.l3Amps = 0;
+  }
   if (device.type === 'timer_relay') {
     state.energized = false;
     state.elapsedSec = 0;

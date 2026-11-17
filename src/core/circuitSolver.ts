@@ -1,6 +1,7 @@
 import { ElectricalDevice, ElectricalWire, CodeStandard } from '../types/electrical';
 import { SparkEvent } from '../types/simulation';
 import { getWireStandards } from '../data/standardsData';
+import { behaviorFor } from './behaviors/registry';
 
 export type PhaseId = 'L1' | 'L2' | 'L3';
 
@@ -142,6 +143,10 @@ export function solveCircuit(
 
   // Add internal device continuity based on switch / breaker states
   for (const dev of devices) {
+    // Devices registered in ./behaviors describe their own internal connections
+    for (const [a, b] of behaviorFor(dev.type)?.edges?.(dev) ?? []) {
+      addEdge(terminalKey(dev.id, a), terminalKey(dev.id, b));
+    }
     if (dev.category === 'busbar') {
       // All terminals on a busbar are shorted together
       for (let i = 0; i < dev.terminals.length; i++) {
