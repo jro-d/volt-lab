@@ -65,7 +65,6 @@ export type DeviceType =
   | 'appliance_water_heater'
   | 'appliance_fan'
   | 'appliance_ac'
-  | 'junction_box'
   | 'junction_box_4way'
   | 'junction_box_octagonal_orange'
   | 'splice_wire_nut'

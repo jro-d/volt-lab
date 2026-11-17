@@ -123,7 +123,6 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'appliance_fan':
       case 'appliance_ac':
         return <ApplianceDevice {...commonProps} />;
-      case 'junction_box':
       case 'junction_box_4way':
       case 'junction_box_octagonal_orange':
         return <JunctionBoxDevice {...commonProps} />;

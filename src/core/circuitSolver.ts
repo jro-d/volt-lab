@@ -215,7 +215,7 @@ export function solveCircuit(
         addEdge(terminalKey(dev.id, 'in_1'), terminalKey(dev.id, 'out_2'));
         addEdge(terminalKey(dev.id, 'in_2'), terminalKey(dev.id, 'out_1'));
       }
-    } else if (dev.type === 'junction_box' || dev.type === 'junction_box_4way' || dev.type === 'junction_box_octagonal_orange') {
+    } else if (dev.type === 'junction_box_4way' || dev.type === 'junction_box_octagonal_orange') {
       // Terminals belonging to the same spliceGroup are bonded together
       for (let i = 0; i < dev.terminals.length; i++) {
         for (let j = i + 1; j < dev.terminals.length; j++) {

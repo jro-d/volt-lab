@@ -53,7 +53,7 @@ const LIBRARY_TREE: FolderNode[] = [
   {
     id: 'conduits',
     label: 'Conduits, Utility & Junction Boxes',
-    types: ['utility_box_surface_pvc', 'junction_box_octagonal_orange', 'junction_box', 'junction_box_4way', 'splice_wire_nut', 'lever_connector_3p'],
+    types: ['utility_box_surface_pvc', 'junction_box_octagonal_orange', 'junction_box_4way', 'splice_wire_nut', 'lever_connector_3p'],
   },
   {
     id: 'industrial',

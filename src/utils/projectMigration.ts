@@ -58,6 +58,8 @@ export function migrateLegacyDevices(devices: ElectricalDevice[]): ElectricalDev
  */
 const REPLACED_DEVICES: Record<string, { to: DeviceType; terminals: Record<string, string> }> = {
   motor_3phase_dol: { to: 'motor_ac_industrial', terminals: { l1: 'u1', l2: 'v1', l3: 'w1', pe: 'pe' } },
+  // The generic junction box never had a catalog entry; its splice terminals share the octagonal box's ids
+  junction_box: { to: 'junction_box_octagonal_orange', terminals: {} },
 };
 
 /**
