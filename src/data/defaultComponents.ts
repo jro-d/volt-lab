@@ -158,6 +158,34 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     ]
   },
   {
+    type: 'rcbo_1pn',
+    category: 'protection',
+    name: 'RCBO 1-Pole + Neutral (30 mA)',
+    defaultLabel: 'RCBO-1',
+    width: 84,
+    height: 120,
+    productStandard: 'IEC 61009-1',
+    modelNumber: 'RCBO 1P+N 30 mA',
+    kaRating: 6,
+    mountingType: 'din_rail',
+    description: 'Combined miniature circuit breaker and 30 mA residual-current device. Trips on overload, short circuit and earth leakage, and switches both line and neutral. One RCBO per circuit means an earth fault only drops its own circuit.',
+    defaultProperties: {
+      closed: true,
+      tripped: false,
+      ratedAmps: 16,
+      tripCurve: 'C',
+      leakageMa: 30,
+      testPressed: false,
+    },
+    terminals: [
+      { id: 'in_l', name: 'Line In', type: 'phase', relX: 0.25, relY: 0.08, label: '1' },
+      { id: 'in_n', name: 'Neutral In', type: 'neutral', relX: 0.75, relY: 0.08, label: 'N' },
+      { id: 'out_l', name: 'Line Out', type: 'phase', relX: 0.25, relY: 0.92, label: '2' },
+      { id: 'pe', name: 'Protective Earth (reference only)', type: 'earth', relX: 0.50, relY: 0.92, label: 'PE', phaseLabel: 'PE' },
+      { id: 'out_n', name: 'Neutral Out', type: 'neutral', relX: 0.75, relY: 0.92, label: 'N' },
+    ]
+  },
+  {
     type: 'rcd_2p',
     category: 'protection',
     name: 'Residual Current Device (RCD / ELCB)',

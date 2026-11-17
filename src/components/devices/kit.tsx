@@ -17,7 +17,7 @@ import { TerminalPoint } from './TerminalPoint';
 /* ─────────────────────────── Tags ─────────────────────────── */
 
 const TAG_PREFIX: Partial<Record<string, string>> = {
-  mcb_1p: 'Q', mcb_2p: 'Q', mcb_3p: 'Q', service_disconnect_2p: 'Q0', rcd_2p: 'F', spd_surge: 'F',
+  mcb_1p: 'Q', mcb_2p: 'Q', mcb_3p: 'Q', service_disconnect_2p: 'Q0', rcd_2p: 'F', rcbo_1pn: 'Q', spd_surge: 'F',
   safety_breaker_2p: 'Q', contactor_3p: 'KM', thermal_overload_relay: 'F', industrial_relay_dpdt: 'K',
   timer_relay: 'KT', push_button_station: 'S', push_button_fwd_rev: 'S', push_button_estop: 'S0',
   selector_hoa: 'SA', limit_switch: 'SQ', pilot_light_indicator: 'H', motor_ac_industrial: 'M',

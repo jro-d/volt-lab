@@ -272,6 +272,82 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
+      {/* --- RCBO 1P+N PROPERTIES --- */}
+      {device && device.type === 'rcbo_1pn' && (
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
+              Rated Current (In)
+            </label>
+            <div className="grid grid-cols-4 gap-1">
+              {[6, 10, 16, 20, 25, 32, 40].map((amps) => (
+                <button
+                  key={amps}
+                  onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    (device.state.ratedAmps || 16) === amps
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {amps}A
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
+              Magnetic Trip Curve (IEC 60898-1)
+            </label>
+            <div className="grid grid-cols-3 gap-1">
+              {[
+                { c: 'B', sub: '3-5 In' },
+                { c: 'C', sub: '5-10 In' },
+                { c: 'D', sub: '10-20 In' },
+              ].map((k) => (
+                <button
+                  key={k.c}
+                  onClick={() => onUpdateDeviceProperty(device.id, 'tripCurve', k.c)}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold flex flex-col items-center transition ${
+                    (device.state.tripCurve || 'C') === k.c
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {k.c}
+                  <span className="text-[9px] font-sans font-normal opacity-80">{k.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
+              Earth Leakage Sensitivity (IΔn)
+            </label>
+            <div className="grid grid-cols-4 gap-1">
+              {rcdSensitivities.map((sens) => (
+                <button
+                  key={sens}
+                  onClick={() => onUpdateDeviceProperty(device.id, 'leakageMa', sens)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    (device.state.leakageMa || 30) === sens
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {sens}mA
+                </button>
+              ))}
+            </div>
+            <span className="text-[9px] text-ink-muted mt-1 block">
+              One RCBO per circuit: an earth fault or overload drops only that circuit. Use the T button on the device to test the leakage trip.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* --- RCD / ELCB PROPERTIES --- */}
       {device && device.type === 'rcd_2p' && (
         <div className="space-y-3">
@@ -687,6 +763,16 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Earth-leakage fault: the plugged appliance leaks to its chassis; an RCBO upstream trips */}
+          <button
+            onClick={() => patchState('hasEarthFault', !device.state.hasEarthFault)}
+            className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${
+              device.state.hasEarthFault ? 'bg-danger-soft text-danger border-danger/60' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+            }`}
+          >
+            {device.state.hasEarthFault ? '⚡ Earth leakage fault ON (click to clear)' : 'Simulate earth leakage fault'}
+          </button>
 
           {/* Educational Callout on Terminal Polarity */}
           <div className="p-2.5 rounded-md bg-warning-soft/75 border border-warning/60 text-warning text-[11px] space-y-1">

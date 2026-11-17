@@ -105,6 +105,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'fuse_switch_disconnector_3p':
         return <FuseDevice {...commonProps} />;
       case 'rcd_2p':
+      case 'rcbo_1pn':
         return <RcdDevice {...commonProps} />;
       case 'spd_surge':
         return <SpdDevice {...commonProps} />;

@@ -19,7 +19,7 @@ import { SchematicCanvas } from './components/canvas/SchematicCanvas';
 import { LadderCanvas } from './components/canvas/LadderCanvas';
 import { LadderRung } from './types/ladder';
 import { sound } from './utils/soundFx';
-import { resetTripState, toEditModeDevices } from './utils/deviceState';
+import { replaceBlownFuse, resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
@@ -792,7 +792,7 @@ export const App: React.FC = () => {
     setProject(prev => ({
       ...prev,
       devices: prev.devices.map(d => {
-        const rearmed = resetTripState(d);
+        const rearmed = replaceBlownFuse(resetTripState(d));
         return d.state.hasEarthFault ? { ...rearmed, state: { ...rearmed.state, hasEarthFault: false } } : rearmed;
       })
     }));

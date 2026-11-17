@@ -77,6 +77,7 @@ const BREAKER_TYPES = new Set([
   'mcb_3p',
   'service_disconnect_2p',
   'safety_breaker_2p',
+  'rcbo_1pn',
 ]);
 
 /** Positive (CW) 3-phase rotation sequences */
@@ -670,6 +671,28 @@ export function solveCircuit(
     }
   }
 
+  /**
+   * Earth-leakage trip for a faulty load: the nearest RCBO upstream of its live terminal trips.
+   * Returns false when there is none, so older circuits keep their RCD behaviour.
+   */
+  const tripUpstreamRcbo = (load: ElectricalDevice, liveNode: string | undefined): boolean => {
+    let curr: string | undefined = liveNode;
+    const seen = new Set<string>();
+    while (curr && !seen.has(curr)) {
+      seen.add(curr);
+      const up = deviceById.get(devOfNode(curr));
+      if (up && up.type === 'rcbo_1pn' && up.state.closed && !up.state.tripped) {
+        if (!trippedDevices.includes(up.id)) {
+          trippedDevices.push(up.id);
+          tripReasons[up.id] = `Earth Leakage Trip: Fault current > ${up.state.leakageMa || 30}mA detected to chassis of ${load.name || load.id}`;
+        }
+        return true;
+      }
+      curr = liveParent[curr]?.prevNode;
+    }
+    return false;
+  };
+
   // 4. Evaluate Energized Loads and Branch Currents
   let totalWatts = 0;
   const standards = getWireStandards(standard);
@@ -691,7 +714,7 @@ export function solveCircuit(
         dev.state.lit = false;
         dev.state.brightness = 0;
       }
-    } else if (dev.type === 'socket_duplex') {
+    } else if (dev.type === 'socket_duplex' || dev.type === 'socket_schuko') {
       const lPot = nodePotentials[terminalKey(dev.id, 'line')] || 
                    nodePotentials[terminalKey(dev.id, 'line_in')] || 
                    nodePotentials[terminalKey(dev.id, 'l_in')] || 
@@ -708,6 +731,11 @@ export function solveCircuit(
       deviceEnergized[dev.id] = hasPower;
       dev.state.powered = hasPower;
 
+      if (hasPower && dev.state.hasEarthFault) {
+        const liveKey = ['line', 'line_in', 'l_in', 'l1'].map(t => terminalKey(dev.id, t)).find(k => nodePotentials[k] === 'live');
+        tripUpstreamRcbo(dev, liveKey);
+      }
+
       if (hasPower && dev.state.hasPluggedLoad) {
         // Find if TV or appliance is connected
         const p = dev.state.pluggedAppliance === 'appliance_tv' ? 120 : 300;
@@ -715,7 +743,7 @@ export function solveCircuit(
       }
     } else if (dev.type === 'appliance_tv') {
       // Find connected socket
-      const rec = devices.find(d => d.type === 'socket_duplex' && deviceEnergized[d.id]);
+      const rec = devices.find(d => (d.type === 'socket_duplex' || d.type === 'socket_schuko') && deviceEnergized[d.id]);
       const isPowered = !!rec;
       deviceEnergized[dev.id] = isPowered;
       dev.state.powered = isPowered;
@@ -731,7 +759,7 @@ export function solveCircuit(
         totalWatts += p;
 
         // Check earth leakage fault simulation
-        if (dev.state.hasEarthFault) {
+        if (dev.state.hasEarthFault && !tripUpstreamRcbo(dev, terminalKey(dev.id, 'line'))) {
           const rcd = devices.find(d => d.type === 'rcd_2p' && d.state.closed);
           if (rcd) {
             trippedDevices.push(rcd.id);
@@ -992,7 +1020,7 @@ export function solveCircuit(
     if (dev.type === 'light_bulb') {
       const w = dev.state.wattage || 60;
       traceLoadCurrent(terminalKey(dev.id, 'hot'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
-    } else if (dev.type === 'socket_duplex') {
+    } else if (dev.type === 'socket_duplex' || dev.type === 'socket_schuko') {
       if (dev.state.hasPluggedLoad) {
         const w = dev.state.pluggedAppliance === 'appliance_tv' ? 120 : 300;
         const liveT = dev.terminals.find(t => nodePotentials[terminalKey(dev.id, t.id)] === 'live');

@@ -11,6 +11,7 @@ const PANEL_DEVICE_TYPES = new Set([
   'kwh_meter_3p',
   'service_disconnect_2p',
   'rcd_2p',
+  'rcbo_1pn',
   'spd_surge',
   'mcb_1p',
   'mcb_2p',
@@ -40,7 +41,11 @@ const OVERCURRENT_PROTECTION_TYPES = new Set([
   'safety_breaker_2p',
   'fuse_holder_1p',
   'fuse_switch_disconnector_3p',
+  'rcbo_1pn',
 ]);
+
+/** Devices that give 30 mA earth-leakage protection to the circuits they feed */
+const RCD_PROTECTION_TYPES = new Set(['rcd_2p', 'rcbo_1pn']);
 
 export function analyzeCodeCompliance(
   devices: ElectricalDevice[],
@@ -344,7 +349,7 @@ export function analyzeCodeCompliance(
   }
 
   // 5. RCD Protection on Wet Areas & Sockets (PEC 2.10.1.8 / IEC 60364-4-41)
-  const hasRcd = devices.some(d => d.type === 'rcd_2p');
+  const hasRcd = devices.some(d => RCD_PROTECTION_TYPES.has(d.type));
   const hasSocketsOrWetLoads = devices.some(d => d.type === 'socket_duplex' || d.type === 'socket_schuko' || d.type === 'appliance_water_heater' || d.type === 'appliance_ac');
   if (hasSocketsOrWetLoads && !hasRcd) {
     violations.push({

@@ -99,7 +99,8 @@ export type DeviceType =
   | 'motor_6lead_star_delta'
   // Roadmap phase 1
   | 'fuse_holder_1p'
-  | 'fuse_switch_disconnector_3p';
+  | 'fuse_switch_disconnector_3p'
+  | 'rcbo_1pn';
 
 export interface ElectricalDevice {
   id: string;

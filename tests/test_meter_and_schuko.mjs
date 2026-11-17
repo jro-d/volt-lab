@@ -55,6 +55,20 @@ console.log('\n--- Schuko receptacle ---');
   assert.ok(!schuko.some((v) => v.id.startsWith('viol_reversed_polarity')), 'Schuko is reversible: no polarity violation');
   console.log('✓ reversed polarity flagged on the duplex, not on the Schuko');
 
+  // A correctly wired Schuko energizes and carries its plugged load, like the duplex
+  {
+    const meter = dev('kwh_meter_1p', 'src');
+    const sock = dev('socket_schuko', 'sock');
+    const wires = [
+      wire('w1', 'src', 'l_out', 'sock', 'line'),
+      wire('w2', 'src', 'n_out', 'sock', 'neutral', { color: '#2563eb', conductorRole: 'return_neutral' }),
+    ];
+    const solved = solve([meter, sock], wires);
+    assert.equal(!!sock.state.powered, true, 'Schuko is powered');
+    assert.equal(solved.totalWatts, 120, 'Schuko draws the plugged TV load');
+    console.log('✓ Schuko energizes and draws its plugged load');
+  }
+
   const noRcd = analyzeCodeCompliance([dev('kwh_meter_1p', 'src'), dev('socket_schuko', 'sock')], [], solve([dev('kwh_meter_1p', 'src'), dev('socket_schuko', 'sock')], []), 'PEC', 230).violations;
   assert.ok(noRcd.some((v) => v.id === 'viol_missing_rcd'), 'Schuko without RCD protection is flagged like any socket');
   console.log('✓ Schuko without an RCD is flagged (shares the socket RCD rule)');

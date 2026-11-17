@@ -79,3 +79,20 @@ export function resetTripState(device: ElectricalDevice): ElectricalDevice {
 export function toEditModeDevices(devices: ElectricalDevice[]): ElectricalDevice[] {
   return devices.map((d) => resetTripState(resetTransientState(d)));
 }
+
+/** Fit new links in any blown fuse (used by the Reset Simulation button). */
+export function replaceBlownFuse(device: ElectricalDevice): ElectricalDevice {
+  if (device.type === 'fuse_holder_1p') {
+    return { ...device, state: { ...device.state, blown: false, tripped: false, closed: true, heat: 0, onSec: 0, tripReason: undefined } };
+  }
+  if (device.type === 'fuse_switch_disconnector_3p') {
+    const state: Record<string, any> = { ...device.state };
+    for (const p of ['l1', 'l2', 'l3']) {
+      state[`blown_${p}`] = false;
+      state[`heat_${p}`] = 0;
+      state[`onSec_${p}`] = 0;
+    }
+    return { ...device, state };
+  }
+  return device;
+}

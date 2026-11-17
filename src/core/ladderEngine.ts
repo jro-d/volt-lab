@@ -256,6 +256,7 @@ export function parsePhysicalLadder(devices: ElectricalDevice[], wires: Electric
       ['service_disconnect_2p', 'out_l', 'out_n'],
       ['safety_breaker_2p', 'out_l', 'out_n'],
       ['rcd_2p', 'out_l', 'out_n'],
+      ['rcbo_1pn', 'out_l', 'out_n'],
       ['kwh_meter_1p', 'l_out', 'n_out'],
     ];
     for (const [type, l, n] of feeders) {

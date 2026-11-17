@@ -134,6 +134,30 @@ const singlePhaseDevices: ElectricalDevice[] = dolDevices.map((d) =>
     : d
 );
 
+// ── B3 · Two sockets on separate RCBOs ────────────────────────────────────────────────────────
+const rcboDevices: ElectricalDevice[] = [
+  dev('kwh_meter_1p', 40, 40, 'src', { name: 'Service Meter (source)' }),
+  dev('rcbo_1pn', 250, 40, 'rcbo_a', { name: 'Q1 RCBO 16A (Kitchen)', state: { ratedAmps: 16, tripCurve: 'C', leakageMa: 30 } }),
+  dev('rcbo_1pn', 400, 40, 'rcbo_b', { name: 'Q2 RCBO 16A (Living room)', state: { ratedAmps: 16, tripCurve: 'C', leakageMa: 30 } }),
+  dev('socket_duplex', 250, 250, 'sock_a', { name: 'Kitchen Socket' }),
+  dev('socket_duplex', 400, 250, 'sock_b', { name: 'Living Room Socket' }),
+  dev('neutral_busbar', 560, 40, 'nbar', { name: 'Neutral Busbar' }),
+  dev('earth_busbar', 640, 40, 'pebar', { name: 'PE Busbar', state: { isEarth: true } }),
+];
+const rcboWires: ElectricalWire[] = [
+  wr('src', 'l_out', 'rcbo_a', 'in_l', RED),
+  wr('src', 'l_out', 'rcbo_b', 'in_l', RED),
+  wr('src', 'n_out', 'nbar', 'n_main', BLUE),
+  wr('nbar', 'n_1', 'rcbo_a', 'in_n', BLUE),
+  wr('nbar', 'n_2', 'rcbo_b', 'in_n', BLUE),
+  wr('rcbo_a', 'out_l', 'sock_a', 'line', RED),
+  wr('rcbo_a', 'out_n', 'sock_a', 'neutral', BLUE),
+  wr('rcbo_b', 'out_l', 'sock_b', 'line', RED),
+  wr('rcbo_b', 'out_n', 'sock_b', 'neutral', BLUE),
+  wr('pebar', 'pe_1', 'sock_a', 'ground', GREEN),
+  wr('pebar', 'pe_2', 'sock_b', 'ground', GREEN),
+];
+
 export const PHASE1_LABS: LabLesson[] = [
   {
     id: 'lab-timer-offdelay-fan',
@@ -217,5 +241,22 @@ export const PHASE1_LABS: LabLesson[] = [
       ...labProject('proj_fuse_single_phasing', 'DOL Starter with One Blown Fuse Link', 'Fuse switch disconnector with a blown L3 link.', singlePhaseDevices, dolWires, 440),
       targetLadder: dolTarget,
     },
+  },
+  {
+    id: 'lab-rcbo-separate-circuits',
+    title: 'Two Sockets on Separate RCBOs: a Fault on One Does Not Drop the Other',
+    subtitle: 'RCBO 1P+N (IEC 61009-1): breaker and 30 mA RCD in one device per circuit',
+    category: 'sockets',
+    badge: '🛡 RCBO',
+    difficulty: 'Intermediate',
+    description:
+      'The kitchen and living-room sockets are each fed by their own RCBO. Each RCBO protects its circuit against overload, short circuit and earth leakage and switches both line and neutral. Inject an earth-leakage fault on the kitchen socket: only the kitchen RCBO trips and the living room keeps its power, unlike a single RCD upstream of everything.',
+    objectives: [
+      'Press ▶ Simulate: both sockets are live. Check that each RCBO shows 30 mA IΔn on its face.',
+      'Select the Kitchen Socket and press Simulate earth leakage fault: Q1 trips (flag turns red) and the kitchen goes dead.',
+      'Confirm the Living Room Socket is still energized: Q2 never saw the fault.',
+      'Press the T button on Q2 to test its leakage trip, then reset the lever. Which wiring change would make a single RCD drop both rooms?',
+    ],
+    project: labProject('proj_rcbo_circuits', 'Two Socket Circuits on Separate RCBOs', 'One RCBO per socket circuit.', rcboDevices, rcboWires),
   },
 ];
