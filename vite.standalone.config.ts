@@ -12,7 +12,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         format: 'iife',
-        name: 'VoltLabApp',
+        name: 'WireWiseApp',
         inlineDynamicImports: true,
       },
     },

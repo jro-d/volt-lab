@@ -120,7 +120,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const type = e.dataTransfer.getData('application/voltlab-device') as DeviceType;
+    const type = e.dataTransfer.getData('application/wirewise-device') as DeviceType;
     if (type && onDropDevice && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const rawX = e.clientX - rect.left;

@@ -1,5 +1,5 @@
 /**
- * Conductor colours, VoltLab v2.
+ * Conductor colours, WireWise v2.
  *
  * Projects, lab templates and the compliance checker store wire colours as the v1 hex values
  * (see COLOR_STANDARDS). Those values stay the data; this module maps them to the v2

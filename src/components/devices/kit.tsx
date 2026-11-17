@@ -1,5 +1,5 @@
 /**
- * VoltLab v2 device drawing kit.
+ * WireWise v2 device drawing kit.
  *
  * Every device is built in five layers so the catalogue reads as one product line:
  *   1. Housing   one body material, outlined in mat-line at stroke-housing, radius-device (3)

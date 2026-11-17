@@ -2,9 +2,9 @@ import { DeviceType, ElectricalDevice, ElectricalWire } from '../types/electrica
 import { COMPONENT_CATALOG, createDeviceFromCatalog } from '../data/defaultComponents';
 
 /**
- * Upgrades devices from projects saved by older VoltLab versions.
+ * Upgrades devices from projects saved by older versions of the app.
  *
- * VoltLab now models every device as a brand-neutral "standard" device. Older saves may
+ * Every device is now modelled as a brand-neutral "standard" device. Older saves may
  * still carry manufacturer-specific device types, breaker profiles, brand fields and model
  * numbers; this maps them onto the current standard catalogue so they keep loading.
  */

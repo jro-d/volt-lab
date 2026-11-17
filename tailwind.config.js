@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-// Token-backed colours generated from the VoltLab v2 design system (src/styles/tokens.css).
+// Token-backed colours generated from the WireWise v2 design system (src/styles/tokens.css).
 const tokenColors = require('./src/styles/tokenColors.cjs');
 
 /** @type {import('tailwindcss').Config} */

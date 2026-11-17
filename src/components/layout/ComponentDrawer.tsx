@@ -131,7 +131,7 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
           e.preventDefault();
           return;
         }
-        e.dataTransfer.setData('application/voltlab-device', item.type);
+        e.dataTransfer.setData('application/wirewise-device', item.type);
         e.dataTransfer.effectAllowed = 'copy';
       }}
       onClick={() => onAddComponent(item.type)}
@@ -203,7 +203,7 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
   const total = tree.reduce((n, f) => n + countIn(f), 0);
 
   return (
-    <aside className="voltlab-panel voltlab-scroll-dark absolute top-3 left-3 z-30 w-80 max-h-[calc(100%-36px)] rounded-lg bg-surface backdrop-blur-md shadow-2 border-2 border-border-strong/90 ring-1 ring-white/10 flex flex-col overflow-hidden select-none text-ink">
+    <aside className="wirewise-panel wirewise-scroll-dark absolute top-3 left-3 z-30 w-80 max-h-[calc(100%-36px)] rounded-lg bg-surface backdrop-blur-md shadow-2 border-2 border-border-strong/90 ring-1 ring-white/10 flex flex-col overflow-hidden select-none text-ink">
       {/* Floating window title bar */}
       <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-border bg-surface-sunken">
         <span className="flex items-center gap-2 text-[11px] font-bold text-ink uppercase tracking-wider font-mono">
@@ -242,7 +242,7 @@ export const ComponentDrawer: React.FC<ComponentDrawerProps> = ({
       )}
 
       {/* Folder tree */}
-      <div className="voltlab-scroll-dark flex-1 overflow-y-auto px-2 py-2 pb-3 space-y-1">
+      <div className="wirewise-scroll-dark flex-1 overflow-y-auto px-2 py-2 pb-3 space-y-1">
         {tree.map((folder) => renderFolder(folder))}
         {total === 0 && (
           <div className="text-center text-xs text-ink-muted py-6">No devices match “{searchQuery}”.</div>

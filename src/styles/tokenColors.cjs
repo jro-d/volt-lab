@@ -1,4 +1,4 @@
-// Generated from the VoltLab v2 design system. Tailwind colour names = token names.
+// Generated from the WireWise v2 design system. Tailwind colour names = token names.
 module.exports = {
   "canvas": "rgb(var(--c-canvas) / <alpha-value>)",
   "canvas-grid": "rgb(var(--c-canvas-grid) / <alpha-value>)",

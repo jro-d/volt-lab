@@ -6,17 +6,17 @@
 
 /* v1 variable names kept as aliases so any remaining references follow the v2 theme. */
 :root {
-  --voltlab-canvas-bg: var(--canvas);
-  --voltlab-panel-bg: var(--surface);
-  --voltlab-panel-header: var(--surface-sunken);
-  --voltlab-panel-surface: var(--surface-sunken);
-  --voltlab-panel-elevated: var(--surface-hover);
-  --voltlab-panel-border: var(--border);
-  --voltlab-panel-border-strong: var(--border-strong);
-  --voltlab-panel-text: var(--ink);
-  --voltlab-panel-text-muted: var(--ink-muted);
-  --voltlab-accent-primary: var(--brand);
-  --voltlab-accent-sky: var(--probe);
+  --wirewise-canvas-bg: var(--canvas);
+  --wirewise-panel-bg: var(--surface);
+  --wirewise-panel-header: var(--surface-sunken);
+  --wirewise-panel-surface: var(--surface-sunken);
+  --wirewise-panel-elevated: var(--surface-hover);
+  --wirewise-panel-border: var(--border);
+  --wirewise-panel-border-strong: var(--border-strong);
+  --wirewise-panel-text: var(--ink);
+  --wirewise-panel-text-muted: var(--ink-muted);
+  --wirewise-accent-primary: var(--brand);
+  --wirewise-accent-sky: var(--probe);
 }
 
 @keyframes dash {
@@ -104,40 +104,40 @@ html, body, #root {
 
 /* Instrument surfaces (code inspector, DMM, PLC screen) stay dark in both themes. */
 @layer components {
-  .voltlab-panel {
+  .wirewise-panel {
     background-color: var(--surface);
     color: var(--ink);
     border-color: var(--border);
   }
   
-  .voltlab-console {
+  .wirewise-console {
     background-color: var(--console);
     color: var(--console-ink);
     border-color: var(--console-line);
   }
 }
 
-.voltlab-scroll-dark::-webkit-scrollbar-track {
+.wirewise-scroll-dark::-webkit-scrollbar-track {
   background: var(--surface-sunken);
 }
 
-.voltlab-scroll-dark::-webkit-scrollbar-thumb {
+.wirewise-scroll-dark::-webkit-scrollbar-thumb {
   background: var(--border-strong);
 }
 
-.voltlab-scroll-dark::-webkit-scrollbar-thumb:hover {
+.wirewise-scroll-dark::-webkit-scrollbar-thumb:hover {
   background: var(--ink-faint);
 }
 
 @media (forced-colors: active) {
-  .voltlab-panel,
-  .voltlab-console {
+  .wirewise-panel,
+  .wirewise-console {
     border: 2px solid CanvasText;
     box-shadow: none;
   }
 }
 
-/* ── Device drawing materials (VoltLab v2 device language) ──────────────────
+/* ── Device drawing materials (WireWise v2 device language) ──────────────────
    Five layers: housing → bays → face + nameplate → state → terminals.
    Classes mirror the design system's components/bundle.css. */
 @layer components {

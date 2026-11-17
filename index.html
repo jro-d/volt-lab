@@ -10,14 +10,23 @@
       // Apply the saved or system theme before first paint.
       (function () {
         try {
-          var saved = localStorage.getItem("voltlab-theme");
+          var saved = localStorage.getItem("wirewise-theme");
+          if (!saved) {
+            // Preference saved before the VoltLab -> WireWise rename: copy it over once
+            var old = localStorage.getItem("voltlab-theme");
+            if (old) {
+              saved = old;
+              localStorage.setItem("wirewise-theme", old);
+              localStorage.removeItem("voltlab-theme");
+            }
+          }
           var dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
           if (dark) document.documentElement.classList.add("dark");
         } catch (e) {}
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VoltLab - Electrical Installation Simulator & Code Planner (PEC / IEC)</title>
+    <title>WireWise - Electrical Installation Simulator & Code Planner (PEC / IEC)</title>
   </head>
   <body class="bg-canvas text-ink antialiased select-none overflow-hidden">
     <div id="root"></div>
