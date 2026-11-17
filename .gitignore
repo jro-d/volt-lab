@@ -45,3 +45,6 @@ scratch/
 *.tsbuildinfo
 .claude/
 
+
+# Generated offline build (npm run build:standalone)
+VoltLab-Standalone.html
