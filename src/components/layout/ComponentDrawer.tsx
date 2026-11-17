@@ -47,7 +47,7 @@ const LIBRARY_TREE: FolderNode[] = [
       { id: 'pole2', label: '2 Poles (Bolt-On & DIN)', types: ['mcb_2p', 'service_disconnect_2p', 'ats_changeover'] },
       { id: 'pole3', label: '3 Poles', types: ['mcb_3p'] },
       { id: 'safety', label: 'RCD / Safety Breakers', types: ['rcd_2p', 'safety_breaker_2p', 'spd_surge'] },
-      { id: 'mounting', label: 'Panelboards, DIN Rails & Meters', types: ['panelboard_frame', 'din_rail_track', 'panel_meter'] },
+      { id: 'mounting', label: 'Panelboards, DIN Rails & Meters', types: ['din_rail_track', 'panel_meter'] },
     ],
   },
   {

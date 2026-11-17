@@ -72,8 +72,31 @@ export function migrateLegacyProject(
   wires: ElectricalWire[]
 ): { devices: ElectricalDevice[]; wires: ElectricalWire[] } {
   const remap: Record<string, Record<string, string>> = {};
+  // Wire ends that move to a different device (panelboard bus bars become two separate bus bars)
+  const moved: Record<string, Record<string, { deviceId: string; terminalId: string }>> = {};
 
-  const converted = devices.map((dev) => {
+  const splitDevices: ElectricalDevice[] = [];
+  for (const dev of devices) {
+    if ((dev.type as string) !== 'panelboard_frame') {
+      splitDevices.push(dev);
+      continue;
+    }
+    // The old panelboard frame only offered a neutral and an earth bus terminal, so it becomes
+    // a neutral bus bar (keeps the id) plus an earth bus bar placed beside it.
+    const neutralBar = createDeviceFromCatalog('neutral_busbar', dev.x + 33, dev.y + 40, dev.id);
+    const earthBar = createDeviceFromCatalog('earth_busbar', dev.x + 277, dev.y + 40, `${dev.id}_pe`);
+    if (dev.rotation) {
+      neutralBar.rotation = dev.rotation;
+      earthBar.rotation = dev.rotation;
+    }
+    splitDevices.push(neutralBar, earthBar);
+    moved[dev.id] = {
+      n_bus: { deviceId: neutralBar.id, terminalId: 'n_main' },
+      pe_bus: { deviceId: earthBar.id, terminalId: 'pe_main' },
+    };
+  }
+
+  const converted = splitDevices.map((dev) => {
     const rule = REPLACED_DEVICES[dev.type as string];
     if (!rule) return dev;
     const fresh = createDeviceFromCatalog(rule.to, dev.x, dev.y, dev.id);
@@ -84,6 +107,15 @@ export function migrateLegacyProject(
   });
 
   const fixedWires = wires.map((w) => {
+    const mFrom = moved[w.fromDeviceId]?.[w.fromTerminalId];
+    const mTo = moved[w.toDeviceId]?.[w.toTerminalId];
+    if (mFrom || mTo) {
+      return {
+        ...w,
+        ...(mFrom ? { fromDeviceId: mFrom.deviceId, fromTerminalId: mFrom.terminalId } : {}),
+        ...(mTo ? { toDeviceId: mTo.deviceId, toTerminalId: mTo.terminalId } : {}),
+      };
+    }
     const from = remap[w.fromDeviceId]?.[w.fromTerminalId];
     const to = remap[w.toDeviceId]?.[w.toTerminalId];
     return from || to
@@ -96,8 +128,8 @@ export function migrateLegacyProject(
   for (const dev of converted) termsById.set(dev.id, new Set(dev.terminals.map((t) => t.id)));
   const validWires = fixedWires.filter(
     (w) =>
-      !(w.fromDeviceId in remap && !termsById.get(w.fromDeviceId)?.has(w.fromTerminalId)) &&
-      !(w.toDeviceId in remap && !termsById.get(w.toDeviceId)?.has(w.toTerminalId))
+      !((w.fromDeviceId in remap || w.fromDeviceId in moved) && !termsById.get(w.fromDeviceId)?.has(w.fromTerminalId)) &&
+      !((w.toDeviceId in remap || w.toDeviceId in moved) && !termsById.get(w.toDeviceId)?.has(w.toTerminalId))
   );
 
   return { devices: migrateLegacyDevices(converted), wires: validWires };

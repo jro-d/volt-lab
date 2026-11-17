@@ -91,7 +91,6 @@ export type DeviceType =
   | 'switch_3gang'
   | 'dimmer_switch'
   | 'ats_changeover'
-  | 'panelboard_frame'
   | 'panel_meter'
   | 'timer_relay'
   | 'selector_hoa'

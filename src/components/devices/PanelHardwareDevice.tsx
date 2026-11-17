@@ -1,63 +1,11 @@
 import React from 'react';
 import { Bay, DeviceProps, Face, Housing, Led, Mono, Nameplate, Pill, Screw, Silk, Strap, SymEarth, Terminals, TermIds, act, deviceTag, makePatch } from './kit';
 
-/** Panelboard enclosure (back pan + DIN rails + N / PE bars), 96 mm panel meter, and the ATS. */
+/** 96 mm panel meter and the ATS changeover. */
 export const PanelHardwareDevice: React.FC<DeviceProps> = (props) => {
   const { device } = props;
   const { width: W, height: H, type, state } = device;
   const patch = makePatch(props);
-
-  /* ───────────── Panelboard (open, devices mount on the rails) ───────────── */
-  if (type === 'panelboard_frame') {
-    const label = state.label || 'LP-1 (230V 1Φ)';
-    const nT = device.terminals.find((t) => t.id === 'n_bus');
-    const peT = device.terminals.find((t) => t.id === 'pe_bus');
-    const barY = H * (nT?.relY ?? 0.88);
-    const rail = (ry: number) => (
-      <g key={ry} className="pointer-events-none">
-        <rect className="d-steel" x={22} y={ry - 9} width={W - 44} height={18} rx={1.5} />
-        <rect x={22} y={ry - 5} width={W - 44} height={10} fill="var(--mat-steel)" stroke="var(--mat-steel-dark)" strokeWidth={0.5} />
-        {Array.from({ length: Math.floor((W - 60) / 24) }).map((_, i) => (
-          <rect key={i} x={32 + i * 24} y={ry - 1.6} width={12} height={3.2} rx={1.6} fill="var(--mat-steel-dark)" />
-        ))}
-      </g>
-    );
-    const bar = (cx: number, isEarth: boolean) => (
-      <g className="pointer-events-none">
-        <rect x={cx - 40} y={barY - 13} width={80} height={26} rx={3} fill={isEarth ? 'var(--cond-green)' : 'var(--cond-blue)'} stroke="var(--mat-line)" strokeWidth={1} />
-        <rect x={cx - 34} y={barY - 4} width={68} height={8} rx={1.5} fill="var(--mat-copper)" stroke="var(--mat-copper-dark)" strokeWidth={0.6} />
-        {Array.from({ length: 6 }).map((_, i) => (
-          <circle key={i} cx={cx - 28 + i * 11.2} cy={barY} r={1.8} fill="var(--mat-copper-dark)" />
-        ))}
-        <Mono x={cx + (isEarth ? -20 : 20)} y={barY - 6} size={5} anchor="middle" onDark>{isEarth ? 'PE' : 'N'}</Mono>
-      </g>
-    );
-    return (
-      <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
-        {/* enclosure flange + back pan */}
-        <rect className="d-steel" x={0} y={0} width={W} height={H} rx={5} />
-        <rect x={10} y={10} width={W - 20} height={H - 20} rx={3} fill="var(--mat-housing-shade)" stroke="var(--mat-line)" strokeWidth={1} />
-        {[[6, 6], [W - 6, 6], [6, H - 6], [W - 6, H - 6]].map(([sx, sy], i) => <Screw key={i} cx={sx} cy={sy} r={2} />)}
-        {/* top knockouts */}
-        {[0.25, 0.4, 0.6, 0.75].map((r) => (
-          <circle key={r} cx={W * r} cy={5} r={3.2} fill="var(--mat-steel)" stroke="var(--mat-steel-dark)" strokeWidth={0.7} />
-        ))}
-        <Nameplate x={W / 2 - 80} y={14} w={160} h={14} tag={deviceTag(device) || 'DB'} center={label} size={6.4} />
-        {rail(H * 0.36)}
-        {rail(H * 0.6)}
-        {bar(W * (nT?.relX ?? 0.14), false)}
-        {bar(W * (peT?.relX ?? 0.86), true)}
-        <SymEarth x={W * (peT?.relX ?? 0.86) + 30} y={barY - 22} s={0.6} />
-        {/* circuit directory card */}
-        <rect className="d-housing" x={W / 2 - 52} y={barY - 18} width={104} height={30} rx={1.5} />
-        <Silk x={W / 2} y={barY - 11} size={4.6} anchor="middle" bold>CIRCUIT DIRECTORY</Silk>
-        {[0, 1, 2].map((i) => (
-          <path key={i} d={`M${W / 2 - 46} ${barY - 5 + i * 5.5}H${W / 2 + 46}`} stroke="var(--mat-housing-shade)" strokeWidth={0.6} />
-        ))}
-        <Terminals {...props} local />
-      </g>
-    );
-  }
 
   /* ───────────── 96 mm panel meter ───────────── */
   if (type === 'panel_meter') {

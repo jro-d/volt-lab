@@ -165,7 +165,6 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'dimmer_switch':
         return <SwitchMultiGangDevice {...commonProps} />;
       case 'ats_changeover':
-      case 'panelboard_frame':
       case 'panel_meter':
         return <PanelHardwareDevice {...commonProps} />;
       case 'timer_relay':
