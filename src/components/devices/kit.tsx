@@ -21,7 +21,7 @@ const TAG_PREFIX: Partial<Record<string, string>> = {
   safety_breaker_2p: 'Q', contactor_3p: 'KM', thermal_overload_relay: 'F', industrial_relay_dpdt: 'K',
   timer_relay: 'KT', push_button_station: 'S', push_button_fwd_rev: 'S', push_button_estop: 'S0',
   selector_hoa: 'SA', limit_switch: 'SQ', pilot_light_indicator: 'H', motor_ac_industrial: 'M',
-  motor_6lead_star_delta: 'M', motor_3phase_dol: 'Q', control_transformer: 'T', vfd_drive: 'U',
+  motor_6lead_star_delta: 'M', control_transformer: 'T', vfd_drive: 'U',
   plc_micro_controller: 'A', kwh_meter_1p: 'P', kwh_meter_3p: 'P', panel_meter: 'P', ats_changeover: 'Q',
   source_3phase_440v: 'X',
 };

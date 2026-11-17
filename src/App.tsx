@@ -20,7 +20,7 @@ import { LadderCanvas } from './components/canvas/LadderCanvas';
 import { LadderRung } from './types/ladder';
 import { sound } from './utils/soundFx';
 import { resetTransientState, resetTripState, toEditModeDevices } from './utils/deviceState';
-import { migrateLegacyDevices } from './utils/projectMigration';
+import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
 import { Trash2, Lock } from 'lucide-react';
 
@@ -34,7 +34,8 @@ function loadEmbeddedProject(): ElectricalProject | null {
     if (!el?.textContent?.trim()) return null;
     const parsed = JSON.parse(el.textContent);
     if (parsed && Array.isArray(parsed.devices) && Array.isArray(parsed.wires)) {
-      return { ...parsed, devices: toEditModeDevices(migrateLegacyDevices(parsed.devices)) };
+      const migrated = migrateLegacyProject(parsed.devices, parsed.wires);
+      return { ...parsed, devices: toEditModeDevices(migrated.devices), wires: migrated.wires };
     }
   } catch {
     // Fall back to blank canvas if embedded JSON is malformed
@@ -974,7 +975,8 @@ export const App: React.FC = () => {
           // Imported projects always open de-energized in Edit Mode
           setIsSimulating(false);
           setSparkFlash([]);
-          setProject({ ...imported, devices: toEditModeDevices(migrateLegacyDevices(imported.devices)) });
+          const migrated = migrateLegacyProject(imported.devices, imported.wires);
+          setProject({ ...imported, devices: toEditModeDevices(migrated.devices), wires: migrated.wires });
           setSelectedDeviceId(null);
           setSelectedGroupIds([]);
           setSelectedWireId(null);

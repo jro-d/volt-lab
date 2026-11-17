@@ -417,27 +417,6 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     ]
   },
   {
-    type: 'motor_3phase_dol',
-    category: 'load',
-    name: '3-Phase Induction Motor & Starter',
-    defaultLabel: 'MOTOR-3P',
-    width: 140,
-    height: 140,
-    description: '3-Phase 2.2kW motor with integrated contactor, overload relay, and Start/Stop push buttons.',
-    defaultProperties: {
-      wattage: 2200,
-      powerFactor: 0.85,
-      running: false,
-      rpm: 0,
-    },
-    terminals: [
-      { id: 'l1', name: 'Line 1 (L1)', type: 'phase', relX: 0.20, relY: 0.10, label: 'L1' },
-      { id: 'l2', name: 'Line 2 (L2)', type: 'phase2', relX: 0.40, relY: 0.10, label: 'L2' },
-      { id: 'l3', name: 'Line 3 (L3)', type: 'phase3', relX: 0.60, relY: 0.10, label: 'L3' },
-      { id: 'pe', name: 'Frame Earth (PE)', type: 'earth', relX: 0.80, relY: 0.10, label: 'PE' },
-    ]
-  },
-  {
     type: 'junction_box_4way',
     category: 'splice',
     name: '4-Way Junction Box (J-Box)',

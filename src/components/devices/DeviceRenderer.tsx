@@ -11,7 +11,6 @@ import { WallSwitchDevice } from './WallSwitchDevice';
 import { SocketDevice } from './SocketDevice';
 import { LightFixtureDevice } from './LightFixtureDevice';
 import { ApplianceDevice } from './ApplianceDevice';
-import { MotorStarterDevice } from './MotorStarterDevice';
 import { JunctionBoxDevice } from './JunctionBoxDevice';
 import { SpliceNutDevice } from './SpliceNutDevice';
 import { IndustrialRelayDevice } from './IndustrialRelayDevice';
@@ -124,8 +123,6 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'appliance_fan':
       case 'appliance_ac':
         return <ApplianceDevice {...commonProps} />;
-      case 'motor_3phase_dol':
-        return <MotorStarterDevice {...commonProps} />;
       case 'junction_box':
       case 'junction_box_4way':
       case 'junction_box_octagonal_orange':

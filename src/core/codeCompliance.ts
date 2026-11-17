@@ -131,7 +131,7 @@ export function analyzeCodeCompliance(
           recommendation: 'Consider System A (Pigtail Splice with wire nuts in an orange octagonal box) so downstream continuity does not depend on this receptacle body.'
         });
       }
-    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_3phase_dol' || dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'safety_breaker_2p') {
+    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'safety_breaker_2p') {
       const gndWire = wires.find(w => 
         (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ground' || w.fromTerminalId === 'pe')) || 
         (w.toDeviceId === dev.id && (w.toTerminalId === 'ground' || w.toTerminalId === 'pe'))

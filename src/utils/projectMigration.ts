@@ -1,5 +1,5 @@
-import { DeviceType, ElectricalDevice } from '../types/electrical';
-import { COMPONENT_CATALOG } from '../data/defaultComponents';
+import { DeviceType, ElectricalDevice, ElectricalWire } from '../types/electrical';
+import { COMPONENT_CATALOG, createDeviceFromCatalog } from '../data/defaultComponents';
 
 /**
  * Upgrades devices from projects saved by older VoltLab versions.
@@ -50,4 +50,53 @@ export function migrateLegacyDevices(devices: ElectricalDevice[]): ElectricalDev
     }
     return dev;
   });
+}
+
+/**
+ * Device types that were removed and replaced by another device, with the terminal id each old
+ * terminal maps to. Wires attached to a converted device are re-pointed through this table.
+ */
+const REPLACED_DEVICES: Record<string, { to: DeviceType; terminals: Record<string, string> }> = {
+  motor_3phase_dol: { to: 'motor_ac_industrial', terminals: { l1: 'u1', l2: 'v1', l3: 'w1', pe: 'pe' } },
+};
+
+/**
+ * Upgrades a whole saved project (devices and wires). Devices of a removed type are rebuilt from the
+ * replacement catalog entry (keeping id, position, rotation and wattage), and wires that ended on them
+ * are re-pointed at the matching terminal. Call this from every load path.
+ */
+export function migrateLegacyProject(
+  devices: ElectricalDevice[],
+  wires: ElectricalWire[]
+): { devices: ElectricalDevice[]; wires: ElectricalWire[] } {
+  const remap: Record<string, Record<string, string>> = {};
+
+  const converted = devices.map((dev) => {
+    const rule = REPLACED_DEVICES[dev.type as string];
+    if (!rule) return dev;
+    const fresh = createDeviceFromCatalog(rule.to, dev.x, dev.y, dev.id);
+    if (dev.rotation) fresh.rotation = dev.rotation;
+    if (typeof dev.state?.wattage === 'number') fresh.state.wattage = dev.state.wattage;
+    remap[dev.id] = rule.terminals;
+    return fresh;
+  });
+
+  const fixedWires = wires.map((w) => {
+    const from = remap[w.fromDeviceId]?.[w.fromTerminalId];
+    const to = remap[w.toDeviceId]?.[w.toTerminalId];
+    return from || to
+      ? { ...w, fromTerminalId: from ?? w.fromTerminalId, toTerminalId: to ?? w.toTerminalId }
+      : w;
+  });
+
+  // Drop wires whose end terminal does not exist on the replacement device
+  const termsById = new Map<string, Set<string>>();
+  for (const dev of converted) termsById.set(dev.id, new Set(dev.terminals.map((t) => t.id)));
+  const validWires = fixedWires.filter(
+    (w) =>
+      !(w.fromDeviceId in remap && !termsById.get(w.fromDeviceId)?.has(w.fromTerminalId)) &&
+      !(w.toDeviceId in remap && !termsById.get(w.toDeviceId)?.has(w.toTerminalId))
+  );
+
+  return { devices: migrateLegacyDevices(converted), wires: validWires };
 }
