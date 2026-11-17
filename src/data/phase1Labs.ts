@@ -158,6 +158,33 @@ const rcboWires: ElectricalWire[] = [
   wr('pebar', 'pe_2', 'sock_b', 'ground', GREEN),
 ];
 
+// ── B4 · Standby generator and ATS ────────────────────────────────────────────────────────────
+const standbyDevices: ElectricalDevice[] = [
+  dev('kwh_meter_1p', 40, 30, 'util', { name: 'Utility Service Meter' }),
+  dev('service_disconnect_2p', 250, 40, 'qmain', { name: 'Utility Main (open it for an outage)', state: { closed: true, tripped: false, ratedAmps: 63 } }),
+  dev('industrial_relay_dpdt', 400, 40, 'rly', { name: 'K1 Loss-of-Mains Relay' }),
+  dev('ats_changeover', 220, 260, 'ats', { name: 'Q2 Automatic Transfer Switch', state: { source: 'normal', autoMode: true, transferDelaySec: 3 } }),
+  dev('generator_set_1p', 430, 250, 'gen', { name: 'G1 Standby Generator 5 kVA', state: { ratedKva: 5 } }),
+  dev('light_bulb', 150, 470, 'lamp1', { name: 'Essential Lamp 1' }),
+  dev('light_bulb', 300, 470, 'lamp2', { name: 'Essential Lamp 2' }),
+];
+const standbyWires: ElectricalWire[] = [
+  wr('util', 'l_out', 'qmain', 'in_l', RED),
+  wr('util', 'n_out', 'qmain', 'in_n', BLUE),
+  wr('qmain', 'out_l', 'ats', 'norm_l', RED),
+  wr('qmain', 'out_n', 'ats', 'norm_n', BLUE),
+  wr('qmain', 'out_l', 'rly', 'a1', RED),
+  wr('qmain', 'out_n', 'rly', 'a2', BLUE),
+  wr('gen', 'l_out', 'ats', 'gen_l', RED),
+  wr('gen', 'n_out', 'ats', 'gen_n', BLUE),
+  wr('gen', 'start_a', 'rly', 'com_1', ORANGE),
+  wr('gen', 'start_b', 'rly', 'nc_1', ORANGE),
+  wr('ats', 'load_l', 'lamp1', 'hot', RED),
+  wr('ats', 'load_n', 'lamp1', 'neutral', BLUE),
+  wr('ats', 'load_l', 'lamp2', 'hot', RED),
+  wr('ats', 'load_n', 'lamp2', 'neutral', BLUE),
+];
+
 export const PHASE1_LABS: LabLesson[] = [
   {
     id: 'lab-timer-offdelay-fan',
@@ -258,5 +285,22 @@ export const PHASE1_LABS: LabLesson[] = [
       'Press the T button on Q2 to test its leakage trip, then reset the lever. Which wiring change would make a single RCD drop both rooms?',
     ],
     project: labProject('proj_rcbo_circuits', 'Two Socket Circuits on Separate RCBOs', 'One RCBO per socket circuit.', rcboDevices, rcboWires),
+  },
+  {
+    id: 'lab-standby-generator-ats',
+    title: 'Standby Generator and ATS: Simulate a Utility Outage',
+    subtitle: 'Generating set (ISO 8528-1) started by a loss-of-mains relay, ATS transfer after a delay',
+    category: 'residential',
+    badge: '🔌 Standby Power',
+    difficulty: 'Advanced',
+    description:
+      'Essential lamps are fed through an automatic transfer switch from the utility (normal) and a standby generator. A loss-of-mains relay watches the utility: when the Utility Main is opened its NC contact closes the generator remote-start input. The set takes 3 s to reach voltage, the ATS waits its 3 s transfer delay, and then moves the load to the generator. When the utility returns the load goes straight back and the generator stops.',
+    objectives: [
+      'Press ▶ Simulate: the lamps are lit from the grid (ATS on GRID) and the generator is in standby.',
+      'Click the Utility Main to open it (outage). The lamps go dark, the relay drops out and the generator starts (watch START count to 3 s).',
+      'About 3 s after the generator reaches voltage the ATS transfers (II · GEN lamp) and the lamps come back on generator power.',
+      'Close the Utility Main: the load returns to the grid immediately and the generator stops. Raise the ATS transfer delay in the Device Inspector and repeat.',
+    ],
+    project: labProject('proj_standby_generator_ats', 'Standby Generator with ATS and Loss-of-Mains Relay', 'Utility outage simulation.', standbyDevices, standbyWires),
   },
 ];

@@ -1434,6 +1434,110 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         );
       })()}
 
+      {/* --- GENERATING SET --- */}
+      {device && (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') && (() => {
+        const is3p = device.type === 'generator_set_3p';
+        const running = !!device.state.running && !device.state.overloaded;
+        const overloaded = !!device.state.overloaded;
+        const requested = !!device.state.runRequested || !!device.state.remoteStart;
+        const status = overloaded ? 'OVERLOAD TRIP' : running ? 'RUNNING' : requested ? 'STARTING' : 'STANDBY';
+        const rated = Number(device.state.ratedKva) || (is3p ? 20 : 5);
+        const kvaOptions = is3p ? [10, 20, 30, 50] : [3, 5, 8, 10];
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Generating Set</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${overloaded ? 'bg-danger-soft/90 text-danger border border-danger/50 animate-pulse' : running ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {status}
+              </span>
+            </div>
+            <button
+              onClick={() => patchState('runRequested', !device.state.runRequested)}
+              className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${
+                device.state.runRequested ? 'bg-danger-soft text-danger border-danger/60' : 'bg-ok-soft text-ok border-ok/60'
+              }`}
+            >
+              {device.state.runRequested ? 'STOP SET' : 'START SET (3 s start delay)'}
+            </button>
+            <div>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">Rated Output (kVA)</label>
+              <div className="grid grid-cols-4 gap-1">
+                {kvaOptions.map((k) => (
+                  <button
+                    key={k}
+                    onClick={() => patchState('ratedKva', k)}
+                    className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                      rated === k ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                    }`}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="bg-surface-sunken p-2.5 rounded-md border border-border grid grid-cols-3 gap-2 text-xs font-mono">
+              <div>
+                <span className="text-[9px] text-ink-muted block font-sans">LOAD</span>
+                <span className="font-bold text-ink">{(Number(device.state.loadKw) || 0).toFixed(2)} kW</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-ink-muted block font-sans">VOLTAGE</span>
+                <span className="font-bold text-ink">{device.state.voltage || (is3p ? 440 : 230)} V</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-ink-muted block font-sans">FREQUENCY</span>
+                <span className="font-bold text-ink">{device.state.frequencyHz || 60} Hz</span>
+              </div>
+            </div>
+            <span className="text-[9px] text-ink-muted block">
+              {device.state.remoteStart
+                ? 'Remote start contact is closed: the set runs until it opens.'
+                : 'Wire a closed contact (for example a loss-of-mains relay NC contact) between START A and START B to start the set automatically. A load above the rating for 2 s trips the set.'}
+            </span>
+          </div>
+        );
+      })()}
+
+      {/* --- AUTOMATIC TRANSFER SWITCH --- */}
+      {device && device.type === 'ats_changeover' && (() => {
+        const delay = typeof device.state.transferDelaySec === 'number' ? device.state.transferDelaySec : 0;
+        const auto = device.state.autoMode !== false;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Transfer Switch</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.source === 'generator' ? 'bg-warning-soft/90 text-warning border border-warning/50' : 'bg-ok-soft/90 text-ok border border-ok/50'}`}>
+                {device.state.source === 'generator' ? 'ON GENERATOR' : 'ON GRID'}
+              </span>
+            </div>
+            <button
+              onClick={() => patchState('autoMode', !auto)}
+              className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${auto ? 'bg-ok-soft text-ok border-ok/60' : 'bg-surface/90 text-ink border-border'}`}
+            >
+              {auto ? 'AUTO: transfers on grid loss' : 'MANUAL: click the handle on the device'}
+            </button>
+            <div>
+              <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
+                <span className="font-bold uppercase tracking-wider">Transfer Delay</span>
+                <span className="font-mono text-ink font-bold">{delay === 0 ? 'instant' : `${delay} s`}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={delay}
+                onChange={(e) => patchState('transferDelaySec', Number(e.target.value))}
+                className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
+              />
+            </div>
+            <span className="text-[9px] text-ink-muted block">
+              Grid dead and generator live: the load moves to the generator after the delay (the load is dead meanwhile). When the grid returns the load goes back at once. The two sources are never connected together.
+            </span>
+          </div>
+        );
+      })()}
+
       {/* --- TIMER RELAY (KT) --- */}
       {device && device.type === 'timer_relay' && (() => {
         const mode = (device.state.timerMode as TimerMode) || 'on_delay';

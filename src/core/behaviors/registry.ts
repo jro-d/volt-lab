@@ -4,8 +4,10 @@ import { meter3pBehavior } from './meter3p';
 import { timerModesBehavior } from './timerModes';
 import { fuse1pBehavior, fuse3pBehavior } from './fuse';
 import { rcboBehavior } from './rcbo';
+import { generatorBehavior } from './generator';
+import { atsTransferBehavior } from './atsTransfer';
 
-const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1pBehavior, fuse3pBehavior, rcboBehavior];
+const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1pBehavior, fuse3pBehavior, rcboBehavior, generatorBehavior, atsTransferBehavior];
 
 const byType = new Map<DeviceType, DeviceBehavior>();
 for (const b of BEHAVIORS) for (const t of b.types) byType.set(t, b);

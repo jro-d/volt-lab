@@ -30,6 +30,17 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorDirection' in state) state.motorDirection = null;
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
+  if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') {
+    // A stopped plant when the grid is de-energized
+    state.running = false;
+    state.runRequested = false;
+    state.remoteStart = false;
+    state.startSec = 0;
+    state.overloaded = false;
+    state.overloadSec = 0;
+    state.loadKw = 0;
+  }
+  if (device.type === 'ats_changeover') state.transferSec = 0;
   if (device.type === 'kwh_meter_3p') {
     // The energy register is kept; only the live readout clears
     state.energized = false;

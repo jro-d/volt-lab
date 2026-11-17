@@ -100,7 +100,9 @@ export type DeviceType =
   // Roadmap phase 1
   | 'fuse_holder_1p'
   | 'fuse_switch_disconnector_3p'
-  | 'rcbo_1pn';
+  | 'rcbo_1pn'
+  | 'generator_set_1p'
+  | 'generator_set_3p';
 
 export interface ElectricalDevice {
   id: string;

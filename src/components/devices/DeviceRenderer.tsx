@@ -4,6 +4,7 @@ import { DeviceIdContext } from './TerminalContext';
 import { KwhMeterDevice } from './KwhMeterDevice';
 import { McbDevice } from './McbDevice';
 import { FuseDevice } from './FuseDevice';
+import { GeneratorDevice } from './GeneratorDevice';
 import { RcdDevice } from './RcdDevice';
 import { SpdDevice } from './SpdDevice';
 import { BusbarDevice } from './BusbarDevice';
@@ -101,6 +102,9 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'mcb_2p':
       case 'mcb_3p':
         return <McbDevice {...commonProps} />;
+      case 'generator_set_1p':
+      case 'generator_set_3p':
+        return <GeneratorDevice {...commonProps} />;
       case 'fuse_holder_1p':
       case 'fuse_switch_disconnector_3p':
         return <FuseDevice {...commonProps} />;

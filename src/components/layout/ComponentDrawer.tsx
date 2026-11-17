@@ -70,7 +70,7 @@ const LIBRARY_TREE: FolderNode[] = [
   {
     id: 'service',
     label: 'Service Entrance & Grounding',
-    types: ['kwh_meter_1p', 'kwh_meter_3p', 'earth_busbar', 'neutral_busbar', 'ground_pit'],
+    types: ['kwh_meter_1p', 'kwh_meter_3p', 'generator_set_1p', 'generator_set_3p', 'earth_busbar', 'neutral_busbar', 'ground_pit'],
   },
   {
     id: 'appliances',

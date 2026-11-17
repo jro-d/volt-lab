@@ -116,7 +116,8 @@ export function solveCircuit(
 
   // 3-phase supply line voltage (if any) — used for motor current & L-N potentials
   const threePhaseSource = devices.find(d => d.type === 'source_3phase_440v');
-  const lineVolts: number = threePhaseSource?.state.lineVoltage || 440;
+  const generator3p = devices.find(d => d.type === 'generator_set_3p');
+  const lineVolts: number = threePhaseSource?.state.lineVoltage || generator3p?.state.voltage || 440;
   const phaseToNeutralVolts = Math.round(lineVolts / Math.sqrt(3));
 
   // 1. Trace connectivity graph of terminals
@@ -376,6 +377,13 @@ export function solveCircuit(
   const phaseSeeds: { node: string; phase: PhaseId }[] = [];
 
   for (const dev of devices) {
+    const seeds = behaviorFor(dev.type)?.seeds?.(dev);
+    if (seeds) {
+      for (const t of seeds.live || []) liveSeedNodes.push(terminalKey(dev.id, t));
+      for (const t of seeds.neutral || []) neutralSeedNodes.push(terminalKey(dev.id, t));
+      for (const t of seeds.earth || []) earthSeedNodes.push(terminalKey(dev.id, t));
+      for (const p of seeds.phases || []) phaseSeeds.push({ node: terminalKey(dev.id, p.terminal), phase: p.phase });
+    }
     if (dev.type === 'kwh_meter_1p') {
       // Meter generates source voltages on its output terminals
       liveSeedNodes.push(terminalKey(dev.id, 'l_out'));
@@ -570,7 +578,7 @@ export function solveCircuit(
           dev.state.plcOutputs = outp;
           if (contactsChanged) break;
         }
-      } else if (dev.type === 'ats_changeover' && dev.state.autoMode !== false) {
+      } else if (dev.type === 'ats_changeover' && dev.state.autoMode !== false && !(Number(dev.state.transferDelaySec) > 0)) {
         const normLive = nodePotentials[terminalKey(dev.id, 'norm_l')] === 'live';
         const genLive = nodePotentials[terminalKey(dev.id, 'gen_l')] === 'live';
         const desired = normLive ? 'normal' : genLive ? 'generator' : dev.state.source || 'normal';
@@ -689,6 +697,24 @@ export function solveCircuit(
         return true;
       }
       curr = liveParent[curr]?.prevNode;
+    }
+    return false;
+  };
+
+  /** True when two terminals are joined through wires and closed contacts (a dry-contact continuity check) */
+  const isConnected = (a: string, b: string): boolean => {
+    if (!adj[a] || !adj[b]) return false;
+    const seenNodes = new Set<string>([a]);
+    const queue = [a];
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (curr === b) return true;
+      for (const n of adj[curr] || []) {
+        if (!seenNodes.has(n)) {
+          seenNodes.add(n);
+          queue.push(n);
+        }
+      }
     }
     return false;
   };
@@ -966,6 +992,10 @@ export function solveCircuit(
     } else if (dev.type === 'ats_changeover') {
       const lOut = nodePotentials[terminalKey(dev.id, 'load_l')] === 'live';
       deviceEnergized[dev.id] = lOut;
+    } else if (dev.type === 'generator_set_1p' || dev.type === 'generator_set_3p') {
+      // A closed external contact between start_a and start_b (reached through the wiring) means "run"
+      dev.state.remoteStart = isConnected(terminalKey(dev.id, 'start_a'), terminalKey(dev.id, 'start_b'));
+      deviceEnergized[dev.id] = !!dev.state.running && !dev.state.overloaded;
     }
   }
 
