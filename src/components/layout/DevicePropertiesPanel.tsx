@@ -81,7 +81,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   const rcdSensitivities = [10, 30, 100, 300];
 
   return (
-    <div className={`absolute top-4 ${isLibraryOpen ? 'left-[340px]' : 'left-4'} z-20 w-80 voltlab-panel voltlab-scroll-dark bg-surface border border-border rounded-lg shadow-2 backdrop-blur-md p-4 text-ink max-h-[calc(100%-36px)] overflow-y-auto select-none animate-in fade-in slide-in-from-top-2 duration-150`}>
+    <div className={`absolute top-4 ${isLibraryOpen ? 'left-[340px]' : 'left-4'} z-20 w-80 wirewise-panel wirewise-scroll-dark bg-surface border border-border rounded-lg shadow-2 backdrop-blur-md p-4 text-ink max-h-[calc(100%-36px)] overflow-y-auto select-none animate-in fade-in slide-in-from-top-2 duration-150`}>
       {/* Header */}
       <div className="flex items-center justify-between pb-2 mb-3 border-b border-border/80">
         <div className="flex items-center gap-2">

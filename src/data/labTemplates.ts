@@ -934,7 +934,7 @@ export const LAB_LESSONS: LabLesson[] = [
   // 11. COMPLETE RESIDENTIAL INSTALLATION (MASTER REFERENCE)
   {
     id: 'lab-1-reference',
-    title: 'Complete Residential Installation (VoltLab 364 Master)',
+    title: 'Complete Residential Installation (WireWise 364 Master)',
     subtitle: 'Service Entrance, Single Panel Earth Pit, 30mA RCD, SPD, ACU, Water Heater, Fan & Branch Loads',
     category: 'residential',
     badge: 'Master Reference',

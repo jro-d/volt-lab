@@ -1,4 +1,6 @@
-# VoltLab — Interactive Electrical Installation & Motor Control Simulator
+# WireWise — Interactive Electrical Installation & Motor Control Simulator
+*WireWise (formerly VoltLab)*
+
 **Physical Wiring Workbench • Ladder Logic • Single-Line Diagrams (SLD) • PEC 2017 & IEC 60364 Code Inspector**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,12 +11,12 @@
 ---
 
 ## ⚡ Overview
-**VoltLab** is a browser-based electrical installation workbench, circuit solver and motor-control trainer for electrical engineering students, electricians and automation technicians. It connects what you wire by hand to the diagrams you study: every conductor you route on the workbench is solved live, audited against the Philippine Electrical Code or IEC 60364, and redrawn as a ladder diagram and a single-line diagram.
+**WireWise** is a browser-based electrical installation workbench, circuit solver and motor-control trainer for electrical engineering students, electricians and automation technicians. It connects what you wire by hand to the diagrams you study: every conductor you route on the workbench is solved live, audited against the Philippine Electrical Code or IEC 60364, and redrawn as a ladder diagram and a single-line diagram.
 
 Place distribution and control equipment, route conductors with clean 90° paths, operate switches and momentary push buttons, then press **▶ Simulate** to energize the grid and watch breakers trip on short circuits and overloads, RCDs trip on 30 mA leakage, contactors seal in, and three-phase motors spin forward or reverse.
 
 ### Brand-neutral standard devices
-Every device in VoltLab is a **generic model of a standard device**, not a particular manufacturer's product. Each one is described by the product standard it follows (for example *IEC 60898-1* miniature breakers, *IEC 60947-4-1* contactors and overload relays, *IEC 60669-1* wall switches) and a generic catalogue designation, shown in the device inspector's datasheet card. Projects saved by older versions that used branded device types or model numbers are upgraded automatically when imported.
+Every device in WireWise is a **generic model of a standard device**, not a particular manufacturer's product. Each one is described by the product standard it follows (for example *IEC 60898-1* miniature breakers, *IEC 60947-4-1* contactors and overload relays, *IEC 60669-1* wall switches) and a generic catalogue designation, shown in the device inspector's datasheet card. Projects saved by older versions that used branded device types or model numbers are upgraded automatically when imported.
 
 ---
 
@@ -78,7 +80,7 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 ---
 
 ## 📚 Example Wirings & Learning Labs
-Open **Examples** in the ribbon. VoltLab starts on a blank canvas; each lab loads de-energized in Edit Mode — press **▶ Simulate** to energize it.
+Open **Examples** in the ribbon. WireWise starts on a blank canvas; each lab loads de-energized in Edit Mode — press **▶ Simulate** to energize it.
 
 ### Motor control (440 V / 220 V)
 1. **⚓ Marine / Industrial DOL Motor Starter** — 440 V feeder → 3P MCB → contactor KM1 → thermal overload F2 → motor, with a 440/220 V control transformer, OLR 95-96 → STOP → START + 13-14 seal-in, and RUN / FAULT pilots.
@@ -128,7 +130,7 @@ Open **Examples** in the ribbon. VoltLab starts on a blank canvas; each lab load
 ## 💾 Saving & Sharing
 - **Export / Import** — save the project as JSON and reopen it later (older saves are upgraded automatically).
 - **Save HTML** — downloads a single self-contained offline HTML file that opens straight to your wiring.
-- **`VoltLab-Standalone.html`** — the whole app as one offline file, built with `npm run build:standalone`.
+- **`WireWise-Standalone.html`** — the whole app as one offline file, built with `npm run build:standalone`.
 
 ---
 
@@ -139,8 +141,8 @@ Open **Examples** in the ribbon. VoltLab starts on a blank canvas; each lab load
 
 ### Run locally
 ```bash
-git clone https://github.com/jro-d/volt-lab.git
-cd volt-lab
+git clone https://github.com/jro-d/wirewise.git
+cd wirewise
 npm install
 npm run dev
 ```
@@ -149,7 +151,7 @@ Open the URL Vite prints (default **`http://localhost:5173/`**).
 ### Build
 ```bash
 npm run build              # type-check + production build into dist/
-npm run build:standalone   # also writes VoltLab-Standalone.html (single offline file)
+npm run build:standalone   # also writes WireWise-Standalone.html (single offline file)
 ```
 Pushes to `main` are built and deployed to GitHub Pages by the included GitHub Actions workflow. A development-only device gallery is available at `/?gallery`.
 
@@ -157,9 +159,9 @@ Pushes to `main` are built and deployed to GitHub Pages by the included GitHub A
 
 ## 📁 Project Structure
 ```text
-volt-lab/
+wirewise/
 ├── index.html
-├── VoltLab-Standalone.html      <-- single-file offline build
+├── WireWise-Standalone.html      <-- single-file offline build
 ├── scripts/                     <-- standalone HTML builder
 └── src/
     ├── App.tsx                  <-- root layout & state coordinator

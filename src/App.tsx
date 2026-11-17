@@ -22,6 +22,7 @@ import { sound } from './utils/soundFx';
 import { resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
+import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
@@ -29,9 +30,7 @@ type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
 
 function loadEmbeddedProject(): ElectricalProject | null {
   try {
-    const el = document.getElementById('voltlab-embedded-project');
-    if (!el?.textContent?.trim()) return null;
-    const parsed = JSON.parse(el.textContent);
+    const parsed = readEmbeddedProject(document);
     if (parsed && Array.isArray(parsed.devices) && Array.isArray(parsed.wires)) {
       const migrated = migrateLegacyProject(parsed.devices, parsed.wires);
       return { ...parsed, devices: toEditModeDevices(migrated.devices), wires: migrated.wires };
@@ -852,13 +851,13 @@ export const App: React.FC = () => {
       devices: toEditModeDevices(project.devices),
     };
     const safeJson = JSON.stringify(exportProject).replace(/</g, '\\u003c');
-    const fileBase = (exportProject.title || 'voltlab_wiring')
+    const fileBase = (exportProject.title || 'wirewise_wiring')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_+|_+$/g, '');
 
     const inlineScripts = Array.from(
-      document.querySelectorAll('script:not([src]):not(#voltlab-embedded-project)')
+      document.querySelectorAll(`script:not([src])${NOT_EMBEDDED_PROJECT}`)
     ).filter((s) => (s.textContent || '').trim().length > 200);
 
     let htmlDoc: string | null = null;
@@ -867,12 +866,13 @@ export const App: React.FC = () => {
       const clone = document.documentElement.cloneNode(true) as HTMLElement;
       const root = clone.querySelector('#root');
       if (root) root.innerHTML = '';
-      clone.querySelector('#voltlab-embedded-project')?.remove();
+      clone.querySelector(`#${EMBEDDED_PROJECT_ID}`)?.remove();
+      clone.querySelector(`#${LEGACY_EMBEDDED_PROJECT_ID}`)?.remove();
       const titleEl = clone.querySelector('title');
-      if (titleEl) titleEl.textContent = `VoltLab - ${exportProject.title}`;
+      if (titleEl) titleEl.textContent = `WireWise - ${exportProject.title}`;
       const head = clone.querySelector('head') || clone;
       const dataScript = document.createElement('script');
-      dataScript.id = 'voltlab-embedded-project';
+      dataScript.id = EMBEDDED_PROJECT_ID;
       dataScript.type = 'application/json';
       dataScript.textContent = safeJson;
       head.appendChild(dataScript);
@@ -881,7 +881,7 @@ export const App: React.FC = () => {
 
     if (inlineScripts.length > 0) {
       const clone = prepareClone();
-      clone.querySelectorAll('script:not([src]):not(#voltlab-embedded-project)').forEach((s) => {
+      clone.querySelectorAll(`script:not([src])${NOT_EMBEDDED_PROJECT}`).forEach((s) => {
         if (s.textContent) {
           s.textContent = s.textContent.replace(/<\/(script)/gi, '<\\/$1');
         }
@@ -918,7 +918,7 @@ export const App: React.FC = () => {
 
     if (!htmlDoc) {
       alert(
-        'HTML export saves a standalone offline webpage when running from VoltLab-Standalone.html or the production build. Open VoltLab-Standalone.html directly in your browser to save projects as standalone .html files.'
+        'HTML export saves a standalone offline webpage when running from WireWise-Standalone.html or the production build. Open WireWise-Standalone.html directly in your browser to save projects as standalone .html files.'
       );
       return;
     }
@@ -927,7 +927,7 @@ export const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${fileBase || 'voltlab_wiring'}_${standard}.html`;
+    a.download = `${fileBase || 'wirewise_wiring'}_${standard}.html`;
     document.body.appendChild(a);
     a.click();
     a.remove();

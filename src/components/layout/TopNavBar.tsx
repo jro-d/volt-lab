@@ -1,5 +1,6 @@
 import React from 'react';
 import { CodeStandard } from '../../types/electrical';
+import { saveTheme } from '../../utils/themeStorage';
 import {
   Zap,
   RotateCcw,
@@ -37,11 +38,7 @@ const useTheme = () => {
     setDark((d) => {
       const next = !d;
       document.documentElement.classList.toggle('dark', next);
-      try {
-        localStorage.setItem('voltlab-theme', next ? 'dark' : 'light');
-      } catch {
-        /* storage unavailable: theme lasts for this visit only */
-      }
+      saveTheme(localStorage, next ? 'dark' : 'light');
       return next;
     });
   }, []);
@@ -169,7 +166,9 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           </div>
           <div className="min-w-0 hidden xl:block">
             <div className="text-[18px] font-display font-bold text-ink leading-none tracking-[-0.01em] flex items-center gap-1.5">
-              VoltLab
+              <span>
+                Wire<span className="text-brand">Wise</span>
+              </span>
               <span className="text-[9px] font-mono font-semibold px-1.5 py-px rounded-sm bg-brand-soft text-brand-ink tracking-normal">
                 CAD
               </span>

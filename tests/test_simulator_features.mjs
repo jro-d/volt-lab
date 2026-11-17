@@ -2,7 +2,7 @@ import { LAB_LESSONS } from '../src/data/labTemplates.ts';
 import { solveCircuit } from '../src/core/circuitSolver.ts';
 import { getDeviceTerminalPosition } from '../src/core/wireRouter.ts';
 
-console.log('Testing VoltLab 364 Features...');
+console.log('Testing WireWise 364 Features...');
 
 // Test 1: Lab 5 (3-way switch circuit) current propagation
 const lab5 = LAB_LESSONS.find(l => l.id === 'lab-lighting-2way');

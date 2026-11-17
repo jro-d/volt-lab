@@ -1,12 +1,12 @@
 {
-  "name": "volt-lab",
+  "name": "wirewise",
   "version": "1.0.0",
   "description": "Interactive real-time electrical installation modeler, circuit simulator, and code compliance planner (PEC 2017 & IEC 60364).",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jro-d/volt-lab.git"
+    "url": "https://github.com/jro-d/wirewise.git"
   },
   "scripts": {
     "dev": "vite",

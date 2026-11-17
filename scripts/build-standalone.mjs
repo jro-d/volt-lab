@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist-standalone');
 const indexHtmlPath = path.join(distDir, 'index.html');
-const outputPath = path.join(rootDir, 'VoltLab-Standalone.html');
+const outputPath = path.join(rootDir, 'WireWise-Standalone.html');
 
 if (!fs.existsSync(indexHtmlPath)) {
   console.error(`Expected build output at ${indexHtmlPath}`);

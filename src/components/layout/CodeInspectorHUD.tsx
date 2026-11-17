@@ -41,7 +41,7 @@ export const CodeInspectorHUD: React.FC<CodeInspectorHUDProps> = ({
   const fatalShockViolations = report.violations.filter(v => v.hazardLevel === 'fatal_electrocution');
 
   return (
-    <aside className="voltlab-console voltlab-scroll-dark w-[21.5rem] shrink-0 bg-console border-l-2 border-console-line shadow-2 flex flex-col h-full overflow-hidden select-none z-10 font-sans text-console-ink">
+    <aside className="wirewise-console wirewise-scroll-dark w-[21.5rem] shrink-0 bg-console border-l-2 border-console-line shadow-2 flex flex-col h-full overflow-hidden select-none z-10 font-sans text-console-ink">
       {/* Header */}
       <div className="p-3.5 border-b border-console-line bg-console-raised flex items-center justify-between shadow-sm">
         <div>
@@ -68,7 +68,7 @@ export const CodeInspectorHUD: React.FC<CodeInspectorHUDProps> = ({
         </span>
       </div>
 
-      <div className="voltlab-scroll-dark flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="wirewise-scroll-dark flex-1 overflow-y-auto p-3 space-y-3">
         {/* Mode banner */}
         <div
           className={`rounded-lg px-2.5 py-1.5 text-[10px] font-mono font-bold border ${
