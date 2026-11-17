@@ -2,6 +2,7 @@ import React from 'react';
 import { ElectricalDevice, ElectricalWire, CodeStandard } from '../../types/electrical';
 import { getWireStandards, COLOR_STANDARDS } from '../../data/standardsData';
 import { conductorColor } from '../../styles/conductors';
+import { TIMER_MODE_LABEL, TimerMode } from '../../core/behaviors/timerModes';
 import { 
   Sliders, 
   ShieldCheck, 
@@ -1235,6 +1236,58 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </span>
         </div>
       )}
+
+      {/* --- TIMER RELAY (KT) --- */}
+      {device && device.type === 'timer_relay' && (() => {
+        const mode = (device.state.timerMode as TimerMode) || 'on_delay';
+        const delay = typeof device.state.delaySec === 'number' ? device.state.delaySec : 5;
+        const reset = { elapsedSec: 0, timedOut: false, oneShotDone: false };
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, { ...patch, ...reset });
+          else Object.entries({ ...patch, ...reset }).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const hints: Record<TimerMode, string> = {
+          on_delay: 'Coil on: contacts transfer after the delay. Coil off: they release at once.',
+          off_delay: 'Coil on: contacts transfer at once. Coil off: they release after the delay.',
+          flasher: 'While the coil is on the contacts toggle every delay period. Coil off resets it.',
+          one_shot: 'Coil on: contacts transfer for one delay period, then release even if the coil stays on. Re-arms when the coil drops.',
+        };
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Timer Function</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.timedOut ? 'bg-warning-soft/90 text-warning border border-warning/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {device.state.timedOut ? '15-18 CLOSED' : '15-16 CLOSED'}
+              </span>
+            </div>
+            <select
+              value={mode}
+              onChange={(e) => apply({ timerMode: e.target.value })}
+              className="w-full bg-surface border border-border rounded-lg px-2 py-1 text-xs text-ink font-mono focus:outline-none focus:border-probe"
+            >
+              {(Object.keys(TIMER_MODE_LABEL) as TimerMode[]).map((m) => (
+                <option key={m} value={m}>{TIMER_MODE_LABEL[m]}</option>
+              ))}
+            </select>
+            <div>
+              <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
+                <span className="font-bold uppercase tracking-wider">Delay</span>
+                <span className="font-mono text-ink font-bold">{delay} s</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={60}
+                step={1}
+                value={delay}
+                onChange={(e) => apply({ delaySec: Number(e.target.value) })}
+                className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
+              />
+            </div>
+            <span className="text-[9px] text-ink-muted block">{hints[mode]}</span>
+          </div>
+        );
+      })()}
 
       {/* --- BULK WIRE EDITOR (several conductors selected) --- */}
       {wires.length > 1 && (() => {

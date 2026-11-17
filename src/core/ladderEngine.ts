@@ -113,8 +113,10 @@ export function getControlElements(dev: ElectricalDevice): PhysicalElement[] {
     case 'timer_relay': {
       const timedOut = !!s.timedOut;
       const tag = s.tag || 'KT1';
-      add('timer_nc', 'NC', tag, '15-16', 'com_15', 'nc_16', !timedOut);
-      add('timer_no', 'NO', tag, '15-18', 'com_15', 'no_18', timedOut);
+      // IEC 61131-3 timer names: TON on-delay, TOF off-delay, TP pulse (one-shot); flasher has no standard name
+      const fn = ({ on_delay: 'TON', off_delay: 'TOF', one_shot: 'TP', flasher: 'FLASH' } as Record<string, string>)[s.timerMode || 'on_delay'] || 'TON';
+      add('timer_nc', 'NC', tag, `15-16 ${fn}`, 'com_15', 'nc_16', !timedOut);
+      add('timer_no', 'NO', tag, `15-18 ${fn}`, 'com_15', 'no_18', timedOut);
       add('coil', 'COIL', `${tag} (${s.delaySec ?? 5}s)`, 'A1-A2', 'a1', 'a2', !!s.energized);
       break;
     }

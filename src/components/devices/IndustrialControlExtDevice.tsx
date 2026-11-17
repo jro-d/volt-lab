@@ -1,11 +1,12 @@
 import React from 'react';
+import { TIMER_MODE_LABEL, TimerMode } from '../../core/behaviors/timerModes';
 import {
   Bay, DeviceProps, DinClip, Face, Housing, LegendPlate, Led, Mono, Nameplate, PushButton, Screw, Silk, SymCoil, SymNC, SymNO,
   Terminals, TermIds, act, deviceTag, makePatch,
 } from './kit';
 
 /**
- * Control extensions: on-delay timer relay (KT), HAND-OFF-AUTO selector (SA), roller-lever limit
+ * Control extensions: timer relay (KT, four functions), HAND-OFF-AUTO selector (SA), roller-lever limit
  * switch (SQ) and a variable-frequency drive (U) with keypad.
  */
 export const IndustrialControlExtDevice: React.FC<DeviceProps> = (props) => {
@@ -15,8 +16,9 @@ export const IndustrialControlExtDevice: React.FC<DeviceProps> = (props) => {
   const tag = deviceTag(device);
   const tTop = H * (device.terminals[0]?.relY ?? 0.08);
 
-  /* ───────────── Timer relay (on-delay) ───────────── */
+  /* ───────────── Timer relay (on-delay / off-delay / flasher / one-shot) ───────────── */
   if (type === 'timer_relay') {
+    const mode = (state.timerMode as TimerMode) in TIMER_MODE_LABEL ? (state.timerMode as TimerMode) : 'on_delay';
     const delaySec = typeof state.delaySec === 'number' ? state.delaySec : 5;
     const elapsedSec = typeof state.elapsedSec === 'number' ? state.elapsedSec : 0;
     const energized = !!state.energized;
@@ -38,7 +40,7 @@ export const IndustrialControlExtDevice: React.FC<DeviceProps> = (props) => {
         <Bay x={3} y={topBayY} w={W - 6} h={16} />
         <Bay x={3} y={botBayY} w={W - 6} h={16} />
         <Face x={3} y={faceY} w={W - 6} h={faceH} />
-        <Nameplate x={3} y={faceY + 6} w={W - 6} h={8} tag={tag || 'KT'} text="ON-DELAY" size={4.6} />
+        <Nameplate x={3} y={faceY + 6} w={W - 6} h={8} tag={tag || 'KT'} text={TIMER_MODE_LABEL[mode].toUpperCase()} size={4.6} />
         {/* status LEDs */}
         <Led cx={12} cy={faceY + 21} r={1.8} on={energized} color="green" />
         <Mono x={16} y={faceY + 22.6} size={3.6} muted>U</Mono>
