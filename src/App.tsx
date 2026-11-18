@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard, DeviceType } from './types/electrical';
+import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard, DeviceType, RecorderChannel } from './types/electrical';
 import { CodeViolation } from './types/codes';
 import { SparkEvent } from './types/simulation';
 import { LabLesson, createBlankProject } from './data/labTemplates';
@@ -27,6 +27,8 @@ import { replaceBlownFuse, resetTripState, toEditModeDevices } from './utils/dev
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
 import { DEFAULT_PROCESS, tickProcess } from './core/process';
+import { Recorder } from './core/recorder';
+import { RecorderPanel } from './components/layout/RecorderPanel';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
 
@@ -74,6 +76,11 @@ export const App: React.FC = () => {
   const [dmmProbeA, setDmmProbeA] = useState<{ deviceId: string; terminalId: string } | null>(null);
   // Troubleshooting mode: hidden faults are active only while this is on
   const [troubleshoot, setTroubleshoot] = useState<boolean>(false);
+  // Timing diagram recorder (hidden until opened from the status bar)
+  const [recorderOpen, setRecorderOpen] = useState<boolean>(false);
+  const recorderRef = useRef<Recorder>(new Recorder());
+  const [recVersion, setRecVersion] = useState(0);
+  const [recPaused, setRecPaused] = useState(false);
   const [diag, setDiag] = useState<DiagState>(newDiagState);
   const [scenario, setScenario] = useState<TroubleshootScenario | null>(null);
   const [instrument, setInstrument] = useState<InstrumentId>('dmm');
@@ -411,10 +418,23 @@ export const App: React.FC = () => {
     });
   };
 
-  // Time-dependent devices (timer relays, energy meters, fuses, generators ...) advance while simulating
+  const recChannels = project.recorder?.channels ?? [];
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const recChannelsRef = useRef(recChannels);
+  recChannelsRef.current = recChannels;
+
+  // Time-dependent devices (timer relays, energy meters, fuses, generators ...) advance while simulating;
+  // the recorder samples every tick too
   React.useEffect(() => {
-    if (!isSimulating || !needsTick(project.devices)) return;
+    if (!isSimulating || (!needsTick(project.devices) && recChannels.length === 0)) return;
     const id = window.setInterval(() => {
+      if (recChannelsRef.current.length > 0) {
+        const cur = projectRef.current;
+        const after = tickSimulation(cur.devices, cur.wires, solved, cur.gridFrequency, TICK_SECONDS, cur.process);
+        recorderRef.current.sample(recChannelsRef.current, after, solved, TICK_SECONDS);
+        setRecVersion((v) => v + 1);
+      }
       setProject((prev) => {
         const devices = tickSimulation(prev.devices, prev.wires, solved, prev.gridFrequency, TICK_SECONDS, prev.process);
         const process = tickProcess(devices, prev.process, TICK_SECONDS);
@@ -422,7 +442,7 @@ export const App: React.FC = () => {
       });
     }, TICK_SECONDS * 1000);
     return () => window.clearInterval(id);
-  }, [isSimulating, project.devices, solved]);
+  }, [isSimulating, project.devices, solved, recChannels.length]);
 
   const trippedCount = project.devices.filter(d => d.state.tripped).length;
 
@@ -461,6 +481,8 @@ export const App: React.FC = () => {
     if (!isSimulating) {
       sound.playBreakerSnap();
       setSelectedWireId(null);
+      recorderRef.current.clear();
+      setRecVersion((v) => v + 1);
       setIsSimulating(true);
       showNotice(`Grid energized — ${project.gridVoltage}V ${project.gridFrequency}Hz`);
     } else {
@@ -1047,6 +1069,14 @@ export const App: React.FC = () => {
   };
 
   // Load a Lab Lesson (always opens de-energized in Edit Mode; press ▶ Simulate to energize)
+  const handleAddRecorderChannel = (channel: Omit<RecorderChannel, 'id'>) => {
+    const id = `ch_${Date.now().toString(36)}_${Math.floor(Math.random() * 1000)}`;
+    setProject((prev) => ({ ...prev, recorder: { v: 1, channels: [...(prev.recorder?.channels ?? []), { ...channel, id }] } }));
+  };
+  const handleRemoveRecorderChannel = (id: string) => {
+    setProject((prev) => ({ ...prev, recorder: { v: 1, channels: (prev.recorder?.channels ?? []).filter((c) => c.id !== id) } }));
+  };
+
   const handleSelectLab = (lab: LabLesson) => {
     pushUndoSnapshot();
     const loaded: ElectricalProject = JSON.parse(JSON.stringify(lab.project));
@@ -1054,6 +1084,8 @@ export const App: React.FC = () => {
     setIsSimulating(false);
     setSparkFlash([]);
     setProject(loaded);
+    recorderRef.current.clear();
+    if ((loaded.recorder?.channels.length ?? 0) > 0) setRecorderOpen(true);
     setStandard(lab.project.codeStandard);
     setIsLabModalOpen(false);
     setIsLibraryOpen(false);
@@ -1401,6 +1433,29 @@ export const App: React.FC = () => {
         )}
       </div>
 
+      {recorderOpen && (
+        <RecorderPanel
+          recorder={recorderRef.current}
+          version={recVersion}
+          channels={recChannels}
+          selectedDevice={selectedDevice}
+          selectedWireId={selectedWireId}
+          isSimulating={isSimulating}
+          paused={recPaused}
+          onAddChannel={handleAddRecorderChannel}
+          onRemoveChannel={handleRemoveRecorderChannel}
+          onClear={() => {
+            recorderRef.current.clear();
+            setRecVersion((v) => v + 1);
+          }}
+          onTogglePause={() => {
+            recorderRef.current.paused = !recorderRef.current.paused;
+            setRecPaused(recorderRef.current.paused);
+          }}
+          onClose={() => setRecorderOpen(false)}
+        />
+      )}
+
       {/* Bottom CAD Status Bar */}
       <StatusBar
         standard={standard}
@@ -1413,6 +1468,8 @@ export const App: React.FC = () => {
         totalAmps={report.totalCurrentAmps}
         troubleshootMode={troubleshoot}
         onToggleTroubleshoot={() => setTroubleshoot((v) => !v)}
+        recorderOpen={recorderOpen}
+        onToggleRecorder={() => setRecorderOpen((v) => !v)}
       />
 
       {/* Guided Labs & Scenarios Modal */}

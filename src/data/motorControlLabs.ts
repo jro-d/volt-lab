@@ -421,6 +421,17 @@ export const MOTOR_CONTROL_LABS: LabLesson[] = [
       devices: ydDevices,
       wires: ydWires,
       targetLadder: ydTarget,
+      // Preset timing diagram channels: KM1 / KMY / KMD coils, the KT1 contact and the motor running state
+      recorder: {
+        v: 1 as const,
+        channels: [
+          { id: 'ch_yd_km1', label: 'KM1 coil', kind: 'digital' as const, source: { kind: 'state' as const, deviceId: 'wyd_km1', key: 'coilEnergized' } },
+          { id: 'ch_yd_kmy', label: 'KMY coil (star)', kind: 'digital' as const, source: { kind: 'state' as const, deviceId: 'wyd_kmy', key: 'coilEnergized' } },
+          { id: 'ch_yd_kmd', label: 'KMD coil (delta)', kind: 'digital' as const, source: { kind: 'state' as const, deviceId: 'wyd_kmd', key: 'coilEnergized' } },
+          { id: 'ch_yd_kt1', label: 'KT1 contact transferred', kind: 'digital' as const, source: { kind: 'state' as const, deviceId: 'wyd_kt1', key: 'timedOut' } },
+          { id: 'ch_yd_m1', label: 'M1 running', kind: 'digital' as const, source: { kind: 'state' as const, deviceId: 'wyd_m1', key: 'running' } },
+        ],
+      },
     },
   },
 ];
