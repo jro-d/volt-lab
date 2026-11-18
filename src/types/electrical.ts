@@ -273,6 +273,21 @@ export interface ElectricalProject {
   /** Troubleshooting faults, applied only while Troubleshoot mode is on. Absent in older saves. */
   faults?: InjectedFault[];
   faultsVersion?: number;
+  /** Timing diagram recorder channels (versioned so older saves keep loading) */
+  recorder?: { v: 1; channels: RecorderChannel[] };
+}
+
+/** One recorded signal: a device state value, the energized flag, a terminal voltage or a wire current. */
+export interface RecorderChannel {
+  id: string;
+  label: string;
+  kind: 'digital' | 'analog';
+  unit?: string;
+  source:
+    | { kind: 'state'; deviceId: string; key: string }
+    | { kind: 'energized'; deviceId: string }
+    | { kind: 'voltage'; deviceId: string; terminalId: string }
+    | { kind: 'current'; wireId: string };
 }
 
 /** Tank level (%), line pressure (bar) and the draw-off slider (litres per minute) of the project's process. */

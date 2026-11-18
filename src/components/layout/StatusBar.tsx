@@ -16,6 +16,9 @@ interface StatusBarProps {
   /** Troubleshooting mode toggle (hidden faults, symptoms only) */
   troubleshootMode?: boolean;
   onToggleTroubleshoot?: () => void;
+  /** Timing diagram recorder dock */
+  recorderOpen?: boolean;
+  onToggleRecorder?: () => void;
 }
 
 const SNAP_CYCLE: SnapSize[] = [10, 5, 0];
@@ -35,6 +38,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   totalAmps,
   troubleshootMode = false,
   onToggleTroubleshoot,
+  recorderOpen = false,
+  onToggleRecorder,
 }) => {
   const { cursorX, cursorY, zoom, wiring } = useCadStatus();
 
@@ -86,6 +91,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </span>
         ))}
       </div>
+
+      {onToggleRecorder && (
+        <button
+          onClick={onToggleRecorder}
+          title="Timing diagram recorder: plot coils, contacts, lamps, voltages and currents against time"
+          className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${recorderOpen ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
+        >
+          📈 Recorder
+        </button>
+      )}
 
       {onToggleTroubleshoot && (
         <button
