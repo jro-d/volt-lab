@@ -3,6 +3,7 @@ import { createDeviceFromCatalog } from './defaultComponents';
 import { MOTOR_CONTROL_LABS } from './motorControlLabs';
 import { PHASE1_LABS } from './phase1Labs';
 import { PHASE2_LABS } from './phase2Labs';
+import { BATCH32_LABS } from './batch32Labs';
 import { PHASE3_LABS } from './phase3Labs';
 
 export type LabCategory = 'all' | 'sockets' | 'lighting' | 'splice' | 'appliances' | 'residential' | 'industrial' | 'automation';
@@ -28,6 +29,9 @@ export const LAB_LESSONS: LabLesson[] = [
 
   // Roadmap phase 2: process control, protection relays, DC sensors, annunciation, 1-phase motors, instruments
   ...PHASE2_LABS,
+
+  // Batch 3.2: sources and power systems
+  ...BATCH32_LABS,
   ...PHASE3_LABS,
 
   // 0. PHILIPPINE RESIDENTIAL BRANCH CIRCUIT (standard devices)

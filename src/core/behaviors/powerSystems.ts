@@ -23,6 +23,26 @@ const coilOn = (ctx: TickContext, id: string, a: string, b: string) => {
   return live(ctx, ka) && live(ctx, kb) && !!pa && !!pb && pa !== pb;
 };
 
+
+const isGenerator = (d?: ElectricalDevice) => !!d && (d.type === 'generator_set_1p' || d.type === 'generator_set_3p');
+
+/**
+ * The generating set behind a terminal: a set wired directly to it, otherwise the set the solver says seeds
+ * that net. The direct wire matters once two sets are paralleled and share one net.
+ */
+function generatorBehind(dev: ElectricalDevice, terminal: string, ctx: TickContext): ElectricalDevice | undefined {
+  for (const w of ctx.wires) {
+    let other: string | undefined;
+    if (w.fromDeviceId === dev.id && w.fromTerminalId === terminal) other = w.toDeviceId;
+    else if (w.toDeviceId === dev.id && w.toTerminalId === terminal) other = w.fromDeviceId;
+    const g = other ? ctx.devices.find((d) => d.id === other) : undefined;
+    if (isGenerator(g)) return g;
+  }
+  const src = ctx.solved.nodeSource?.[`${dev.id}:${terminal}`];
+  const g = ctx.devices.find((d) => d.id === src);
+  return isGenerator(g) ? g : undefined;
+}
+
 // ── Manual transfer switch ────────────────────────────────────────────────────────────────────
 /**
  * Manual changeover switch I - 0 - II. The handle has to pass through the 0 (off) position, so the load is
@@ -341,11 +361,11 @@ export const groundDetectionBehavior: DeviceBehavior = {
 
 // ── Paralleling ────────────────────────────────────────────────────────────────────────────────
 /** Phase slip is slowed by this factor so a synchroscope needle can be followed at the 0.5 s tick. */
-export const SYNC_SLIP_SCALE = 0.1;
+export const SYNC_SLIP_SCALE = 0.25;
 
 /**
- * Synchroscope with sync lamps. It compares the generator driving the bus side with the one driving the
- * incoming side (found through the solver's source tracking). The phase difference rotates at
+ * Synchroscope with sync lamps. It compares the generator behind the bus side with the one behind the
+ * incoming side (wired directly, or found through the solver's source tracking). The phase difference rotates at
  * 360 x (frequency difference), slowed by SYNC_SLIP_SCALE; the permissive contact (perm_a - perm_b) closes
  * within 10 degrees and 0.25 Hz. Nothing here blocks a breaker: the permissive is a signal to wire.
  */
@@ -354,9 +374,8 @@ export const synchroscopeBehavior: DeviceBehavior = {
   edges: (dev) => (dev.state.inSync ? [['perm_a', 'perm_b']] : []),
   tick(dev, ctx) {
     const gen = (terminal: string) => {
-      const src = ctx.solved.nodeSource?.[`${dev.id}:${terminal}`];
-      const g = ctx.devices.find((d) => d.id === src);
-      return g && (g.type === 'generator_set_1p' || g.type === 'generator_set_3p') && g.state.running ? g : undefined;
+      const g = generatorBehind(dev, terminal, ctx);
+      return g && g.state.running ? g : undefined;
     };
     const bus = gen('bus_l');
     const inc = gen('inc_l');
@@ -377,11 +396,9 @@ export const synchroscopeBehavior: DeviceBehavior = {
   },
 };
 
-/** Generator behind a relay's sense terminals, found through the solver's source tracking. */
+/** Generator behind a relay's sense terminals. */
 function senseGenerator(dev: ElectricalDevice, ctx: TickContext) {
-  const src = ctx.solved.nodeSource?.[`${dev.id}:sense_l`];
-  const g = ctx.devices.find((d) => d.id === src);
-  return g && (g.type === 'generator_set_1p' || g.type === 'generator_set_3p') ? g : undefined;
+  return generatorBehind(dev, 'sense_l', ctx);
 }
 
 /**

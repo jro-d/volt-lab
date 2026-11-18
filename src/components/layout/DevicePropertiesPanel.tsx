@@ -2054,7 +2054,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               </div>
             )}
             {hint[device.type] && <span className="text-[9px] text-ink-muted block">{hint[device.type]}</span>}
-            {isGen && <span className="text-[9px] text-ink-muted block">A frequency offset makes the set slip against another one so a synchroscope shows a rotating phase difference (slowed 10x).</span>}
+            {isGen && <span className="text-[9px] text-ink-muted block">A frequency offset makes the set slip against another one so a synchroscope shows a rotating phase difference (slowed 4x).</span>}
           </div>
         );
       })()}
