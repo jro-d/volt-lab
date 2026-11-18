@@ -1,5 +1,6 @@
 import type { DeviceBehavior } from './types';
 import { withState } from './util';
+import { plcProgramTick } from './plcProgram';
 
 /** Seconds a current-limited supply stays off before it tries to restart ("hiccup" mode). */
 export const PSU_RECOVERY_SEC = 3;
@@ -26,6 +27,8 @@ export const dcSensorBehavior: DeviceBehavior = {
 /** 24 V DC PLC: each transistor output that is ON connects its terminal to L+ (sourcing output). */
 export const plc24Behavior: DeviceBehavior = {
   types: ['plc_24vdc_16io'],
+  // user-programmed scan (program === 'user'); otherwise the fixed demo behaviour in circuitSolver.ts
+  tick: plcProgramTick,
   edges: (dev) => {
     const outs = (dev.state.plcOutputs || {}) as Record<string, boolean>;
     return Object.keys(outs).filter((k) => outs[k]).map((k) => ['l_pos', k] as [string, string]);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { dev, wire, run, byId } from './helpers.mjs';
 import { emptyRuntime, scanProgram, validateProgram, addressKind, readNumber } from '../src/core/plcEngine.ts';
 import { PLC_PRESETS, blankProgram } from '../src/data/plcPresets.ts';
+import * as edit from '../src/core/plcEdit.ts';
 
 const N = { color: '#0f172a', conductorRole: 'return_neutral' };
 let n = 0;
@@ -238,5 +239,37 @@ console.log('\n--- Device integration: the program drives a real circuit ---');
   ], 2);
   assert.equal(byId(oldDevs, 'plc').state.plcOutputs.q1, true, 'without a user program the I1 -> Q1 demo behaviour still runs');
   console.log('✓ PLCs without a user program keep their previous demo behaviour');
+}
+console.log('\n--- Program editing operations ---');
+{
+  let p = blankProgram();
+  p = edit.addRung(p);
+  const rungId = p.rungs[0].id;
+  const a = edit.makeElement('NO');
+  const b = edit.makeElement('NC');
+  const coil = edit.makeElement('COIL');
+  p = edit.appendContact(p, rungId, a);
+  p = edit.addParallel(p, a.id, b);
+  p = edit.setOutput(p, rungId, coil);
+  assert.equal(p.rungs[0].blocks.length, 1);
+  assert.equal(p.rungs[0].blocks[0].branches.length, 2, 'dropping on a contact puts the new one in parallel');
+  assert.equal(p.rungs[0].output.id, coil.id);
+  p = edit.updateElement(p, a.id, { address: 'I0.3' });
+  assert.equal(edit.findElement(p, a.id).element.address, 'I0.3');
+  const copy = edit.cloneRung(p.rungs[0]);
+  assert.notEqual(copy.id, p.rungs[0].id);
+  assert.notEqual(copy.blocks[0].branches[0][0].id, a.id, 'a pasted rung gets fresh ids');
+  p = edit.pasteRung(p, copy, rungId);
+  assert.equal(p.rungs.length, 2);
+  const pastedId = p.rungs[1].id;
+  p = edit.moveRung(p, pastedId, -1);
+  assert.equal(p.rungs[0].id, pastedId);
+  p = edit.removeElement(p, b.id);
+  assert.equal(p.rungs[1].blocks[0].branches.length, 1, 'removing the last element of a branch drops the branch');
+  p = edit.removeElement(p, a.id);
+  assert.equal(p.rungs[1].blocks.length, 0, 'and an empty block');
+  p = edit.removeRung(p, pastedId);
+  assert.equal(p.rungs.length, 1);
+  console.log('✓ add rung / contact / parallel branch / output, update, copy-paste with fresh ids, move, remove');
 }
 console.log('PLC ENGINE TESTS PASSED');

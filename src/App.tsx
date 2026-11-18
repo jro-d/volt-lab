@@ -29,12 +29,13 @@ import { inferConductorRole } from './core/conductorRole';
 import { DEFAULT_PROCESS, tickProcess } from './core/process';
 import { Recorder } from './core/recorder';
 import { RecorderPanel } from './components/layout/RecorderPanel';
+import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
-type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
+type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc';
 
 function loadEmbeddedProject(): ElectricalProject | null {
   try {
@@ -1298,6 +1299,15 @@ export const App: React.FC = () => {
               devices={project.devices}
               wires={project.wires}
               solved={solved}
+            />
+          )}
+
+          {viewMode === 'plc' && (
+            <PlcEditor
+              devices={project.devices}
+              selectedDeviceId={selectedDeviceId}
+              isSimulating={isSimulating}
+              onPatchDeviceState={handlePatchDeviceState}
             />
           )}
 
