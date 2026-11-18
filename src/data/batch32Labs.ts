@@ -36,6 +36,7 @@ const pvDevices: ElectricalDevice[] = [
   dev('kwh_meter_1p', 40, 30, 'grid', { name: 'Utility Service Meter' }),
   dev('service_disconnect_2p', 230, 40, 'mains', { name: 'Utility Main (open it: grid lost)', state: { closed: true, tripped: false, ratedAmps: 20 } }),
   dev('net_meter', 410, 30, 'net', { name: 'Net Meter (import / export)' }),
+  dev('rcd_2p', 640, 220, 'rcd', { name: 'RCD 30 mA (house)' }),
   dev('appliance_water_heater', 640, 60, 'wh', { name: 'House Load: Water Heater 1.5 kW', state: { wattage: 1500 } }),
   dev('pv_string', 60, 330, 'pv', { name: 'PV1 String 3 kWp', state: { kwp: 3, irradiance: 100 } }),
   dev('dc_isolator', 260, 320, 'iso', { name: 'QDC1 DC Isolator' }),
@@ -45,7 +46,8 @@ const pvDevices: ElectricalDevice[] = [
 const pvWires: ElectricalWire[] = [
   P('grid', 'l_out', 'mains', 'in_l', RED), P('grid', 'n_out', 'mains', 'in_n', BLUE),
   P('mains', 'out_l', 'net', 'l_in', RED), P('mains', 'out_n', 'net', 'n_in', BLUE),
-  P('net', 'l_out', 'wh', 'line', RED), P('net', 'n_out', 'wh', 'neutral', BLUE),
+  P('net', 'l_out', 'rcd', 'in_l', RED), P('net', 'n_out', 'rcd', 'in_n', BLUE),
+  P('rcd', 'out_l', 'wh', 'line', RED), P('rcd', 'out_n', 'wh', 'neutral', BLUE),
   P('net', 'l_out', 'inv', 'out_l', RED), P('net', 'n_out', 'inv', 'out_n', BLUE),
   P('pv', 'pos', 'iso', 'in_pos', RED), P('pv', 'neg', 'iso', 'in_neg', '#0f172a'),
   P('iso', 'out_pos', 'inv', 'pv_pos', RED), P('iso', 'out_neg', 'inv', 'pv_neg', '#0f172a'),
