@@ -3,6 +3,7 @@ import { SparkEvent } from '../types/simulation';
 import { getWireStandards } from '../data/standardsData';
 import { behaviorFor } from './behaviors/registry';
 import { PSU_RECOVERY_SEC } from './behaviors/dcDevices';
+import { CENTRIFUGAL_PCT } from './behaviors/singlePhaseMotor';
 import { floodDc, dcLoadAmps, isDcCoilDevice, type DcPotential, type DcResult } from './dcDomain';
 
 export type PhaseId = 'L1' | 'L2' | 'L3';
@@ -1054,6 +1055,50 @@ export function solveCircuit(
       if (isRunning) {
         totalWatts += activeWatts;
       }
+    } else if (dev.type === 'motor_1p') {
+      const kind = (dev.state.motorKind as string) || 'capacitor_start';
+      const hot = (a: string, b: string) => {
+        const pa = nodePotentials[terminalKey(dev.id, a)];
+        const pb = nodePotentials[terminalKey(dev.id, b)];
+        return { on: (pa === 'live' && pb === 'neutral') || (pb === 'live' && pa === 'neutral'), aLive: pa === 'live' };
+      };
+      const main = hot('u1', 'u2');
+      const aux = hot('z1', 'z2');
+      const speed = Number(dev.state.speedPct) || 0;
+      const switchClosed = kind === 'psc' || speed < CENTRIFUGAL_PCT;
+      const auxActive = aux.on && switchClosed;
+      const startOk = main.on && (auxActive || speed >= CENTRIFUGAL_PCT);
+      // The capacitor in series with the auxiliary winding: its value is checked against what the motor type needs
+      let capUf: number | null = null;
+      for (const w of wires) {
+        const ends: [string, string][] = [[w.fromDeviceId, w.fromTerminalId], [w.toDeviceId, w.toTerminalId]];
+        const mine = ends.find(([d, t]) => d === dev.id && (t === 'z1' || t === 'z2'));
+        const other = ends.find(([d]) => d !== dev.id);
+        const c = mine && other && deviceById.get(other[0]);
+        if (c && c.type === 'capacitor_run') capUf = Number(c.state.uF) || 0;
+      }
+      const needUf = kind === 'capacitor_start' ? 100 : kind === 'psc' ? 12 : null;
+      let fault: string | null = null;
+      let note = '';
+      if (main.on && !startOk) fault = kind === 'split_phase' ? 'no start winding' : 'no start capacitor';
+      if (needUf && capUf !== null && capUf > 0 && Math.abs(capUf - needUf) / needUf > 0.4) {
+        note = `wrong capacitor value: ${capUf} uF, this motor needs about ${needUf} uF`;
+      }
+      let direction: 'CW' | 'CCW' | null = (dev.state.motorDirection as 'CW' | 'CCW' | null) || null;
+      if (aux.on) direction = main.aLive === aux.aLive ? 'CW' : 'CCW';
+      else if (!direction) direction = 'CW';
+      const fla = (Number(dev.state.wattage) || 370) / (gridVoltage * 0.7);
+      const amps = !main.on ? 0 : fault ? fla * 5 : speed < CENTRIFUGAL_PCT ? fla * 3 : fla * (note ? 1.6 : 1);
+      dev.state.mainPowered = main.on;
+      dev.state.startOk = startOk;
+      dev.state.motorRunning = startOk && !fault;
+      dev.state.motorDirection = main.on ? direction : null;
+      dev.state.motorFault = fault;
+      dev.state.motorNote = note;
+      dev.state.measuredAmps = Math.round(amps * 100) / 100;
+      dev.state.auxActive = auxActive;
+      deviceEnergized[dev.id] = main.on;
+      if (main.on) totalWatts += Math.round(amps * gridVoltage * 0.7);
     } else if (dev.type === 'buzzer_horn' || dev.type === 'beacon') {
       const on = annunciatorPowered(dev, 'a1', 'a2');
       dev.state.active = on;
@@ -1289,6 +1334,14 @@ export function solveCircuit(
             wireCurrents[wire.id] = (wireCurrents[wire.id] || 0) + amps;
           }
         }
+      }
+    } else if (dev.type === 'motor_1p' && dev.state.mainPowered) {
+      const amps = Number(dev.state.measuredAmps) || 0;
+      const mainLive = nodePotentials[terminalKey(dev.id, 'u1')] === 'live' ? 'u1' : 'u2';
+      traceLoadCurrent(terminalKey(dev.id, mainLive), terminalKey(dev.id, mainLive === 'u1' ? 'u2' : 'u1'), amps * 0.7);
+      if (dev.state.auxActive) {
+        const auxLive = nodePotentials[terminalKey(dev.id, 'z1')] === 'live' ? 'z1' : 'z2';
+        traceLoadCurrent(terminalKey(dev.id, auxLive), terminalKey(dev.id, auxLive === 'z1' ? 'z2' : 'z1'), amps * 0.5);
       }
     } else if ((dev.type === 'buzzer_horn' || dev.type === 'beacon') && dev.state.active && dev.state.supply !== 'dc24') {
       const liveT = nodePotentials[terminalKey(dev.id, 'a1')] === 'live' ? 'a1' : 'a2';

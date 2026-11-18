@@ -1345,6 +1345,53 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
+      {/* --- SINGLE-PHASE MOTOR + CAPACITOR --- */}
+      {device && (device.type === 'motor_1p' || device.type === 'capacitor_run') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | number | boolean; label: string }[], fallback: string | number | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        const note = (device.state.motorFault || device.state.motorNote) as string | undefined;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            {device.type === 'motor_1p' ? (
+              <>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Single-Phase Motor</label>
+                {choice('Type', 'motorKind', [{ v: 'split_phase', label: 'Split-phase' }, { v: 'capacitor_start', label: 'Cap-start' }, { v: 'psc', label: 'PSC' }], 'capacitor_start')}
+                <div className="text-[10px] font-mono text-ink-muted">
+                  Speed {Math.round(Number(device.state.speedPct) || 0)} % · centrifugal switch {device.state.motorKind === 'psc' ? 'none' : device.state.centrifugalOpen ? 'OPEN' : 'closed'} · {Number(device.state.measuredAmps || 0).toFixed(1)} A
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Motor Capacitor</label>
+                {choice('Value', 'uF', [{ v: 12, label: '12 µF' }, { v: 25, label: '25 µF' }, { v: 50, label: '50 µF' }, { v: 100, label: '100 µF' }, { v: 150, label: '150 µF' }], 100)}
+                {choice('Condition', 'open', [{ v: false, label: 'Good' }, { v: true, label: 'Failed open' }], false)}
+              </>
+            )}
+            {note && <div className="text-[10px] font-bold text-danger bg-danger-soft/60 border border-danger/40 rounded-lg px-2 py-1">{note}</div>}
+          </div>
+        );
+      })()}
+
       {/* --- ANNUNCIATORS: buzzer, beacon, tower light --- */}
       {device && (device.type === 'buzzer_horn' || device.type === 'beacon' || device.type === 'tower_light') && (() => {
         const apply = (patch: Record<string, any>) => {

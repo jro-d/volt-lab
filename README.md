@@ -11,6 +11,7 @@
 28. **DOL Starter Protected by a Phase Monitor** — swap two phases and the starter refuses to run.
 29. **Conveyor Stop: Inductive Sensor into a PLC Input, Relay Output to a Contactor** — 24 V DC supply, three-wire sensor, PLC and interface relay switching an AC contactor.
 30. **Overload Alarm: Thermal Overload Contact Drives a Beacon and Horn** — the overload relay 97-98 contact starts a flashing beacon and a horn.
+31. **Capacitor-Start Motor: Wiring the Starting Capacitor and Reversing Rotation** — start winding, 100 µF capacitor and centrifugal switch on a 0.37 kW single-phase motor.
 
 ---
 
@@ -49,6 +50,7 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Phase monitoring**: phase failure / phase sequence relay (lost phase, swapped phases, under / overvoltage release the 15-18 output).
 - **24 V DC control domain**: DIN-rail 24 V supply with current-limit shutdown and automatic restart, three-wire inductive, capacitive and photoelectric sensors (PNP / NPN, NO / NC, click the sensing face to place a target), a 24 V DC PLC (8 inputs, 8 sourcing outputs, RUN / STOP, passthrough or start / stop demo program) and a 24 V DC coil option on the control relay. The DC side is solved separately from AC: wiring a 24 V net to an AC line or neutral shuts the supply down and is reported as an error; NPN sensors on PNP inputs and reversed sensor supplies show a visible fault note.
 - **Annunciation**: panel buzzer / horn (audible, mutable), signal beacon (steady or flashing, selectable colour) and a three-segment red / amber / green tower light; each runs from 24 V DC or 230 V AC.
+- **Single-phase motors**: one motor with split-phase, capacitor-start and PSC variants (main U1-U2 and start winding Z1-Z2, visible centrifugal switch that opens at 75 % speed, reversal by swapping the start winding leads) and a separate motor capacitor wired in series with the start winding. A missing or open capacitor leaves the motor humming (no start capacitor), a wrong value is flagged with a high running current.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
 ### 4. Marine & industrial motor control trainer

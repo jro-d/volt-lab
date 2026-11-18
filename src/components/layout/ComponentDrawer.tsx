@@ -63,7 +63,7 @@ const LIBRARY_TREE: FolderNode[] = [
       { id: 'supply3p', label: '3-Phase Supply & Control Power', types: ['source_3phase_440v', 'control_transformer'] },
       { id: 'starters', label: 'Contactors, Timers & Overload Relays', types: ['contactor_3p', 'thermal_overload_relay', 'industrial_relay_dpdt', 'timer_relay', 'phase_monitor_relay'] },
       { id: 'operators', label: 'Push Buttons, Selectors & Pilot Lights', types: ['push_button_station', 'push_button_fwd_rev', 'push_button_estop', 'selector_hoa', 'limit_switch', 'float_switch', 'pressure_switch', 'pilot_light_indicator', 'buzzer_horn', 'beacon', 'tower_light'] },
-      { id: 'motors', label: 'Motors & Drives (VFD)', types: ['motor_ac_industrial', 'motor_6lead_star_delta', 'pump_booster_3p', 'vfd_drive'] },
+      { id: 'motors', label: 'Motors & Drives (VFD)', types: ['motor_ac_industrial', 'motor_6lead_star_delta', 'pump_booster_3p', 'vfd_drive', 'motor_1p', 'capacitor_run'] },
     ],
   },
   { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller', 'plc_24vdc_16io', 'psu_24vdc', 'sensor_inductive', 'sensor_capacitive', 'sensor_photoelectric'] },

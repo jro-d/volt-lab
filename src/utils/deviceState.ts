@@ -45,6 +45,12 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.supplyNote = '';
   }
   if (device.type === 'plc_24vdc_16io') state.dcNote = '';
+  if (device.type === 'motor_1p') {
+    state.speedPct = 0;
+    state.startOk = false;
+    state.centrifugalOpen = false;
+    state.motorNote = '';
+  }
   if (device.type === 'buzzer_horn' || device.type === 'beacon' || device.type === 'tower_light') {
     state.active = false;
     if ('segments' in state) state.segments = {};

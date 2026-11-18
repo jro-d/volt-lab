@@ -116,7 +116,9 @@ export type DeviceType =
   | 'plc_24vdc_16io'
   | 'buzzer_horn'
   | 'beacon'
-  | 'tower_light';
+  | 'tower_light'
+  | 'motor_1p'
+  | 'capacitor_run';
 
 export interface ElectricalDevice {
   id: string;

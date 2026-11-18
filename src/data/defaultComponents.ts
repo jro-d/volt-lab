@@ -570,6 +570,53 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     ]
   },
   {
+    type: 'motor_1p',
+    category: 'industrial',
+    name: 'Single-Phase Induction Motor (Split-Phase / Capacitor-Start / PSC)',
+    defaultLabel: 'M1',
+    width: 150,
+    height: 130,
+    productStandard: 'IEC 60034-1',
+    modelNumber: '1-Phase Induction Motor 0.37 kW',
+    description: 'Single-phase motor with a main winding (U1-U2) and an auxiliary start winding (Z1-Z2). Split-phase: the auxiliary winding is wired straight across the supply. Capacitor-start and PSC: it must be wired through a capacitor (see the run capacitor device). In split-phase and capacitor-start motors a centrifugal switch drops the auxiliary winding out at 75 % speed; a PSC motor keeps it on. Swap the Z1 / Z2 leads to reverse rotation.',
+    defaultProperties: {
+      motorKind: 'capacitor_start',
+      wattage: 370,
+      speedPct: 0,
+      startOk: false,
+      centrifugalOpen: false,
+      motorRunning: false,
+      motorDirection: null,
+      motorFault: null,
+      motorNote: '',
+      measuredAmps: 0,
+      tag: 'M1',
+    },
+    terminals: [
+      { id: 'u1', name: 'Main winding U1', type: 'phase', relX: 0.14, relY: 0.12, label: 'U1', phaseLabel: 'L' },
+      { id: 'u2', name: 'Main winding U2', type: 'neutral', relX: 0.30, relY: 0.12, label: 'U2', phaseLabel: 'N' },
+      { id: 'z1', name: 'Auxiliary winding Z1', type: 'phase', relX: 0.50, relY: 0.12, label: 'Z1', phaseLabel: 'L' },
+      { id: 'z2', name: 'Auxiliary winding Z2', type: 'neutral', relX: 0.66, relY: 0.12, label: 'Z2', phaseLabel: 'N' },
+      { id: 'pe', name: 'Protective Earth (PE)', type: 'earth', relX: 0.86, relY: 0.12, label: 'PE', phaseLabel: 'PE' },
+    ]
+  },
+  {
+    type: 'capacitor_run',
+    category: 'industrial',
+    name: 'Motor Capacitor (Start / Run)',
+    defaultLabel: 'C1',
+    width: 56,
+    height: 80,
+    productStandard: 'IEC 60252-1',
+    modelNumber: 'AC Motor Capacitor',
+    description: 'AC motor capacitor wired in series with the auxiliary winding of a single-phase motor. Typical values: about 100 uF for a capacitor-start motor (electrolytic start capacitor), about 12 uF for a permanent-split-capacitor (PSC) motor. It can be marked as failed open in the inspector.',
+    defaultProperties: { uF: 100, voltsRating: 250, open: false, tag: 'C1' },
+    terminals: [
+      { id: 'c1', name: 'Capacitor terminal 1', type: 'phase', relX: 0.28, relY: 0.90, label: 'C1', phaseLabel: 'L' },
+      { id: 'c2', name: 'Capacitor terminal 2', type: 'phase', relX: 0.72, relY: 0.90, label: 'C2', phaseLabel: 'L' },
+    ]
+  },
+  {
     type: 'rcd_2p',
     category: 'protection',
     name: 'Residual Current Device (RCD / ELCB)',

@@ -171,6 +171,23 @@ const alTarget: LadderRung[] = [
   { id: 'tgt_al_2', blocks: alRung(), output: ladderEl('LAMP', 'HA1', 'HORN', 'mdol_ha1', 'lamp') },
 ];
 
+// ── 5 · Capacitor-start motor: wiring the starting capacitor and reversing rotation ───────────────
+const csDevices: ElectricalDevice[] = [
+  dev('kwh_meter_1p', 40, 30, 'src', { name: 'Service Meter (source)' }),
+  dev('service_disconnect_2p', 250, 40, 'q1', { name: 'Q1 Motor Disconnect 10A', state: { closed: true, tripped: false, ratedAmps: 10 } }),
+  dev('earth_busbar', 420, 40, 'pe', { name: 'PE Earth Bar' }),
+  dev('capacitor_run', 250, 260, 'c1', { name: 'C1 Start Capacitor 100 µF', state: { uF: 100, tag: 'C1' } }),
+  dev('motor_1p', 120, 400, 'm1', { name: 'M1 Capacitor-Start Motor 0.37 kW', state: { motorKind: 'capacitor_start', tag: 'M1' } }),
+];
+const csWires: ElectricalWire[] = [
+  wr('src', 'l_out', 'q1', 'in_l', RED, G12), wr('src', 'n_out', 'q1', 'in_n', BLUE, G12),
+  // main winding straight across the supply
+  wr('q1', 'out_l', 'm1', 'u1', RED, G12), wr('q1', 'out_n', 'm1', 'u2', BLUE, G12),
+  // start winding in series with the capacitor
+  wr('q1', 'out_l', 'c1', 'c1', RED, G14), wr('c1', 'c2', 'm1', 'z1', RED, G14), wr('q1', 'out_n', 'm1', 'z2', BLUE, G14),
+  wr('src', 'pe', 'pe', 'pe_main', GREEN, G12), wr('pe', 'pe_1', 'm1', 'pe', GREEN, G12),
+];
+
 export const PHASE2_LABS: LabLesson[] = [
   {
     id: 'lab-pump-hoa-float',
@@ -252,5 +269,22 @@ export const PHASE2_LABS: LabLesson[] = [
       ...labProject('proj_overload_alarm', 'Overload Alarm (Beacon + Horn)', 'Thermal overload 97-98 contact drives a beacon and a horn.', alDevices, alWires, 440),
       targetLadder: alTarget,
     },
+  },
+  {
+    id: 'lab-capacitor-start-motor',
+    title: 'Capacitor-Start Motor: Wiring the Starting Capacitor and Reversing Rotation',
+    subtitle: 'Single-phase motor with a main winding, a start winding, a capacitor and a centrifugal switch',
+    category: 'industrial',
+    badge: '🌀 1Φ Motor',
+    difficulty: 'Intermediate',
+    description:
+      'A single-phase capacitor-start motor. The main winding (U1-U2) is across the supply; the start winding (Z1-Z2) is in series with a 100 µF starting capacitor, which shifts the current so the motor has a starting torque. At 75 % speed the centrifugal switch opens and drops the start winding out. The direction of rotation depends on which way round the start winding is connected.',
+    objectives: [
+      'Press ▶ Simulate: the motor runs up, the centrifugal switch on the end shield opens at 75 % speed and the line current falls from the starting value.',
+      'Stop the simulation and delete the wire from C1 to Z1: with the capacitor out of circuit the motor only hums and the fault reads no start capacitor, drawing about five times its running current.',
+      'Restore it, select C1 and change it to 12 µF: the motor still starts, but a wrong capacitor value note appears and the current is high. Mark C1 as failed open and see the humming fault again.',
+      'Swap the Z1 and Z2 leads of the start winding to reverse the rotation, then change the motor type to PSC to see a motor with no centrifugal switch.',
+    ],
+    project: labProject('proj_capacitor_start_motor', 'Capacitor-Start Motor', 'Start capacitor, centrifugal switch and reversal of a single-phase motor.', csDevices, csWires, 230),
   },
 ];
