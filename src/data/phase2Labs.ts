@@ -87,9 +87,9 @@ const pmDevices: ElectricalDevice[] = [
 const pmWires: ElectricalWire[] = [
   ...clone(dolWires).filter((w: ElectricalWire) => !(w.fromDeviceId === 'mdol_tc1' && w.fromTerminalId === 'x1' && w.toTerminalId === 'nc_95')),
   // sense inputs on the incoming side of Q1
-  wr('mdol_q1', 'in_l1', 'mdol_kp1', 'l1', L1, G14),
-  wr('mdol_q1', 'in_l2', 'mdol_kp1', 'l2', L2, G14),
-  wr('mdol_q1', 'in_l3', 'mdol_kp1', 'l3', L3, G14),
+  wr('mdol_q1', 'in_l1', 'mdol_kp1', 'l1', L1, G12),
+  wr('mdol_q1', 'in_l2', 'mdol_kp1', 'l2', L2, G12),
+  wr('mdol_q1', 'in_l3', 'mdol_kp1', 'l3', L3, G12),
   // supply from the control transformer
   wr('mdol_tc1', 'x1', 'mdol_kp1', 'a1', ORANGE),
   wr('mdol_kp1', 'a2', 'mdol_tc1', 'x2', BLUE),
