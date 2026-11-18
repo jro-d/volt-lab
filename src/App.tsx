@@ -19,6 +19,9 @@ import { SchematicCanvas } from './components/canvas/SchematicCanvas';
 import { LadderCanvas } from './components/canvas/LadderCanvas';
 import { LadderRung } from './types/ladder';
 import { sound, playBuzzerBeep } from './utils/soundFx';
+import { TroubleshootPanel } from './components/layout/TroubleshootPanel';
+import { newDiagState, type DiagState } from './core/troubleshootSession';
+import type { TroubleshootScenario } from './data/troubleshootScenarios';
 import { measureInsulation, measureEarthResistance, measureRotation, measureContinuity, type InstrumentId } from './core/instruments';
 import { replaceBlownFuse, resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
@@ -69,6 +72,10 @@ export const App: React.FC = () => {
   const [dmmMode, setDmmMode] = useState<boolean>(false);
   const [rewiringTarget, setRewiringTarget] = useState<{ wireId: string; moveEnd: 'from' | 'to' } | null>(null);
   const [dmmProbeA, setDmmProbeA] = useState<{ deviceId: string; terminalId: string } | null>(null);
+  // Troubleshooting mode: hidden faults are active only while this is on
+  const [troubleshoot, setTroubleshoot] = useState<boolean>(false);
+  const [diag, setDiag] = useState<DiagState>(newDiagState);
+  const [scenario, setScenario] = useState<TroubleshootScenario | null>(null);
   const [instrument, setInstrument] = useState<InstrumentId>('dmm');
   const [meggerVolts, setMeggerVolts] = useState<250 | 500 | 1000>(500);
   const [rotationProbes, setRotationProbes] = useState<[string, string][]>([]);
@@ -240,9 +247,16 @@ export const App: React.FC = () => {
     const devicesForAnalysis: ElectricalDevice[] = isSimulating
       ? project.devices
       : (JSON.parse(JSON.stringify(project.devices)) as ElectricalDevice[]);
-    const result = solveCircuit(devicesForAnalysis, project.wires, standard, project.gridVoltage);
+    const result = solveCircuit(devicesForAnalysis, project.wires, standard, project.gridVoltage, {
+      faults: troubleshoot ? project.faults : undefined,
+    });
+    if (troubleshoot) {
+      // Symptoms only: a trip reason or a spark message would name the cause
+      for (const id of Object.keys(result.tripReasons)) result.tripReasons[id] = 'Protective device operated';
+      result.sparks = result.sparks.map((s) => ({ ...s, message: 'Fault observed' }));
+    }
     return { devicesForAnalysis, result };
-  }, [isSimulating, project.devices, project.wires, standard, project.gridVoltage]);
+  }, [isSimulating, project.devices, project.wires, project.faults, standard, project.gridVoltage, troubleshoot]);
 
   // Arc-flash sparks are short lived once the breaker has actually opened, so keep them on screen briefly
   const [sparkFlash, setSparkFlash] = useState<SparkEvent[]>([]);
@@ -271,6 +285,15 @@ export const App: React.FC = () => {
   }, [analysis, project.wires, standard, project.gridVoltage]);
 
   // Digital Multimeter / Clamp Meter handlers
+  const handleFaults = useCallback((faults: import('./types/electrical').InjectedFault[]) => {
+    setProject((prev) => ({ ...prev, faults, faultsVersion: 1 }));
+  }, []);
+  // A different project starts a fresh troubleshooting session
+  useEffect(() => {
+    setDiag(newDiagState());
+    setScenario(null);
+  }, [project.id]);
+
   const handleDmmClampWire = (wireId: string) => {
     if (instrument !== 'dmm') return;
     const amps = solved.wireCurrents[wireId] || 0;
@@ -1348,6 +1371,25 @@ export const App: React.FC = () => {
             isSimulating={isSimulating}
             onResetSimulation={handleResetSimulation}
             onHighlightViolation={handleHighlightViolation}
+            troubleshoot={troubleshoot ? {
+              symptom: scenario?.symptom || ((project.faults?.length ?? 0) > 0 ? 'Something is wrong with this circuit.' : 'No faults loaded yet: open the Troubleshoot panel.'),
+              found: diag.found.length,
+              total: project.faults?.length ?? 0,
+            } : undefined}
+          />
+        )}
+
+        {troubleshoot && (
+          <TroubleshootPanel
+            project={project}
+            selectedDeviceId={selectedDeviceId}
+            diag={diag}
+            onDiag={setDiag}
+            scenario={scenario}
+            onScenario={setScenario}
+            onFaults={handleFaults}
+            onFlashDevice={(id) => flashDevice(id)}
+            onClose={() => setTroubleshoot(false)}
           />
         )}
 
@@ -1369,6 +1411,8 @@ export const App: React.FC = () => {
         onSnapChange={setSnapSize}
         totalWatts={report.totalConnectedWatts}
         totalAmps={report.totalCurrentAmps}
+        troubleshootMode={troubleshoot}
+        onToggleTroubleshoot={() => setTroubleshoot((v) => !v)}
       />
 
       {/* Guided Labs & Scenarios Modal */}

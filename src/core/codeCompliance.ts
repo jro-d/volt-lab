@@ -32,6 +32,20 @@ const PANEL_DEVICE_TYPES = new Set([
   'pilot_light_indicator',
   'industrial_relay_dpdt',
   'plc_micro_controller',
+  'rcd_4p',
+  'afdd_1pn',
+  'mccb_3p',
+  'mpcb_3p',
+  'rotary_isolator_3p',
+  'voltage_relay',
+  'earth_leakage_relay',
+  'ptc_relay',
+  'core_balance_ct',
+  'current_transformer',
+  'panel_ammeter',
+  'voltmeter_selector',
+  'terminal_block',
+  'distribution_block',
 ]);
 
 /** Devices that count as overcurrent protection for the conductor they feed (breakers and fuses alike) */
@@ -44,10 +58,13 @@ const OVERCURRENT_PROTECTION_TYPES = new Set([
   'fuse_holder_1p',
   'fuse_switch_disconnector_3p',
   'rcbo_1pn',
+  'afdd_1pn',
+  'mccb_3p',
+  'mpcb_3p',
 ]);
 
 /** Devices that give 30 mA earth-leakage protection to the circuits they feed */
-const RCD_PROTECTION_TYPES = new Set(['rcd_2p', 'rcbo_1pn']);
+const RCD_PROTECTION_TYPES = new Set(['rcd_2p', 'rcd_4p', 'rcbo_1pn', 'gfci_receptacle']);
 
 export function analyzeCodeCompliance(
   devices: ElectricalDevice[],
@@ -68,7 +85,9 @@ export function analyzeCodeCompliance(
     const breaker = [fromDev, toDev].find(d => d && OVERCURRENT_PROTECTION_TYPES.has(d.type));
     const wireStd = wireStandards.find(s => s.name === wire.wireGauge) || wireStandards[0];
 
-    if (breaker && wireStd) {
+    // Shunt-trip and undervoltage-release coil leads are control wiring, not conductors the breaker protects
+    const coilLead = [[wire.fromDeviceId, wire.fromTerminalId], [wire.toDeviceId, wire.toTerminalId]].some(([d, t]) => d === breaker?.id && /^(sht|uv)_a[12]$/.test(t));
+    if (breaker && wireStd && !coilLead) {
       const breakerAmps = breaker.state.ratedAmps || 16;
       if (breakerAmps > wireStd.maxBreakerAmps) {
         violations.push({
@@ -267,7 +286,7 @@ export function analyzeCodeCompliance(
   // 4b. Motor control: overload protection & reversing interlocks (PEC 4.30 / IEC 60204-1)
   const motors = devices.filter(d => d.type === 'motor_ac_industrial' || d.type === 'pump_booster_3p' || d.type === 'motor_6lead_star_delta');
   const contactors = devices.filter(d => d.type === 'contactor_3p');
-  const hasTor = devices.some(d => d.type === 'thermal_overload_relay');
+  const hasTor = devices.some(d => d.type === 'thermal_overload_relay' || d.type === 'mpcb_3p'); // an MPCB has the class 10 overload element built in
   if (motors.length > 0 && contactors.length > 0 && !hasTor) {
     violations.push({
       id: 'viol_motor_overload_missing',
@@ -280,6 +299,37 @@ export function analyzeCodeCompliance(
       affectedDeviceId: motors[0].id,
       recommendation: 'Install a thermal overload relay (TOR) after the contactor, set its dial to the motor FLA and wire its 95-96 NC contact in series with the coil circuit.'
     });
+  }
+  // Series arcing at a loose terminal, and a CT secondary left open
+  for (const dev of devices) {
+    if (dev.state.looseTerminal && dev.state.arcing) {
+      violations.push({
+        id: `viol_loose_terminal_${dev.id}`,
+        codeStandard: standard,
+        severity: 'warning',
+        category: 'ampacity',
+        // Clause intentionally left for the user to confirm against their copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60364-4-42 (clause to be verified)',
+        title: 'Loose Terminal Arcing (Fire Hazard)',
+        message: `${dev.name || dev.id} has a loose terminal that is arcing under load. An ordinary breaker sees a normal current and will not trip; the heat can ignite surrounding material.`,
+        affectedDeviceId: dev.id,
+        recommendation: 'Re-torque the terminal. An arc-fault detection device (AFDD / AFCI) upstream trips on this kind of fault.'
+      });
+    }
+    if (dev.type === 'current_transformer' && dev.state.openSecondary) {
+      violations.push({
+        id: `viol_ct_open_secondary_${dev.id}`,
+        codeStandard: standard,
+        severity: 'error',
+        category: 'shock_hazard',
+        hazardLevel: 'touch_shock',
+        articleRef: 'IEC 61869-2 (clause to be verified)',
+        title: 'Current Transformer With Open Secondary',
+        message: `${dev.name || dev.id} carries primary current while its secondary S1-S2 is open. The secondary voltage climbs to a dangerous level and can destroy the CT.`,
+        affectedDeviceId: dev.id,
+        recommendation: 'Short S1-S2 with a shorting link or connect the ammeter across them before energizing the primary.'
+      });
+    }
   }
   // Information only: a high-resistance earth electrode (no code limit is cited; the level is a rule of thumb)
   for (const pit of devices.filter(d => d.type === 'ground_pit')) {
@@ -402,7 +452,8 @@ export function analyzeCodeCompliance(
   }
 
   // 5. RCD Protection on Wet Areas & Sockets (PEC 2.10.1.8 / IEC 60364-4-41)
-  const hasRcd = devices.some(d => RCD_PROTECTION_TYPES.has(d.type));
+  // A 100 / 300 mA RCCB protects against fire, not against shock: only IΔn <= 30 mA counts here
+  const hasRcd = devices.some(d => RCD_PROTECTION_TYPES.has(d.type) && !(Number(d.state.sensitivityMa) > 30));
   const hasSocketsOrWetLoads = devices.some(d => d.type === 'socket_duplex' || d.type === 'socket_schuko' || d.type === 'appliance_water_heater' || d.type === 'appliance_ac');
   if (hasSocketsOrWetLoads && !hasRcd) {
     violations.push({

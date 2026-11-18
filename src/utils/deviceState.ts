@@ -31,6 +31,27 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
   if (device.type === 'pump_booster_1p' || device.type === 'pump_booster_3p') state.pumping = false;
+  if (device.type === 'motor_ac_industrial' || device.type === 'pump_booster_3p' || device.type === 'motor_6lead_star_delta') state.windingC = 40;
+  if (device.type === 'mccb_3p' || device.type === 'mpcb_3p') state.heat = 0;
+  if (device.type === 'mccb_3p') state.uvPowered = false;
+  if (device.type === 'voltage_relay' || device.type === 'earth_leakage_relay' || device.type === 'ptc_relay') {
+    state.relayOn = false;
+    state.supplied = false;
+    state.timerSec = 0;
+    state.relayFault = '';
+    state.ptcTripped = false;
+    state.windingC = 40;
+    state.leakageMa = 0;
+  }
+  if (device.type === 'core_balance_ct') state.leakageMa = 0;
+  if (device.type === 'current_transformer') {
+    state.openSecondary = false;
+    state.secondaryA = 0;
+    state.primaryAmps = 0;
+  }
+  if (device.type === 'panel_ammeter') state.readingA = 0;
+  if (device.type === 'voltmeter_selector') state.readingV = 0;
+  if ('arcing' in state) state.arcing = false;
   if (device.type === 'psu_24vdc') {
     state.dcOutputOn = false;
     state.psuTripped = false;

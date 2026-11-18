@@ -51,7 +51,11 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     if (d.type.startsWith('fuse')) symbol = 'fuse';
     else if (d.type.startsWith('generator')) symbol = 'generator';
     else if (d.type.startsWith('rcbo')) symbol = 'rcd';
-    else if (d.type === 'thermal_overload_relay') symbol = 'tor';
+    else if (d.type === 'thermal_overload_relay' || d.type === 'mpcb_3p') symbol = 'tor';
+    else if (d.type === 'current_transformer' || d.type === 'core_balance_ct') symbol = 'transformer';
+    else if (d.type === 'panel_ammeter' || d.type === 'voltmeter_selector') symbol = 'meter';
+    else if (d.type === 'terminal_block' || d.type === 'distribution_block') symbol = 'busbar';
+    else if (d.type === 'gfci_receptacle') symbol = 'rcd';
     else if (d.type === 'control_transformer') symbol = 'transformer';
     else if (d.type === 'source_3phase_440v') symbol = 'source3p';
     else if (d.type === 'push_button_fwd_rev') symbol = 'pushbutton3';

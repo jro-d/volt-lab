@@ -23,7 +23,7 @@ const TAG_PREFIX: Partial<Record<string, string>> = {
   selector_hoa: 'SA', limit_switch: 'SQ', pilot_light_indicator: 'H', motor_ac_industrial: 'M',
   motor_6lead_star_delta: 'M', control_transformer: 'T', vfd_drive: 'U',
   plc_micro_controller: 'A', kwh_meter_1p: 'P', kwh_meter_3p: 'P', panel_meter: 'P', ats_changeover: 'Q',
-  source_3phase_440v: 'X', fuse_holder_1p: 'F', fuse_switch_disconnector_3p: 'Q', generator_set_1p: 'G', generator_set_3p: 'G', phase_monitor_relay: 'KP', psu_24vdc: 'G', motor_1p: 'M', capacitor_run: 'C', buzzer_horn: 'HA', beacon: 'HL', tower_light: 'HL', sensor_inductive: 'B', sensor_capacitive: 'B', sensor_photoelectric: 'B', plc_24vdc_16io: 'A', float_switch: 'SL', pressure_switch: 'SP', pump_booster_1p: 'M', pump_booster_3p: 'M',
+  source_3phase_440v: 'X', fuse_holder_1p: 'F', fuse_switch_disconnector_3p: 'Q', generator_set_1p: 'G', generator_set_3p: 'G', phase_monitor_relay: 'KP', psu_24vdc: 'G', rcd_4p: 'F', afdd_1pn: 'F', gfci_receptacle: 'F', mccb_3p: 'Q', mpcb_3p: 'Q', rotary_isolator_3p: 'Q', voltage_relay: 'KV', earth_leakage_relay: 'KE', core_balance_ct: 'T', ptc_relay: 'KT', current_transformer: 'T', panel_ammeter: 'P', voltmeter_selector: 'P', terminal_block: 'X', distribution_block: 'X', motor_1p: 'M', capacitor_run: 'C', buzzer_horn: 'HA', beacon: 'HL', tower_light: 'HL', sensor_inductive: 'B', sensor_capacitive: 'B', sensor_photoelectric: 'B', plc_24vdc_16io: 'A', float_switch: 'SL', pressure_switch: 'SP', pump_booster_1p: 'M', pump_booster_3p: 'M',
 };
 
 /** Reference designation for the nameplate (IEC 81346 style): taken from the device name when it

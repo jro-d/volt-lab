@@ -1345,6 +1345,94 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
+      {/* --- PROTECTION & METERING (batch 3.1) --- */}
+      {device && (() => {
+        type Opt = { v: string | number | boolean; label: string };
+        const CONTROLS: Record<string, { label: string; key: string; opts: Opt[]; fallback: string | number | boolean }[]> = {
+          rcd_4p: [{ label: 'Sensitivity IΔn', key: 'sensitivityMa', opts: [{ v: 30, label: '30 mA' }, { v: 100, label: '100 mA' }, { v: 300, label: '300 mA' }], fallback: 30 }],
+          afdd_1pn: [{ label: 'Rated current', key: 'ratedAmps', opts: [{ v: 10, label: '10 A' }, { v: 16, label: '16 A' }, { v: 20, label: '20 A' }], fallback: 16 }],
+          mccb_3p: [
+            { label: 'In (frame rating)', key: 'ratedAmps', opts: [{ v: 63, label: '63 A' }, { v: 100, label: '100 A' }, { v: 160, label: '160 A' }], fallback: 100 },
+            { label: 'Ir long-time dial (× In)', key: 'irFactor', opts: [{ v: 0.4, label: '0.4' }, { v: 0.6, label: '0.6' }, { v: 0.8, label: '0.8' }, { v: 1, label: '1.0' }], fallback: 1 },
+            { label: 'Im magnetic dial (× Ir)', key: 'imFactor', opts: [{ v: 2, label: '2' }, { v: 5, label: '5' }, { v: 8, label: '8' }, { v: 10, label: '10' }], fallback: 5 },
+            { label: 'Shunt trip coil C1-C2', key: 'shuntTrip', opts: [{ v: false, label: 'Not fitted' }, { v: true, label: 'Fitted' }], fallback: false },
+            { label: 'Undervoltage release D1-D2', key: 'uvRelease', opts: [{ v: false, label: 'Not fitted' }, { v: true, label: 'Fitted' }], fallback: false },
+          ],
+          mpcb_3p: [{ label: 'Ir dial (motor FLA)', key: 'irAmps', opts: [{ v: 2.5, label: '2.5 A' }, { v: 4, label: '4 A' }, { v: 6.3, label: '6.3 A' }, { v: 10, label: '10 A' }, { v: 16, label: '16 A' }], fallback: 6.3 }],
+          rotary_isolator_3p: [{ label: 'Padlock', key: 'locked', opts: [{ v: false, label: 'Free' }, { v: true, label: 'Locked OFF' }], fallback: false }],
+          voltage_relay: [
+            { label: 'Nominal voltage', key: 'nominalV', opts: [{ v: 220, label: '220 V' }, { v: 230, label: '230 V' }, { v: 440, label: '440 V' }], fallback: 220 },
+            { label: 'Under-voltage threshold', key: 'underPct', opts: [{ v: 5, label: '−5 %' }, { v: 10, label: '−10 %' }, { v: 15, label: '−15 %' }, { v: 20, label: '−20 %' }], fallback: 15 },
+            { label: 'Over-voltage threshold', key: 'overPct', opts: [{ v: 5, label: '+5 %' }, { v: 10, label: '+10 %' }, { v: 15, label: '+15 %' }], fallback: 10 },
+            { label: 'Delay', key: 'delaySec', opts: [{ v: 0, label: '0 s' }, { v: 2, label: '2 s' }, { v: 5, label: '5 s' }], fallback: 2 },
+          ],
+          earth_leakage_relay: [
+            { label: 'Sensitivity', key: 'sensitivityMa', opts: [{ v: 30, label: '30 mA' }, { v: 100, label: '100 mA' }, { v: 300, label: '300 mA' }, { v: 1000, label: '1 A' }], fallback: 300 },
+            { label: 'Delay', key: 'delaySec', opts: [{ v: 0, label: '0 s' }, { v: 0.3, label: '0.3 s' }, { v: 1, label: '1 s' }], fallback: 0.3 },
+          ],
+          ptc_relay: [{ label: 'Response temperature', key: 'tripTempC', opts: [{ v: 100, label: '100 °C' }, { v: 120, label: '120 °C' }, { v: 140, label: '140 °C' }], fallback: 120 }],
+          current_transformer: [{ label: 'Primary rating (secondary 5 A)', key: 'primaryA', opts: [{ v: 50, label: '50 A' }, { v: 100, label: '100 A' }, { v: 200, label: '200 A' }, { v: 400, label: '400 A' }], fallback: 100 }],
+          panel_ammeter: [{ label: 'Full scale (primary)', key: 'fullScaleA', opts: [{ v: 50, label: '50 A' }, { v: 100, label: '100 A' }, { v: 200, label: '200 A' }, { v: 400, label: '400 A' }], fallback: 100 }],
+          terminal_block: [{ label: 'Kind', key: 'kind', opts: [{ v: 'feedthrough', label: 'Feed-through' }, { v: 'fused', label: 'Fused' }, { v: 'pe', label: 'PE' }], fallback: 'feedthrough' }],
+        };
+        const controls = CONTROLS[device.type];
+        const isMotor = device.type === 'motor_ac_industrial' || device.type === 'pump_booster_3p' || device.type === 'motor_6lead_star_delta';
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const motors = (devices || []).filter((d) => d.type === 'motor_ac_industrial' || d.type === 'pump_booster_3p' || d.type === 'motor_6lead_star_delta');
+        const btn = (label: string, key: string, v: string | number | boolean, fb: string | number | boolean) => (
+          <button
+            key={String(v)}
+            onClick={() => apply({ [key]: v })}
+            className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${(device.state[key] ?? fb) === v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'}`}
+          >
+            {label}
+          </button>
+        );
+        const row = (label: string, key: string, opts: Opt[], fb: string | number | boolean) => (
+          <div key={key}>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>{opts.map((o) => btn(o.label, key, o.v, fb))}</div>
+          </div>
+        );
+        const hasFaultControls = isMotor || device.category === 'load' || device.type.startsWith('appliance_') || device.type === 'socket_duplex' || device.type === 'socket_schuko';
+        if (!controls && !isMotor && device.type !== 'ptc_relay' && !hasFaultControls) return null;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            {controls && <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Settings</label>}
+            {controls?.map((c) => row(c.label, c.key, c.opts, c.fallback))}
+            {device.type === 'ptc_relay' && (
+              <div>
+                <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">Watches motor</div>
+                <select
+                  value={String(device.state.motorId || '')}
+                  onChange={(e) => apply({ motorId: e.target.value })}
+                  className="w-full bg-surface border border-border rounded-lg px-2 py-1 text-xs font-mono text-ink"
+                >
+                  <option value="">(none)</option>
+                  {motors.map((m) => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
+                </select>
+              </div>
+            )}
+            {isMotor && (
+              <>
+                {row('Shaft load', 'loadPct', [{ v: 100, label: '100 %' }, { v: 125, label: '125 %' }, { v: 150, label: '150 %' }], 100)}
+                <div className="text-[10px] font-mono text-ink-muted">Winding temperature {Number(device.state.windingC) || 40} °C</div>
+              </>
+            )}
+            {hasFaultControls && (
+              <>
+                {row('Earth-leakage fault', 'hasEarthFault', [{ v: false, label: 'None' }, { v: true, label: 'Leaking' }], false)}
+                {row('Leakage current', 'faultMa', [{ v: 5, label: '5 mA' }, { v: 30, label: '30 mA' }, { v: 100, label: '100 mA' }, { v: 500, label: '500 mA' }], 500)}
+                {row('Loose terminal (series arc)', 'looseTerminal', [{ v: false, label: 'Tight' }, { v: true, label: 'Loose' }], false)}
+              </>
+            )}
+          </div>
+        );
+      })()}
+
       {/* --- INSULATION / EARTH CONDITION (read back by the test instruments) --- */}
       {device && (device.type === 'motor_ac_industrial' || device.type === 'motor_6lead_star_delta' || device.type === 'motor_1p' || device.type === 'pump_booster_3p' || device.type === 'ground_pit') && (() => {
         const apply = (patch: Record<string, any>) => {
