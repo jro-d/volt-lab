@@ -5,6 +5,7 @@ import { SolvedCircuit } from './circuitSolver';
 import { parsePhysicalLadder } from './ladderEngine';
 import { findAcDcCrossWires } from './dcDomain';
 import { EARTH_NOTE_OHMS } from './instruments';
+import { checkInterruptingRatings, formatKa, type FaultLevels } from './shortCircuit';
 
 /** Devices that live inside a distribution board or motor control enclosure (internal panel jumpers, not branch conduit runs) */
 const PANEL_DEVICE_TYPES = new Set([
@@ -81,7 +82,8 @@ export function analyzeCodeCompliance(
   wires: ElectricalWire[],
   solved: SolvedCircuit,
   standard: CodeStandard = 'PEC',
-  gridVoltage: number = 230
+  gridVoltage: number = 230,
+  faultLevels?: FaultLevels | null
 ): ElectricalAnalysisReport {
   const violations: CodeViolation[] = [];
   const wireStandards = getWireStandards(standard);
@@ -531,6 +533,30 @@ export function analyzeCodeCompliance(
         title: `Open / Floating Neutral on ${dev.name}`,
         message: `${dev.name} is energized at ${gridVoltage}V on its Line terminal with an open or missing Neutral return, creating a floating return hazard.`,
         recommendation: 'Verify continuity of the neutral conductor back to the main Neutral Busbar / N-OUT terminal.',
+      });
+    }
+  }
+
+  // Interrupting rating against the available fault current (only when the short-circuit check is enabled)
+  if (faultLevels) {
+    for (const chk of checkInterruptingRatings(devices, faultLevels)) {
+      if (chk.status === 'ok') continue;
+      const dev = devices.find(d => d.id === chk.deviceId);
+      const isError = chk.status === 'error';
+      violations.push({
+        id: `viol_icu_${chk.deviceId}`,
+        codeStandard: standard,
+        severity: isError ? 'error' : 'warning',
+        category: 'interrupting_rating',
+        hazardLevel: isError ? 'fire_risk' : 'code_infraction',
+        // Clause intentionally left for the user to confirm against their copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60364-4-43 (clause to be verified)',
+        title: isError ? 'Interrupting Rating Below Available Fault Current' : 'Interrupting Rating Close to Available Fault Current',
+        message: `${dev?.name || chk.deviceId} is rated ${chk.ratingKa} kA but the available fault current at its input is ${formatKa(chk.ikKa * 1000)} (resistive method${isError ? '' : ', above 80 % of the rating'}).`,
+        affectedDeviceId: chk.deviceId,
+        recommendation: isError
+          ? 'Use a device with a higher interrupting rating, or limit the fault level upstream (a current-limiting device, a longer or smaller conductor).'
+          : 'The margin is small: confirm the source level and consider a higher-rated device.'
       });
     }
   }

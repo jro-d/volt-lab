@@ -53,6 +53,8 @@ interface WiringCanvasProps {
   fitKey?: string;
   /** Pixels on the left covered by floating panels (kept clear when fitting) */
   insetLeft?: number;
+  /** Small text badges drawn on devices (fault levels overlay) */
+  deviceBadges?: Record<string, { text: string; tone: 'error' | 'warning' | 'ok' }>;
   /** Digital Multimeter / Clamp Meter mode */
   dmmMode?: boolean;
   onDmmProbeTerminal?: (deviceId: string, terminalId: string) => void;
@@ -106,6 +108,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   onDeleteDevice,
   fitKey,
   insetLeft = 0,
+  deviceBadges,
   dmmMode = false,
   onDmmProbeTerminal,
   onDmmClampWire,
@@ -878,6 +881,24 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
               ))}
             </g>
           </TerminalHighlightContext.Provider>
+
+          {/* Layer 3.2: fault level badges (only while the Fault levels check is on) */}
+          {deviceBadges && (
+            <g id="fault-badges-layer" className="pointer-events-none">
+              {devices.map((d) => {
+                const b = deviceBadges[d.id];
+                if (!b) return null;
+                const w = 8 + b.text.length * 5.2;
+                const fill = b.tone === 'error' ? '#dc2626' : b.tone === 'warning' ? '#d97706' : '#15803d';
+                return (
+                  <g key={d.id} transform={`translate(${d.x + (d.width || 60) - w + 4}, ${d.y - 12})`}>
+                    <rect width={w} height={12} rx={3} fill={fill} />
+                    <text x={w / 2} y={9} textAnchor="middle" fontSize={8} fontWeight={700} fill="#fff" fontFamily="monospace">{b.text}</text>
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* Rubber-band selection box */}
           {marquee && (
