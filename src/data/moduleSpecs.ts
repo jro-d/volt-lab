@@ -112,4 +112,102 @@ export const MODULE_SPECS: Partial<Record<DeviceType, ModuleSpec>> = {
     title: 'Pull-cord switch',
     controls: [{ kind: 'toggle', key: 'pulled', label: 'Cord pulled (latched)' }],
   },
+
+  // Batch 3.4: sensors and field devices
+  electrode_level_relay: {
+    title: 'Electrode level relay',
+    controls: [
+      { kind: 'select', key: 'mode', label: 'Mode', def: 'fill', options: [{ v: 'fill', label: 'Fill (start below min, stop at max)' }, { v: 'drain', label: 'Drain (start at max, stop below min)' }] },
+      { kind: 'number', key: 'minPct', label: 'Min probe', min: 5, max: 60, step: 5, unit: '%', def: 30 },
+      { kind: 'number', key: 'maxPct', label: 'Max probe', min: 40, max: 95, step: 5, unit: '%', def: 70 },
+    ],
+    hint: 'The probes follow the shared tank level (set it, or let a pump change it, in the pump and float switch inspector).',
+  },
+  thermostat: {
+    title: 'Thermostat',
+    controls: [
+      { kind: 'select', key: 'mode', label: 'Action', def: 'heat', options: [{ v: 'heat', label: 'Heating (NO closes when cold)' }, { v: 'cool', label: 'Cooling (NO closes when hot)' }] },
+      { kind: 'number', key: 'setpointC', label: 'Setpoint', min: 5, max: 60, step: 1, unit: 'C', def: 22 },
+      { kind: 'number', key: 'hystC', label: 'Hysteresis band', min: 1, max: 10, step: 1, unit: 'C', def: 2 },
+      { kind: 'number', key: 'ambientC', label: 'Ambient', min: -10, max: 40, step: 1, unit: 'C', def: 10 },
+      { kind: 'number', key: 'tempC', label: 'Sensed temperature', min: -10, max: 80, step: 1, unit: 'C', def: 15 },
+      { kind: 'device', key: 'heaterId', label: 'Heater it controls', types: ['appliance_water_heater', 'light_bulb'] },
+    ],
+    hint: 'The temperature moves towards the ambient and rises while the heater is energized.',
+  },
+  thermocouple_k: {
+    title: 'Thermocouple',
+    controls: [
+      { kind: 'number', key: 'tempC', label: 'Junction temperature', min: 0, max: 600, step: 5, unit: 'C', def: 20 },
+      { kind: 'number', key: 'ambientC', label: 'Ambient', min: 0, max: 40, step: 1, unit: 'C', def: 20 },
+      { kind: 'device', key: 'heaterId', label: 'Heater that warms it', types: ['appliance_water_heater', 'light_bulb'] },
+    ],
+    hint: 'Wire + and - to TC+ and TC- of the temperature controller: both legs must go to the same probe.',
+  },
+  temp_controller: {
+    title: 'Temperature controller',
+    controls: [
+      { kind: 'select', key: 'mode', label: 'Action', def: 'heat', options: [{ v: 'heat', label: 'Heating' }, { v: 'cool', label: 'Cooling' }] },
+      { kind: 'number', key: 'setpointC', label: 'Setpoint', min: 20, max: 400, step: 5, unit: 'C', def: 80 },
+      { kind: 'number', key: 'hystC', label: 'Hysteresis band', min: 1, max: 20, step: 1, unit: 'C', def: 4 },
+    ],
+  },
+  reed_switch: {
+    title: 'Reed switch',
+    controls: [
+      { kind: 'number', key: 'position', label: 'Magnet position', min: 0, max: 100, step: 1, unit: '%', def: 0 },
+      { kind: 'number', key: 'windowLo', label: 'Operates from', min: 0, max: 100, step: 5, unit: '%', def: 40 },
+      { kind: 'number', key: 'windowHi', label: 'Operates to', min: 0, max: 100, step: 5, unit: '%', def: 60 },
+    ],
+  },
+  photocell_switch: {
+    title: 'Photocell',
+    controls: [
+      { kind: 'number', key: 'lux', label: 'Light level', min: 0, max: 1000, step: 10, unit: 'lux', def: 500 },
+      { kind: 'number', key: 'thresholdLux', label: 'Switch-on level', min: 5, max: 200, step: 5, unit: 'lux', def: 50 },
+    ],
+    hint: 'Switches off again above 1.5 times the threshold.',
+  },
+  pir_sensor: {
+    title: 'PIR sensor',
+    controls: [
+      { kind: 'toggle', key: 'motion', label: 'Movement detected' },
+      { kind: 'number', key: 'holdSec', label: 'Hold time', min: 5, max: 120, step: 5, unit: 's', def: 30 },
+      { kind: 'toggle', key: 'daylightLock', label: 'Daylight lock' },
+      { kind: 'number', key: 'lux', label: 'Light level', min: 0, max: 1000, step: 10, unit: 'lux', def: 0 },
+    ],
+  },
+  flow_switch: {
+    title: 'Flow switch',
+    controls: [{ kind: 'number', key: 'thresholdLpm', label: 'Set flow', min: 1, max: 30, step: 1, unit: 'L/min', def: 5 }],
+    hint: 'Flow is the draw-off slider of the shared process while the line holds pressure.',
+  },
+  zero_speed_switch: {
+    title: 'Zero-speed switch',
+    controls: [
+      { kind: 'device', key: 'motorId', label: 'Motor', types: ['motor_ac_industrial', 'pump_booster_3p', 'motor_6lead_star_delta', 'motor_1p'] },
+      { kind: 'number', key: 'setPct', label: 'Standstill below', min: 1, max: 20, step: 1, unit: '%', def: 5 },
+      { kind: 'number', key: 'coastSec', label: 'Coast-down time', min: 1, max: 20, step: 1, unit: 's', def: 6 },
+    ],
+  },
+  solenoid_valve: {
+    title: 'Solenoid valve',
+    controls: [{ kind: 'toggle', key: 'manual', label: 'Manual override' }],
+  },
+  smoke_detector: {
+    title: 'Smoke detector',
+    controls: [{ kind: 'toggle', key: 'smoke', label: 'Smoke present' }],
+  },
+  manual_call_point: {
+    title: 'Manual call point',
+    controls: [{ kind: 'toggle', key: 'pulled', label: 'Operated (latched)' }],
+  },
+  fire_alarm_panel: {
+    title: 'Fire alarm panel',
+    controls: [
+      { kind: 'toggle', key: 'silenced', label: 'Bell silenced' },
+      { kind: 'action', label: 'Reset the panel', patch: { resetRequested: true } },
+    ],
+    hint: 'Feed the loop from LOOP+, put detectors and call points in parallel and bring the return to LOOP-.',
+  },
 };

@@ -103,6 +103,42 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.armed = false;
     state.needRelease = false;
   }
+  // Batch 3.4: outputs and measured values clear; set points, targets and positions stay
+  if (device.type === 'electrode_level_relay') {
+    state.out = false;
+    state.powered = false;
+  }
+  if (device.type === 'thermostat') {
+    state.out = false;
+    state.tempC = Number(state.ambientC) || 15;
+  }
+  if (device.type === 'thermocouple_k') state.tempC = Number(state.ambientC) || 20;
+  if (device.type === 'temp_controller') {
+    state.out = false;
+    state.pv = 0;
+    state.fault = '';
+  }
+  if (device.type === 'photocell_switch') state.on = false;
+  if (device.type === 'pir_sensor') {
+    state.on = false;
+    state.remainingSec = 0;
+  }
+  if (device.type === 'flow_switch') {
+    state.flowing = false;
+    state.lpm = 0;
+  }
+  if (device.type === 'zero_speed_switch') {
+    state.speedPct = 0;
+    state.zero = false;
+  }
+  if (device.type === 'solenoid_valve') state.open = false;
+  if (device.type === 'fire_alarm_panel') {
+    state.powered = false;
+    state.alarm = false;
+    state.silenced = false;
+    state.loopTripped = false;
+    state.resetRequested = false;
+  }
   if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') state.phaseAngleDeg = 0;
   if (device.type === 'motor_ac_industrial' || device.type === 'pump_booster_3p' || device.type === 'motor_6lead_star_delta') state.windingC = 40;
   if (device.type === 'mccb_3p' || device.type === 'mpcb_3p') state.heat = 0;

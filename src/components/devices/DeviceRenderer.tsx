@@ -9,6 +9,7 @@ import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
 import { PhaseMonitorDevice } from './PhaseMonitorDevice';
 import { PowerSystemsDevice } from './PowerSystemsDevice';
 import { ControlModuleDevice } from './ControlModuleDevice';
+import { FieldModuleDevice } from './FieldModuleDevice';
 import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
 import { ProtectionModuleDevice, GfciDevice, MonitoringRelayDevice, CtDevice, AmmeterDevice, VoltmeterSelectorDevice, TerminalBlockDevice } from './ProtectionDevices';
 import { Motor1pDevice, CapacitorDevice } from './SinglePhaseMotor';
@@ -181,6 +182,20 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'door_interlock_switch':
       case 'pull_cord_switch':
         return <ControlModuleDevice {...commonProps} />;
+      case 'electrode_level_relay':
+      case 'thermostat':
+      case 'thermocouple_k':
+      case 'temp_controller':
+      case 'reed_switch':
+      case 'photocell_switch':
+      case 'pir_sensor':
+      case 'flow_switch':
+      case 'zero_speed_switch':
+      case 'solenoid_valve':
+      case 'smoke_detector':
+      case 'manual_call_point':
+      case 'fire_alarm_panel':
+        return <FieldModuleDevice {...commonProps} />;
       case 'phase_monitor_relay':
         return <PhaseMonitorDevice {...commonProps} />;
       case 'float_switch':
