@@ -35,11 +35,11 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - Switching standards keeps a 440 V three-phase project at its feeder voltage.
 
 ### 3. Device library
-- **Service entrance & grounding**: digital kWh meter, 2P service disconnect, ground pit and earth rod, earth and neutral busbars, surge protective device (Type 2).
-- **Panelboards & breakers**: 1P / 2P / 3P MCBs with two form factors — **Bolt-On (UL 489 style)** and **DIN-Rail (IEC 60898-1)** — 30 mA RCD, 2P enclosed safety breaker (ACU disconnect), automatic transfer switch, panelboard frame, DIN rail, digital panel meter.
+- **Service entrance & grounding**: digital kWh meter (1-phase and **3-phase**, energy per phase over simulated time), 1-phase and 3-phase **generating sets** (start / stop, 3 s start delay, remote-start input, overload trip), 2P service disconnect, ground pit and earth rod, earth and neutral busbars, surge protective device (Type 2).
+- **Panelboards & breakers**: 1P / 2P / 3P MCBs with two form factors — **Bolt-On (UL 489 style)** and **DIN-Rail (IEC 60898-1)** — 30 mA RCD, **RCBO 1P+N** (breaker + 30 mA RCD in one device), **fuse holder 1P** and **3-pole fuse switch disconnector** (gG / aM links, replaceable), 2P enclosed safety breaker (ACU disconnect), automatic transfer switch with a transfer delay, DIN rail, digital panel meter.
 - **Residential wiring devices (PEC)**: 1-gang / 2-gang / 3-gang switches, 3-way and 4-way switches, rotary dimmer, duplex and Schuko receptacles, wide-series combo plate (switch + pilot + outlet) with front / rear wiring view.
 - **Boxes & splices**: PVC utility box, octagonal junction boxes, 4-way junction box, twist-on wire nut, lever-clamp splice connector.
-- **Motor control**: 440 V three-phase feeder, 440/220 V control transformer, 3-pole AC-3 contactor (13-14 NO and 21-22 NC auxiliaries, **X-ray cutaway**), Class 10 thermal overload relay (dial, TEST, RESET, 95-96 / 97-98), on-delay timer relay, DPDT control relay, Start/Stop, FWD/REV/STOP and E-stop stations, HOA selector, roller limit switch, 22 mm pilot lights.
+- **Motor control**: 440 V three-phase feeder, 440/220 V control transformer, 3-pole AC-3 contactor (13-14 NO and 21-22 NC auxiliaries, **X-ray cutaway**), Class 10 thermal overload relay (dial, TEST, RESET, 95-96 / 97-98), timer relay (on-delay, off-delay, flasher and one-shot), DPDT control relay, Start/Stop, FWD/REV/STOP and E-stop stations, HOA selector, roller limit switch, 22 mm pilot lights.
 - **Motors & drives**: TEFC 3-phase induction motor with CW / CCW rotation badge, 6-lead Wye-Delta motor, VFD, micro PLC (4 inputs, 4 relay outputs).
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
@@ -57,7 +57,9 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - Node-voltage and branch-current solution across all devices and conductors, including cascaded control logic (push button → PLC input → relay output → contactor coil → motor).
 - **Magnetic trip** on phase-to-neutral, phase-to-earth and phase-to-phase shorts, with arc-flash sparks and synthesized audio.
 - **Thermal trip** when a breaker's own conducted current exceeds its rating.
-- **RCD earth-leakage protection** on differential current ≥ 30 mA.
+- **RCD / RCBO earth-leakage protection** on differential current ≥ 30 mA; an RCBO trips only its own circuit.
+- **Fuses** melt along gG / aM time-current curves (thermal overload) and instantly on a short circuit; a blown link stays open until replaced. aM links ride through a motor start, a gG link close to the motor current can blow on it.
+- **Standby power**: a generating set starts on a button or a remote-start contact, and an ATS moves the load after its transfer delay and back when the grid returns.
 - Wye-Delta changeover timing, motor inrush, open-neutral effects.
 - **Digital multimeter & clamp meter (DMM)**: probe two terminals for volts, click a wire for amps.
 
@@ -106,6 +108,14 @@ Open **Examples** in the ribbon. WireWise starts on a blank canvas; each lab loa
 19. **Electric Ventilation Fan with Wall Switch Control**
 20. **Complete Residential Installation (Master Reference)** — kWh meter, main disconnect, earth pit, 30 mA RCD, SPD, branch breakers, junction box, lamp, fan, outlet + TV, water heater and ACU with safety disconnect.
 
+### Timers, fuses, RCBO and standby power
+21. **Ventilation Fan with Off-Delay Run-On** — timer relay in off-delay mode keeps the fan running after the switch is turned off.
+22. **Flasher Alarm Lamp** — timer relay in flasher mode toggles the lamp every delay period.
+23. **Branch Circuit Protected by a gG Fuse** — overload melts the link along the gG curve, a short circuit melts it instantly; replace it with a larger link.
+24. **Fuse Blown on One Phase of a DOL Starter (Single-Phasing)** — fuse switch disconnector with a blown L3 link leaves the motor on two phases.
+25. **Two Sockets on Separate RCBOs** — an earth fault on one socket trips only its own RCBO.
+26. **Standby Generator and ATS: Simulate a Utility Outage** — loss-of-mains relay starts the generator, the ATS transfers after its delay and returns when the grid is back.
+
 ---
 
 ## ⌨️ Keyboard & Mouse
@@ -152,6 +162,8 @@ Open the URL Vite prints (default **`http://localhost:5173/`**).
 ```bash
 npm run build              # type-check + production build into dist/
 npm run build:standalone   # also writes WireWise-Standalone.html (single offline file)
+npm run check:catalog      # catalog / DeviceType / renderer / library consistency (also runs inside both builds)
+npm test                   # smoke tests in tests/ (solver, labs, devices, migration)
 ```
 Pushes to `main` are built and deployed to GitHub Pages by the included GitHub Actions workflow. A development-only device gallery is available at `/?gallery`.
 
@@ -162,11 +174,13 @@ Pushes to `main` are built and deployed to GitHub Pages by the included GitHub A
 wirewise/
 ├── index.html
 ├── WireWise-Standalone.html      <-- single-file offline build
-├── scripts/                     <-- standalone HTML builder
+├── scripts/                     <-- standalone HTML builder, catalog consistency check
+├── tests/                       <-- smoke tests (npm test)
 └── src/
     ├── App.tsx                  <-- root layout & state coordinator
     ├── types/                   <-- electrical, ladder & code types
-    ├── core/                    <-- circuit solver, wire router, ladder engine, code rules, schematic
+    ├── core/                    <-- circuit solver, wire router, ladder engine, code rules, schematic, trip curves
+    │   └── behaviors/           <-- per-device hooks (timer modes, fuses, RCBO, generators, ATS, 3P meter)
     ├── data/                    <-- PEC/IEC standards, device catalogue, labs
     ├── styles/                  <-- design tokens (light/dark) & conductor colours
     ├── components/

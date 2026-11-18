@@ -14,7 +14,7 @@ const LEGACY_TYPES: Record<string, DeviceType> = {
   wago_connector_3p: 'lever_connector_3p',
 };
 
-const BRAND_PATTERN = /\b(ROYU|Schneider|Siemens|WAGO(?: 221)?|TeSys|SIRIUS|Acti9)\b/gi;
+export const BRAND_PATTERN = /\b(ROYU|Schneider|Siemens|WAGO(?: 221)?|TeSys|SIRIUS|Acti9)\b/gi;
 const hasBrand = (text: string) => new RegExp(BRAND_PATTERN.source, 'i').test(text);
 
 export function migrateLegacyDevices(devices: ElectricalDevice[]): ElectricalDevice[] {

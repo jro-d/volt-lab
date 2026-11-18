@@ -96,7 +96,13 @@ export type DeviceType =
   | 'selector_hoa'
   | 'limit_switch'
   | 'vfd_drive'
-  | 'motor_6lead_star_delta';
+  | 'motor_6lead_star_delta'
+  // Roadmap phase 1
+  | 'fuse_holder_1p'
+  | 'fuse_switch_disconnector_3p'
+  | 'rcbo_1pn'
+  | 'generator_set_1p'
+  | 'generator_set_3p';
 
 export interface ElectricalDevice {
   id: string;

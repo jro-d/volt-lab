@@ -46,7 +46,8 @@ const LIBRARY_TREE: FolderNode[] = [
       { id: 'pole1', label: '1 Pole', types: ['mcb_1p'] },
       { id: 'pole2', label: '2 Poles (Bolt-On & DIN)', types: ['mcb_2p', 'service_disconnect_2p', 'ats_changeover'] },
       { id: 'pole3', label: '3 Poles', types: ['mcb_3p'] },
-      { id: 'safety', label: 'RCD / Safety Breakers', types: ['rcd_2p', 'safety_breaker_2p', 'spd_surge'] },
+      { id: 'fuses', label: 'Fuses & Fuse Switches', types: ['fuse_holder_1p', 'fuse_switch_disconnector_3p'] },
+      { id: 'safety', label: 'RCD / Safety Breakers', types: ['rcd_2p', 'rcbo_1pn', 'safety_breaker_2p', 'spd_surge'] },
       { id: 'mounting', label: 'Panelboards, DIN Rails & Meters', types: ['din_rail_track', 'panel_meter'] },
     ],
   },
@@ -69,7 +70,7 @@ const LIBRARY_TREE: FolderNode[] = [
   {
     id: 'service',
     label: 'Service Entrance & Grounding',
-    types: ['kwh_meter_1p', 'kwh_meter_3p', 'earth_busbar', 'neutral_busbar', 'ground_pit'],
+    types: ['kwh_meter_1p', 'kwh_meter_3p', 'generator_set_1p', 'generator_set_3p', 'earth_busbar', 'neutral_busbar', 'ground_pit'],
   },
   {
     id: 'appliances',

@@ -1,6 +1,7 @@
 import { ElectricalProject, CodeStandard } from '../types/electrical';
 import { createDeviceFromCatalog } from './defaultComponents';
 import { MOTOR_CONTROL_LABS } from './motorControlLabs';
+import { PHASE1_LABS } from './phase1Labs';
 
 export type LabCategory = 'all' | 'sockets' | 'lighting' | 'splice' | 'appliances' | 'residential' | 'industrial' | 'automation';
 
@@ -19,6 +20,9 @@ export interface LabLesson {
 export const LAB_LESSONS: LabLesson[] = [
   // Phase 3: Marine & Industrial Motor Control Trainer (440V / 220V)
   ...MOTOR_CONTROL_LABS,
+
+  // Roadmap phase 1: timer functions, fuses, RCBO, generator and ATS
+  ...PHASE1_LABS,
 
   // 0. PHILIPPINE RESIDENTIAL BRANCH CIRCUIT (standard devices)
   {

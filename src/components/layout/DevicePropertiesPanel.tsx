@@ -2,6 +2,8 @@ import React from 'react';
 import { ElectricalDevice, ElectricalWire, CodeStandard } from '../../types/electrical';
 import { getWireStandards, COLOR_STANDARDS } from '../../data/standardsData';
 import { conductorColor } from '../../styles/conductors';
+import { TIMER_MODE_LABEL, TimerMode } from '../../core/behaviors/timerModes';
+import { FUSE_RATINGS } from '../../core/behaviors/fuse';
 import { 
   Sliders, 
   ShieldCheck, 
@@ -266,6 +268,82 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               {(device.state.tripCurve || 'C') === 'C' && 'Type C: 5–10x In (General socket outlets, appliances & small motors)'}
               {(device.state.tripCurve || 'C') === 'D' && 'Type D: 10–20x In (High inrush motors & industrial transformers)'}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- RCBO 1P+N PROPERTIES --- */}
+      {device && device.type === 'rcbo_1pn' && (
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
+              Rated Current (In)
+            </label>
+            <div className="grid grid-cols-4 gap-1">
+              {[6, 10, 16, 20, 25, 32, 40].map((amps) => (
+                <button
+                  key={amps}
+                  onClick={() => onUpdateDeviceProperty(device.id, 'ratedAmps', amps)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    (device.state.ratedAmps || 16) === amps
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {amps}A
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
+              Magnetic Trip Curve (IEC 60898-1)
+            </label>
+            <div className="grid grid-cols-3 gap-1">
+              {[
+                { c: 'B', sub: '3-5 In' },
+                { c: 'C', sub: '5-10 In' },
+                { c: 'D', sub: '10-20 In' },
+              ].map((k) => (
+                <button
+                  key={k.c}
+                  onClick={() => onUpdateDeviceProperty(device.id, 'tripCurve', k.c)}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold flex flex-col items-center transition ${
+                    (device.state.tripCurve || 'C') === k.c
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {k.c}
+                  <span className="text-[9px] font-sans font-normal opacity-80">{k.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">
+              Earth Leakage Sensitivity (IΔn)
+            </label>
+            <div className="grid grid-cols-4 gap-1">
+              {rcdSensitivities.map((sens) => (
+                <button
+                  key={sens}
+                  onClick={() => onUpdateDeviceProperty(device.id, 'leakageMa', sens)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    (device.state.leakageMa || 30) === sens
+                      ? 'bg-probe text-on-probe border-probe shadow-sm'
+                      : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {sens}mA
+                </button>
+              ))}
+            </div>
+            <span className="text-[9px] text-ink-muted mt-1 block">
+              One RCBO per circuit: an earth fault or overload drops only that circuit. Use the T button on the device to test the leakage trip.
+            </span>
           </div>
         </div>
       )}
@@ -685,6 +763,16 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Earth-leakage fault: the plugged appliance leaks to its chassis; an RCBO upstream trips */}
+          <button
+            onClick={() => patchState('hasEarthFault', !device.state.hasEarthFault)}
+            className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${
+              device.state.hasEarthFault ? 'bg-danger-soft text-danger border-danger/60' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+            }`}
+          >
+            {device.state.hasEarthFault ? '⚡ Earth leakage fault ON (click to clear)' : 'Simulate earth leakage fault'}
+          </button>
 
           {/* Educational Callout on Terminal Polarity */}
           <div className="p-2.5 rounded-md bg-warning-soft/75 border border-warning/60 text-warning text-[11px] space-y-1">
@@ -1235,6 +1323,272 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </span>
         </div>
       )}
+
+      {/* --- FUSE HOLDER / FUSE SWITCH DISCONNECTOR --- */}
+      {device && (device.type === 'fuse_holder_1p' || device.type === 'fuse_switch_disconnector_3p') && (() => {
+        const is3p = device.type === 'fuse_switch_disconnector_3p';
+        const kind = (device.state.fuseKind as string) || 'gG';
+        const rated = Number(device.state.ratedAmps) || (is3p ? 32 : 16);
+        const links = is3p ? (['l1', 'l2', 'l3'] as const) : ([] as const);
+        const blown1p = !!device.state.blown || !!device.state.tripped;
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const replaceAll = () =>
+          apply(
+            is3p
+              ? { blown_l1: false, blown_l2: false, blown_l3: false, heat_l1: 0, heat_l2: 0, heat_l3: 0, onSec_l1: 0, onSec_l2: 0, onSec_l3: 0 }
+              : { blown: false, tripped: false, closed: true, heat: 0, onSec: 0, tripReason: undefined }
+          );
+        const anyBlown = is3p ? links.some((p) => !!device.state[`blown_${p}`]) : blown1p;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+                {is3p ? 'Fuse Links (3P)' : 'Fuse Link'}
+              </label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${anyBlown ? 'bg-danger-soft/90 text-danger border border-danger/50 animate-pulse' : 'bg-ok-soft/90 text-ok border border-ok/50'}`}>
+                {anyBlown ? '⚠ LINK BLOWN' : '● INTACT'}
+              </span>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">Link Type</label>
+              <div className="grid grid-cols-2 gap-1">
+                {[
+                  { v: 'gG', label: 'gG', sub: 'cable protection' },
+                  { v: 'aM', label: 'aM', sub: 'motor short-circuit' },
+                ].map((k) => (
+                  <button
+                    key={k.v}
+                    onClick={() => apply({ fuseKind: k.v })}
+                    className={`py-1 rounded-lg border text-xs font-mono font-bold flex flex-col items-center transition ${
+                      kind === k.v ? 'bg-ok text-surface border-ok shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                    }`}
+                  >
+                    {k.label}
+                    <span className="text-[9px] font-sans font-normal opacity-80">{k.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">Rated Current</label>
+              <div className="grid grid-cols-4 gap-1">
+                {FUSE_RATINGS.map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => apply({ ratedAmps: a })}
+                    className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                      rated === a ? 'bg-ok text-surface border-ok shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                    }`}
+                  >
+                    {a}A
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {is3p && (
+              <button
+                onClick={() => apply({ closed: device.state.closed === false })}
+                className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${
+                  device.state.closed === false ? 'bg-warning-soft text-warning border-warning/60' : 'bg-ok-soft text-ok border-ok/60'
+                }`}
+              >
+                {device.state.closed === false ? 'HANDLE OPEN (isolated): click to close' : 'HANDLE CLOSED: click to open'}
+              </button>
+            )}
+
+            {is3p && (
+              <div className="grid grid-cols-3 gap-1">
+                {links.map((p) => {
+                  const blown = !!device.state[`blown_${p}`];
+                  return (
+                    <div key={p} className={`rounded-md border px-1 py-1 text-center text-[10px] font-mono font-bold ${blown ? 'bg-danger-soft/80 text-danger border-danger/60' : 'bg-surface-sunken text-ink border-border'}`}>
+                      {p.toUpperCase()} {blown ? 'BLOWN' : 'OK'}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {anyBlown && (
+              <button
+                onClick={replaceAll}
+                className="w-full py-1.5 rounded-lg border border-probe/60 bg-probe-soft/80 text-probe text-xs font-bold hover:bg-probe-soft transition"
+              >
+                Replace fuse{is3p ? ' links' : ''}
+              </button>
+            )}
+
+            <span className="text-[9px] text-ink-muted block">
+              {kind === 'aM'
+                ? 'aM links protect against short circuit only (no overload protection) and ride through a motor start (about 6x for 5 s).'
+                : 'gG links melt on overload (1.6x in about an hour, 2.5x in about 100 s) and instantly on a short circuit. A gG link sized close to the motor current can blow on the start inrush: use aM for motors.'}{' '}
+              Thermal model runs 20x faster than real time so an overload can be watched.
+            </span>
+          </div>
+        );
+      })()}
+
+      {/* --- GENERATING SET --- */}
+      {device && (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') && (() => {
+        const is3p = device.type === 'generator_set_3p';
+        const running = !!device.state.running && !device.state.overloaded;
+        const overloaded = !!device.state.overloaded;
+        const requested = !!device.state.runRequested || !!device.state.remoteStart;
+        const status = overloaded ? 'OVERLOAD TRIP' : running ? 'RUNNING' : requested ? 'STARTING' : 'STANDBY';
+        const rated = Number(device.state.ratedKva) || (is3p ? 20 : 5);
+        const kvaOptions = is3p ? [10, 20, 30, 50] : [3, 5, 8, 10];
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Generating Set</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${overloaded ? 'bg-danger-soft/90 text-danger border border-danger/50 animate-pulse' : running ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {status}
+              </span>
+            </div>
+            <button
+              onClick={() => patchState('runRequested', !device.state.runRequested)}
+              className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${
+                device.state.runRequested ? 'bg-danger-soft text-danger border-danger/60' : 'bg-ok-soft text-ok border-ok/60'
+              }`}
+            >
+              {device.state.runRequested ? 'STOP SET' : 'START SET (3 s start delay)'}
+            </button>
+            <div>
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block mb-1">Rated Output (kVA)</label>
+              <div className="grid grid-cols-4 gap-1">
+                {kvaOptions.map((k) => (
+                  <button
+                    key={k}
+                    onClick={() => patchState('ratedKva', k)}
+                    className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                      rated === k ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                    }`}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="bg-surface-sunken p-2.5 rounded-md border border-border grid grid-cols-3 gap-2 text-xs font-mono">
+              <div>
+                <span className="text-[9px] text-ink-muted block font-sans">LOAD</span>
+                <span className="font-bold text-ink">{(Number(device.state.loadKw) || 0).toFixed(2)} kW</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-ink-muted block font-sans">VOLTAGE</span>
+                <span className="font-bold text-ink">{device.state.voltage || (is3p ? 440 : 230)} V</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-ink-muted block font-sans">FREQUENCY</span>
+                <span className="font-bold text-ink">{device.state.frequencyHz || 60} Hz</span>
+              </div>
+            </div>
+            <span className="text-[9px] text-ink-muted block">
+              {device.state.remoteStart
+                ? 'Remote start contact is closed: the set runs until it opens.'
+                : 'Wire a closed contact (for example a loss-of-mains relay NC contact) between START A and START B to start the set automatically. A load above the rating for 2 s trips the set.'}
+            </span>
+          </div>
+        );
+      })()}
+
+      {/* --- AUTOMATIC TRANSFER SWITCH --- */}
+      {device && device.type === 'ats_changeover' && (() => {
+        const delay = typeof device.state.transferDelaySec === 'number' ? device.state.transferDelaySec : 0;
+        const auto = device.state.autoMode !== false;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Transfer Switch</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.source === 'generator' ? 'bg-warning-soft/90 text-warning border border-warning/50' : 'bg-ok-soft/90 text-ok border border-ok/50'}`}>
+                {device.state.source === 'generator' ? 'ON GENERATOR' : 'ON GRID'}
+              </span>
+            </div>
+            <button
+              onClick={() => patchState('autoMode', !auto)}
+              className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${auto ? 'bg-ok-soft text-ok border-ok/60' : 'bg-surface/90 text-ink border-border'}`}
+            >
+              {auto ? 'AUTO: transfers on grid loss' : 'MANUAL: click the handle on the device'}
+            </button>
+            <div>
+              <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
+                <span className="font-bold uppercase tracking-wider">Transfer Delay</span>
+                <span className="font-mono text-ink font-bold">{delay === 0 ? 'instant' : `${delay} s`}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={delay}
+                onChange={(e) => patchState('transferDelaySec', Number(e.target.value))}
+                className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
+              />
+            </div>
+            <span className="text-[9px] text-ink-muted block">
+              Grid dead and generator live: the load moves to the generator after the delay (the load is dead meanwhile). When the grid returns the load goes back at once. The two sources are never connected together.
+            </span>
+          </div>
+        );
+      })()}
+
+      {/* --- TIMER RELAY (KT) --- */}
+      {device && device.type === 'timer_relay' && (() => {
+        const mode = (device.state.timerMode as TimerMode) || 'on_delay';
+        const delay = typeof device.state.delaySec === 'number' ? device.state.delaySec : 5;
+        const reset = { elapsedSec: 0, timedOut: false, oneShotDone: false };
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, { ...patch, ...reset });
+          else Object.entries({ ...patch, ...reset }).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const hints: Record<TimerMode, string> = {
+          on_delay: 'Coil on: contacts transfer after the delay. Coil off: they release at once.',
+          off_delay: 'Coil on: contacts transfer at once. Coil off: they release after the delay.',
+          flasher: 'While the coil is on the contacts toggle every delay period. Coil off resets it.',
+          one_shot: 'Coil on: contacts transfer for one delay period, then release even if the coil stays on. Re-arms when the coil drops.',
+        };
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Timer Function</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.timedOut ? 'bg-warning-soft/90 text-warning border border-warning/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {device.state.timedOut ? '15-18 CLOSED' : '15-16 CLOSED'}
+              </span>
+            </div>
+            <select
+              value={mode}
+              onChange={(e) => apply({ timerMode: e.target.value })}
+              className="w-full bg-surface border border-border rounded-lg px-2 py-1 text-xs text-ink font-mono focus:outline-none focus:border-probe"
+            >
+              {(Object.keys(TIMER_MODE_LABEL) as TimerMode[]).map((m) => (
+                <option key={m} value={m}>{TIMER_MODE_LABEL[m]}</option>
+              ))}
+            </select>
+            <div>
+              <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
+                <span className="font-bold uppercase tracking-wider">Delay</span>
+                <span className="font-mono text-ink font-bold">{delay} s</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={60}
+                step={1}
+                value={delay}
+                onChange={(e) => apply({ delaySec: Number(e.target.value) })}
+                className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
+              />
+            </div>
+            <span className="text-[9px] text-ink-muted block">{hints[mode]}</span>
+          </div>
+        );
+      })()}
 
       {/* --- BULK WIRE EDITOR (several conductors selected) --- */}
       {wires.length > 1 && (() => {

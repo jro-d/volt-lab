@@ -30,6 +30,24 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorDirection' in state) state.motorDirection = null;
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
+  if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') {
+    // A stopped plant when the grid is de-energized
+    state.running = false;
+    state.runRequested = false;
+    state.remoteStart = false;
+    state.startSec = 0;
+    state.overloaded = false;
+    state.overloadSec = 0;
+    state.loadKw = 0;
+  }
+  if (device.type === 'ats_changeover') state.transferSec = 0;
+  if (device.type === 'kwh_meter_3p') {
+    // The energy register is kept; only the live readout clears
+    state.energized = false;
+    state.l1Amps = 0;
+    state.l2Amps = 0;
+    state.l3Amps = 0;
+  }
   if (device.type === 'timer_relay') {
     state.energized = false;
     state.elapsedSec = 0;
@@ -47,6 +65,20 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
 
 /** Re-arm a tripped breaker / RCD (closes it and clears the trip reason). */
 export function resetTripState(device: ElectricalDevice): ElectricalDevice {
+  // Entering edit mode also fits a new link in any blown fuse (heat history is cleared)
+  // A blown fuse link stays blown until the user replaces it (unlike a breaker it cannot be re-armed);
+  // only the thermal history of the intact links is cleared.
+  if (device.type === 'fuse_holder_1p') {
+    return { ...device, state: { ...device.state, tripped: !!device.state.blown, tripReason: device.state.blown ? device.state.tripReason : undefined, heat: 0, onSec: 0 } };
+  }
+  if (device.type === 'fuse_switch_disconnector_3p') {
+    const state: Record<string, any> = { ...device.state };
+    for (const p of ['l1', 'l2', 'l3']) {
+      state[`heat_${p}`] = 0;
+      state[`onSec_${p}`] = 0;
+    }
+    return { ...device, state };
+  }
   if (!device.state.tripped) return device;
   return {
     ...device,
@@ -57,4 +89,21 @@ export function resetTripState(device: ElectricalDevice): ElectricalDevice {
 /** Full "safe edit mode" normalisation: de-energise visuals and re-arm trips. */
 export function toEditModeDevices(devices: ElectricalDevice[]): ElectricalDevice[] {
   return devices.map((d) => resetTripState(resetTransientState(d)));
+}
+
+/** Fit new links in any blown fuse (used by the Reset Simulation button). */
+export function replaceBlownFuse(device: ElectricalDevice): ElectricalDevice {
+  if (device.type === 'fuse_holder_1p') {
+    return { ...device, state: { ...device.state, blown: false, tripped: false, closed: true, heat: 0, onSec: 0, tripReason: undefined } };
+  }
+  if (device.type === 'fuse_switch_disconnector_3p') {
+    const state: Record<string, any> = { ...device.state };
+    for (const p of ['l1', 'l2', 'l3']) {
+      state[`blown_${p}`] = false;
+      state[`heat_${p}`] = 0;
+      state[`onSec_${p}`] = 0;
+    }
+    return { ...device, state };
+  }
+  return device;
 }

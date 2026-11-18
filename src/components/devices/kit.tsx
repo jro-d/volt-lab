@@ -17,13 +17,13 @@ import { TerminalPoint } from './TerminalPoint';
 /* ─────────────────────────── Tags ─────────────────────────── */
 
 const TAG_PREFIX: Partial<Record<string, string>> = {
-  mcb_1p: 'Q', mcb_2p: 'Q', mcb_3p: 'Q', service_disconnect_2p: 'Q0', rcd_2p: 'F', spd_surge: 'F',
+  mcb_1p: 'Q', mcb_2p: 'Q', mcb_3p: 'Q', service_disconnect_2p: 'Q0', rcd_2p: 'F', rcbo_1pn: 'Q', spd_surge: 'F',
   safety_breaker_2p: 'Q', contactor_3p: 'KM', thermal_overload_relay: 'F', industrial_relay_dpdt: 'K',
   timer_relay: 'KT', push_button_station: 'S', push_button_fwd_rev: 'S', push_button_estop: 'S0',
   selector_hoa: 'SA', limit_switch: 'SQ', pilot_light_indicator: 'H', motor_ac_industrial: 'M',
   motor_6lead_star_delta: 'M', control_transformer: 'T', vfd_drive: 'U',
   plc_micro_controller: 'A', kwh_meter_1p: 'P', kwh_meter_3p: 'P', panel_meter: 'P', ats_changeover: 'Q',
-  source_3phase_440v: 'X',
+  source_3phase_440v: 'X', fuse_holder_1p: 'F', fuse_switch_disconnector_3p: 'Q', generator_set_1p: 'G', generator_set_3p: 'G',
 };
 
 /** Reference designation for the nameplate (IEC 81346 style): taken from the device name when it

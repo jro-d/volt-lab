@@ -4,7 +4,7 @@ import {
 } from './kit';
 
 /**
- * RCCB 2P (residual-current circuit breaker). Lever + flag window show state; the yellow T button
+ * RCCB 2P (residual-current circuit breaker) and RCBO 1P+N (breaker + RCD). Lever + flag window show state; the yellow T button
  * simulates an earth-leakage trip at the rated IΔn.
  */
 export const RcdDevice: React.FC<DeviceProps> = (props) => {
@@ -13,7 +13,9 @@ export const RcdDevice: React.FC<DeviceProps> = (props) => {
   const isClosed = !!device.state.closed && !device.state.tripped;
   const isTripped = !!device.state.tripped;
   const ratedAmps = device.state.ratedAmps || 40;
-  const sensitivityMa = device.state.sensitivityMa || 30;
+  const isRcbo = device.type === 'rcbo_1pn';
+  const sensitivityMa = (isRcbo ? device.state.leakageMa : device.state.sensitivityMa) || 30;
+  const curve = device.state.tripCurve || 'C';
 
   const toggle = () => {
     if (isTripped) {
@@ -36,8 +38,8 @@ export const RcdDevice: React.FC<DeviceProps> = (props) => {
   const botBayY = H - 2 - bayH;
   const faceY = 2 + bayH + 2;
   const faceH = botBayY - 2 - faceY;
-  const lx = W * 0.35;
-  const nx = W * 0.65;
+  const lx = W * (device.terminals.find((t) => t.id === 'in_l')?.relX ?? 0.35);
+  const nx = W * (device.terminals.find((t) => t.id === 'in_n')?.relX ?? 0.65);
   const slotY = faceY + 11;
   const slotH = 24;
   const pos = isTripped ? 0.5 : isClosed ? 0 : 1;
@@ -52,7 +54,7 @@ export const RcdDevice: React.FC<DeviceProps> = (props) => {
       <Seams xs={[W / 2]} y1={botBayY} y2={H - 2} />
 
       <Face x={3} y={faceY} w={W - 6} h={faceH} />
-      <Nameplate x={3} y={faceY} w={W - 6} tag={deviceTag(device)} text={`RCCB ${ratedAmps}A`} />
+      <Nameplate x={3} y={faceY} w={W - 6} tag={deviceTag(device)} text={isRcbo ? `RCBO ${curve}${ratedAmps}` : `RCCB ${ratedAmps}A`} />
 
       {/* Lever pair (L + N) with tie bar */}
       <g onClick={click(toggle)} className="cursor-pointer">
@@ -82,7 +84,7 @@ export const RcdDevice: React.FC<DeviceProps> = (props) => {
       <Silk x={W - 8} y={slotY + slotH + 22.5} size={4.4} anchor="end" muted>230V~ Type AC</Silk>
       {/* Type AC waveform mark */}
       <path className="d-sym" d={`M${W - 50} ${slotY + slotH + 29}q2 -3.4 4 0t4 0`} />
-      <Mono x={W - 8} y={slotY + slotH + 30.5} size={3.6} anchor="end" muted>IEC 61008</Mono>
+      <Mono x={W - 8} y={slotY + slotH + 30.5} size={3.6} anchor="end" muted>{isRcbo ? 'IEC 61009-1' : 'IEC 61008'}</Mono>
 
       <TermIds device={device} local size={4.8} side={(t) => (t.relX < 0.5 ? 'left' : 'right')} />
       <Terminals {...props} local />
