@@ -7,6 +7,7 @@ import { FuseDevice } from './FuseDevice';
 import { GeneratorDevice } from './GeneratorDevice';
 import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
 import { PhaseMonitorDevice } from './PhaseMonitorDevice';
+import { PowerSystemsDevice } from './PowerSystemsDevice';
 import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
 import { ProtectionModuleDevice, GfciDevice, MonitoringRelayDevice, CtDevice, AmmeterDevice, VoltmeterSelectorDevice, TerminalBlockDevice } from './ProtectionDevices';
 import { Motor1pDevice, CapacitorDevice } from './SinglePhaseMotor';
@@ -148,6 +149,22 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
         return <SensorDevice {...commonProps} />;
       case 'plc_24vdc_16io':
         return <Plc24Device {...commonProps} />;
+      case 'transfer_switch_manual':
+      case 'ups_battery':
+      case 'pv_string':
+      case 'dc_isolator':
+      case 'inverter_gridtie':
+      case 'net_meter':
+      case 'transformer_1p_pole':
+      case 'transformer_3p_delta_wye':
+      case 'capacitor_bank_3p':
+      case 'pf_controller':
+      case 'shore_connection_box':
+      case 'ground_detection_lamps':
+      case 'synchroscope':
+      case 'reverse_power_relay':
+      case 'preferential_trip_relay':
+        return <PowerSystemsDevice {...commonProps} />;
       case 'phase_monitor_relay':
         return <PhaseMonitorDevice {...commonProps} />;
       case 'float_switch':

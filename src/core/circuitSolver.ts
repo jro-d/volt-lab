@@ -24,6 +24,12 @@ export interface SolvedCircuit {
   nodePhases: Record<string, PhaseId>;
   /** 24 V DC control-domain potentials (kept apart from the AC nodePotentials) */
   dcPotentials: Record<string, DcPotential>;
+  /** Device that drives each DC + node (a 24 V supply or a PV string) */
+  dcSourceOf: Record<string, string>;
+  /** Device that seeds each live AC node (a meter, feeder, generator, UPS, transformer ...) */
+  nodeSource: Record<string, string>;
+  /** Lines with a first earth fault on an isolated (IT) system: tolerated, the supply does not trip */
+  itEarthFaultPhases: string[];
   deviceEnergized: Record<string, boolean>;
   wireCurrents: Record<string, number>;
   wireFlowDirections: Record<string, 'forward' | 'reverse'>;
@@ -63,6 +69,9 @@ export function createDeEnergizedSolution(wires: ElectricalWire[]): SolvedCircui
     nodePotentials: {},
     nodePhases: {},
     dcPotentials: {},
+    dcSourceOf: {},
+    nodeSource: {},
+    itEarthFaultPhases: [],
     deviceEnergized: {},
     wireCurrents,
     wireFlowDirections,
@@ -427,7 +436,7 @@ export function solveCircuit(
         phaseSeeds.push({ node: terminalKey(dev.id, 'l2'), phase: 'L2' });
         phaseSeeds.push({ node: terminalKey(dev.id, 'l3'), phase: 'L3' });
       }
-      earthSeedNodes.push(terminalKey(dev.id, 'pe'));
+      if (dev.state.earthing !== 'isolated') earthSeedNodes.push(terminalKey(dev.id, 'pe'));
     } else if (dev.type === 'ground_pit') {
       earthSeedNodes.push(terminalKey(dev.id, 'clamp'));
     } else if (dev.type === 'earth_busbar' && dev.state.isEarth) {
@@ -546,6 +555,39 @@ export function solveCircuit(
       if (energized) {
         traverse([terminalKey(dev.id, 'x2')], 'neutral', 0, neutralParent);
         traverse([terminalKey(dev.id, 'x1')], 'live', dev.state.secondaryVolts || 220, liveParent);
+      }
+    }
+
+    // Distribution transformers: secondary derived from the primary through the turns ratio
+    for (const dev of devices) {
+      if (dev.type === 'transformer_1p_pole') {
+        const h1 = terminalKey(dev.id, 'h1');
+        const h2 = terminalKey(dev.id, 'h2');
+        const lineToLine = nodePotentials[h1] === 'live' && nodePotentials[h2] === 'live' && !!nodePhases[h1] && !!nodePhases[h2] && nodePhases[h1] !== nodePhases[h2];
+        const lineToNeutral = (nodePotentials[h1] === 'live' && nodePotentials[h2] === 'neutral') || (nodePotentials[h2] === 'live' && nodePotentials[h1] === 'neutral');
+        const energized = lineToLine || lineToNeutral;
+        const primaryV = lineToLine ? lineVolts : energized ? nodeVoltages[nodePotentials[h1] === 'live' ? h1 : h2] || gridVoltage : 0;
+        const secV = energized ? Math.round(primaryV / (Number(dev.state.ratio) || 1.91)) : 0;
+        dev.state.primaryLive = energized;
+        dev.state.primaryV = Math.round(primaryV);
+        dev.state.secondaryUnloadedV = secV;
+        if (energized) {
+          traverse([terminalKey(dev.id, 'x2')], 'neutral', 0, neutralParent);
+          traverse([terminalKey(dev.id, 'x1')], 'live', secV, liveParent);
+        }
+      } else if (dev.type === 'transformer_3p_delta_wye') {
+        const hk = ['h1', 'h2', 'h3'].map((t) => terminalKey(dev.id, t));
+        const energized = hk.every((k) => nodePotentials[k] === 'live' && !!nodePhases[k]) && new Set(hk.map((k) => nodePhases[k])).size === 3;
+        const secLine = energized ? Math.round(lineVolts / (Number(dev.state.ratio) || 1.1)) : 0;
+        dev.state.primaryLive = energized;
+        dev.state.primaryV = energized ? Math.round(lineVolts) : 0;
+        dev.state.secondaryUnloadedV = secLine;
+        if (energized) {
+          traverse([terminalKey(dev.id, 'x0')], 'neutral', 0, neutralParent);
+          (['x1', 'x2', 'x3'] as const).forEach((t, i) => {
+            traverse([terminalKey(dev.id, t)], 'live', Math.round(secLine / Math.sqrt(3)), liveParent, (['L1', 'L2', 'L3'] as PhaseId[])[i]);
+          });
+        }
       }
     }
 
@@ -788,6 +830,18 @@ export function solveCircuit(
 
   // Final potential pass to ensure all terminal voltages reflect steady state
   executePass();
+
+  // On an isolated (IT) system a first earth fault on one line is not a short circuit: nothing trips and the
+  // ground detection lamps show it. Earth faults on two different lines are a real fault and stay.
+  const itEarthFaultPhases: string[] = [];
+  if (devices.some(d => d.type === 'source_3phase_440v' && d.state.earthing === 'isolated')) {
+    const earthFaults = faults.filter(f => f.kind === 'phase_earth');
+    const faulted = new Set(earthFaults.flatMap(f => f.phases || []));
+    if (faulted.size === 1) {
+      itEarthFaultPhases.push(...faulted);
+      faults = faults.filter(f => f.kind !== 'phase_earth');
+    }
+  }
 
   // 3. Short circuits: bolted phase-to-neutral / phase-to-earth and phase-to-phase faults
   const terminalPoint = (node: string) => {
@@ -1747,11 +1801,30 @@ export function solveCircuit(
     }
   }
 
+  // Which device seeds each live node (walk the live parent chain to its root)
+  const nodeSource: Record<string, string> = {};
+  const rootOfLive = (node: string): string => {
+    const trail: string[] = [];
+    let cur = node;
+    while (liveParent[cur] && !nodeSource[cur] && trail.length < 5000) {
+      trail.push(cur);
+      cur = liveParent[cur].prevNode;
+    }
+    const root = nodeSource[cur] || devOfNode(cur);
+    for (const t of trail) nodeSource[t] = root;
+    nodeSource[cur] = root;
+    return root;
+  };
+  for (const key in nodePotentials) if (nodePotentials[key] === 'live') rootOfLive(key);
+
   return {
     nodeVoltages,
     nodePotentials,
     nodePhases,
     dcPotentials: dc.potentials,
+    dcSourceOf: dc.sourceOf,
+    nodeSource,
+    itEarthFaultPhases,
     deviceEnergized,
     wireCurrents,
     wireFlowDirections,

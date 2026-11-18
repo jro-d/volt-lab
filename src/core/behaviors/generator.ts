@@ -1,6 +1,7 @@
 import type { ElectricalDevice } from '../../types/electrical';
 import type { DeviceBehavior } from './types';
 import { terminalCurrent, withState } from './util';
+import { SYNC_SLIP_SCALE } from './powerSystems';
 
 /** Time from a run command to output voltage (simulated seconds). */
 export const GENERATOR_START_DELAY_SEC = 3;
@@ -39,7 +40,11 @@ export const generatorBehavior: DeviceBehavior = {
 
   tick(dev, ctx, dtSec) {
     const requested = !!dev.state.runRequested || !!dev.state.remoteStart;
-    const patch: Record<string, unknown> = { frequencyHz: ctx.gridFrequency };
+    // Phase angle only matters relative to another set: it slips at 360 deg x frequency offset (slowed for the synchroscope)
+    const angle = dev.state.running
+      ? (((Number(dev.state.phaseAngleDeg) || 0) + 360 * (Number(dev.state.freqOffsetHz) || 0) * dtSec * SYNC_SLIP_SCALE) % 360 + 360) % 360
+      : Number(dev.state.phaseAngleDeg) || 0;
+    const patch: Record<string, unknown> = { frequencyHz: ctx.gridFrequency, phaseAngleDeg: Math.round(angle * 10) / 10 };
 
     if (!requested) {
       Object.assign(patch, { running: false, startSec: 0, overloaded: false, overloadSec: 0, loadKw: 0 });

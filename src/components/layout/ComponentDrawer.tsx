@@ -75,6 +75,15 @@ const LIBRARY_TREE: FolderNode[] = [
     types: ['kwh_meter_1p', 'kwh_meter_3p', 'generator_set_1p', 'generator_set_3p', 'earth_busbar', 'neutral_busbar', 'ground_pit'],
   },
   {
+    id: 'power',
+    label: 'Sources & Power Systems',
+    children: [
+      { id: 'standby', label: 'Standby, UPS & Solar', types: ['ups_battery', 'transfer_switch_manual', 'pv_string', 'dc_isolator', 'inverter_gridtie', 'net_meter'] },
+      { id: 'transformers', label: 'Transformers & Power Factor', types: ['transformer_1p_pole', 'transformer_3p_delta_wye', 'capacitor_bank_3p', 'pf_controller'] },
+      { id: 'marine_power', label: 'Marine Switchboard & Paralleling', types: ['shore_connection_box', 'ground_detection_lamps', 'synchroscope', 'reverse_power_relay', 'preferential_trip_relay'] },
+    ],
+  },
+  {
     id: 'appliances',
     label: 'Appliances & Loads',
     types: ['appliance_tv', 'appliance_water_heater', 'appliance_fan', 'appliance_ac', 'pump_booster_1p'],

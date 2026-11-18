@@ -34,7 +34,11 @@ export interface SchematicNode {
     | 'source3p'
     | 'pushbutton3'
     | 'fuse'
-    | 'generator';
+    | 'generator'
+    | 'pv'
+    | 'inverter'
+    | 'battery'
+    | 'capacitor';
   status?: string;
 }
 
@@ -49,6 +53,13 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
   const nodes: SchematicNode[] = devices.map(d => {
     let symbol: SchematicNode['symbol'] = 'breaker';
     if (d.type.startsWith('fuse')) symbol = 'fuse';
+    else if (d.type === 'pv_string') symbol = 'pv';
+    else if (d.type === 'inverter_gridtie') symbol = 'inverter';
+    else if (d.type === 'ups_battery') symbol = 'battery';
+    else if (d.type === 'capacitor_bank_3p') symbol = 'capacitor';
+    else if (d.type === 'synchroscope' || d.type === 'pf_controller' || d.type === 'reverse_power_relay' || d.type === 'preferential_trip_relay') symbol = 'relay';
+    else if (d.type === 'transfer_switch_manual' || d.type === 'dc_isolator' || d.type === 'shore_connection_box') symbol = 'switch';
+    else if (d.type === 'ground_detection_lamps') symbol = 'earth';
     else if (d.type.startsWith('generator')) symbol = 'generator';
     else if (d.type.startsWith('rcbo')) symbol = 'rcd';
     else if (d.type === 'thermal_overload_relay' || d.type === 'mpcb_3p') symbol = 'tor';
@@ -56,7 +67,7 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     else if (d.type === 'panel_ammeter' || d.type === 'voltmeter_selector') symbol = 'meter';
     else if (d.type === 'terminal_block' || d.type === 'distribution_block') symbol = 'busbar';
     else if (d.type === 'gfci_receptacle') symbol = 'rcd';
-    else if (d.type === 'control_transformer') symbol = 'transformer';
+    else if (d.type === 'control_transformer' || d.type.startsWith('transformer')) symbol = 'transformer';
     else if (d.type === 'source_3phase_440v') symbol = 'source3p';
     else if (d.type === 'push_button_fwd_rev') symbol = 'pushbutton3';
     else if (d.type.includes('meter')) symbol = 'meter';
