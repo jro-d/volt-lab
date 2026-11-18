@@ -215,6 +215,29 @@ export interface ElectricalWire {
 }
 
 
+/** Troubleshooting mode: hidden faults injected into a working circuit (see core/faults.ts). */
+export type FaultKind =
+  | 'open_coil'
+  | 'welded_contact'
+  | 'contact_open'
+  | 'loose_neutral'
+  | 'open_wire'
+  | 'high_resistance_joint'
+  | 'earth_fault_to_frame'
+  | 'overload_setting_wrong'
+  | 'blown_fuse'
+  | 'swapped_phases';
+
+export interface InjectedFault {
+  id: string;
+  /** The device the fault is on (for a wire fault: the device at the wire's start) */
+  deviceId: string;
+  kind: FaultKind;
+  /** Kind-specific: wireId, wireA / wireB, terminalId, pair [a, b], dialAmps, ohms */
+  params: Record<string, any>;
+  revealed: boolean;
+}
+
 export interface ElectricalProject {
   id: string;
   title: string;
@@ -231,6 +254,9 @@ export interface ElectricalProject {
   targetLadder?: LadderRung[];
   /** Shared tank / line-pressure state for pumps, float and pressure switches (see core/process.ts) */
   process?: ProcessState;
+  /** Troubleshooting faults, applied only while Troubleshoot mode is on. Absent in older saves. */
+  faults?: InjectedFault[];
+  faultsVersion?: number;
 }
 
 /** Tank level (%), line pressure (bar) and the draw-off slider (litres per minute) of the project's process. */

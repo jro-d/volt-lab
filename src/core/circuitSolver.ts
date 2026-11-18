@@ -1,4 +1,5 @@
-import { ElectricalDevice, ElectricalWire, CodeStandard } from '../types/electrical';
+import { ElectricalDevice, ElectricalWire, CodeStandard, InjectedFault } from '../types/electrical';
+import { buildFaultContext } from './faults';
 import { SparkEvent } from '../types/simulation';
 import { getWireStandards } from '../data/standardsData';
 import { behaviorFor } from './behaviors/registry';
@@ -107,8 +108,10 @@ export function solveCircuit(
   wires: ElectricalWire[],
   standard: CodeStandard = 'PEC',
   gridVoltage: number = 230,
-  options: { graphOnly?: boolean } = {}
+  options: { graphOnly?: boolean; faults?: InjectedFault[] } = {}
 ): SolvedCircuit {
+  // Troubleshooting faults (hidden transforms); undefined when none are active
+  const F = options.faults && options.faults.length ? buildFaultContext(options.faults, wires) : undefined;
   const nodeVoltages: Record<string, number> = {};
   const nodePotentials: Record<string, 'live' | 'neutral' | 'earth' | 'switched' | 'none'> = {};
   const nodePhases: Record<string, PhaseId> = {};
@@ -159,8 +162,11 @@ export function solveCircuit(
     faults = [];
 
     for (const wire of wires) {
+      const swap = F?.swaps.get(wire.id);
       const k1 = terminalKey(wire.fromDeviceId, wire.fromTerminalId);
-      const k2 = terminalKey(wire.toDeviceId, wire.toTerminalId);
+      const k2 = terminalKey(swap ? swap.toDeviceId : wire.toDeviceId, swap ? swap.toTerminalId : wire.toTerminalId);
+      // A broken conductor, or a wire on a loose terminal, is drawn but conducts nothing
+      if (F && (F.openWires.has(wire.id) || F.looseTerminals.has(k1) || F.looseTerminals.has(k2))) continue;
       addEdge(k1, k2);
       wireByNodes[`${k1}->${k2}`] = { wire, fromIsStart: true };
       wireByNodes[`${k2}->${k1}`] = { wire, fromIsStart: false };
@@ -169,7 +175,7 @@ export function solveCircuit(
   // Add internal device continuity based on switch / breaker states
   for (const dev of devices) {
     // Devices registered in ./behaviors describe their own internal connections
-    for (const [a, b] of behaviorFor(dev.type)?.edges?.(dev) ?? []) {
+    for (const [a, b] of behaviorFor(dev.type)?.edges?.(F ? F.view(dev) : dev) ?? []) {
       addEdge(terminalKey(dev.id, a), terminalKey(dev.id, b));
     }
     if (dev.category === 'busbar') {
@@ -385,6 +391,17 @@ export function solveCircuit(
     // control_transformer: galvanic isolation — no primary↔secondary continuity (handled as a source below)
   }
 
+  // Troubleshooting: contacts welded closed / stuck open
+  if (F) {
+    for (const [id, pairs] of F.welded) for (const [a, b] of pairs) addEdge(terminalKey(id, a), terminalKey(id, b));
+    for (const [id, pairs] of F.stuckOpen) {
+      for (const [a, b] of pairs) {
+        adj[terminalKey(id, a)]?.delete(terminalKey(id, b));
+        adj[terminalKey(id, b)]?.delete(terminalKey(id, a));
+      }
+    }
+  }
+
   // 2. Identify Sources & Seed Potentials
   // Find Meter or main entrance sources
   const liveSeedNodes: string[] = [];
@@ -571,6 +588,7 @@ export function solveCircuit(
 
   /** Coil sees a complete circuit: live↔neutral, or two different phases (line-to-line coil) */
   const isCoilPowered = (devId: string, tA: string, tB: string) => {
+    if (F?.openCoil.has(devId)) return false;
     const a = nodePotentials[terminalKey(devId, tA)];
     const b = nodePotentials[terminalKey(devId, tB)];
     if ((a === 'live' && b === 'neutral') || (b === 'live' && a === 'neutral')) return true;
@@ -960,7 +978,7 @@ export function solveCircuit(
         totalWatts += p;
 
         // Check earth leakage fault simulation
-        if (dev.state.hasEarthFault && !tripUpstreamRcbo(dev, terminalKey(dev.id, 'line'))) {
+        if ((dev.state.hasEarthFault || F?.earth.has(dev.id)) && !tripUpstreamRcbo(dev, terminalKey(dev.id, 'line'))) {
           const rcd = devices.find(d => d.type === 'rcd_2p' && d.state.closed);
           if (rcd) {
             trippedDevices.push(rcd.id);
@@ -1477,8 +1495,14 @@ export function solveCircuit(
     const vd = 2 * current * wireR;
     const vdPercent = gridVoltage > 0 ? (vd / gridVoltage) * 100 : 0;
 
-    wireVoltageDrops[wire.id] = vd;
-    wireVoltageDropPercents[wire.id] = vdPercent;
+    const jointOhms = F?.hiResWires.get(wire.id) ?? 0;
+    const extra = current * jointOhms;
+    wireVoltageDrops[wire.id] = vd + extra;
+    wireVoltageDropPercents[wire.id] = vdPercent + (gridVoltage > 0 ? (extra / gridVoltage) * 100 : 0);
+    if (jointOhms > 0 && current * current * jointOhms > 15) {
+      const wdev = deviceById.get(wire.fromDeviceId);
+      sparks.push({ id: `hot_${wire.id}`, x: (wdev?.x ?? 0) + (wdev?.width ?? 0) / 2, y: (wdev?.y ?? 0) + (wdev?.height ?? 0) / 2, severity: 'minor', timestamp: Date.now(), message: 'Joint overheating under load' });
+    }
   }
 
   // 6. Thermal & Magnetic Trip Curve Evaluation (B/C/D) on Breakers
@@ -1573,7 +1597,7 @@ export function solveCircuit(
 
   for (const ct of devices) if (ct.type === 'core_balance_ct') ct.state.leakageMa = 0;
   for (const dev of devices) {
-    const hasLeak = !!dev.state.hasEarthFault && deviceEnergized[dev.id];
+    const hasLeak = (!!dev.state.hasEarthFault || !!F?.earth.has(dev.id)) && deviceEnergized[dev.id];
     const loose = !!dev.state.looseTerminal && deviceEnergized[dev.id];
     dev.state.arcing = false;
     if (!hasLeak && !loose) continue;
@@ -1715,7 +1739,7 @@ export function solveCircuit(
   // 7. Motor Overload Relays: bimetal trips when motor current exceeds the dial setting
   for (const dev of devices) {
     if (dev.type !== 'thermal_overload_relay' || dev.state.tripped) continue;
-    const setting = dev.state.tripAmps || 6;
+    const setting = F?.dial.get(dev.id) ?? (dev.state.tripAmps || 6);
     const amps = dev.state.measuredAmps || 0;
     if (amps > setting * 1.05) {
       trippedDevices.push(dev.id);

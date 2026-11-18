@@ -18,6 +18,8 @@ interface CodeInspectorHUDProps {
   isSimulating?: boolean;
   onResetSimulation: () => void;
   onHighlightViolation?: (violation: CodeViolation) => void;
+  /** Troubleshooting mode: show symptoms only (no code findings, no trip reasons) */
+  troubleshoot?: { symptom: string; found: number; total: number };
 }
 
 export const CodeInspectorHUD: React.FC<CodeInspectorHUDProps> = ({
@@ -26,6 +28,7 @@ export const CodeInspectorHUD: React.FC<CodeInspectorHUDProps> = ({
   isSimulating = true,
   onResetSimulation,
   onHighlightViolation,
+  troubleshoot,
 }) => {
   const [isHazardDismissed, setIsHazardDismissed] = useState(false);
   const [isHazardExpanded, setIsHazardExpanded] = useState(false);
@@ -39,6 +42,29 @@ export const CodeInspectorHUD: React.FC<CodeInspectorHUDProps> = ({
   const errors = report.violations.filter(v => v.severity === 'error');
   const warnings = report.violations.filter(v => v.severity === 'warning');
   const fatalShockViolations = report.violations.filter(v => v.hazardLevel === 'fatal_electrocution');
+
+  if (troubleshoot) {
+    const tripped = solved.trippedDevices.length;
+    return (
+      <aside className="wirewise-console wirewise-scroll-dark w-[21.5rem] shrink-0 bg-console border-l-2 border-console-line shadow-2 flex flex-col h-full overflow-hidden select-none z-10 font-sans text-console-ink">
+        <div className="p-3.5 border-b border-console-line bg-console-raised">
+          <span className="text-[11px] font-semibold text-console-muted uppercase tracking-[0.08em] font-display block">TROUBLESHOOTING</span>
+          <h2 className="text-xs font-bold text-console-ink uppercase tracking-wider font-mono mt-0.5">Symptoms only</h2>
+        </div>
+        <div className="p-3.5 space-y-3 text-xs">
+          <p className="text-console-ink leading-relaxed">{troubleshoot.symptom}</p>
+          <div className="rounded-lg border border-console-line bg-console-raised px-3 py-2 font-mono space-y-1">
+            <div className="flex justify-between"><span className="text-console-muted">Load</span><span>{solved.totalWatts.toFixed(0)} W · {solved.totalAmps.toFixed(1)} A</span></div>
+            <div className="flex justify-between"><span className="text-console-muted">Protective devices open</span><span>{tripped}</span></div>
+            <div className="flex justify-between"><span className="text-console-muted">Sparks / arcs seen</span><span>{solved.sparks.length}</span></div>
+            <div className="flex justify-between"><span className="text-console-muted">Faults found</span><span>{troubleshoot.found} of {troubleshoot.total}</span></div>
+          </div>
+          <p className="text-console-muted leading-relaxed">The code audit and the trip reasons are hidden in this mode, because they would give the cause away. Measure with the DMM, the clamp meter and the test instruments.</p>
+          <button onClick={onResetSimulation} className="px-2.5 py-1 rounded-md border border-console-line text-[11px] font-semibold hover:bg-console-raised">Reset simulation</button>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="wirewise-console wirewise-scroll-dark w-[21.5rem] shrink-0 bg-console border-l-2 border-console-line shadow-2 flex flex-col h-full overflow-hidden select-none z-10 font-sans text-console-ink">

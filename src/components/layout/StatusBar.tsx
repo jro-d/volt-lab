@@ -13,6 +13,9 @@ interface StatusBarProps {
   onSnapChange: (snap: SnapSize) => void;
   totalWatts: number;
   totalAmps: number;
+  /** Troubleshooting mode toggle (hidden faults, symptoms only) */
+  troubleshootMode?: boolean;
+  onToggleTroubleshoot?: () => void;
 }
 
 const SNAP_CYCLE: SnapSize[] = [10, 5, 0];
@@ -30,6 +33,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onSnapChange,
   totalWatts,
   totalAmps,
+  troubleshootMode = false,
+  onToggleTroubleshoot,
 }) => {
   const { cursorX, cursorY, zoom, wiring } = useCadStatus();
 
@@ -81,6 +86,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </span>
         ))}
       </div>
+
+      {onToggleTroubleshoot && (
+        <button
+          onClick={onToggleTroubleshoot}
+          title="Troubleshooting mode: hidden faults, symptoms only, hints and a score"
+          className={`mr-3 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${troubleshootMode ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
+        >
+          🔧 Troubleshoot
+        </button>
+      )}
 
       <div className="font-semibold text-ink truncate">
         {standardLabel} • {gridVoltage}V {gridFrequency}Hz • Connected: {Math.round(totalWatts)}W ({totalAmps.toFixed(2)}A)
