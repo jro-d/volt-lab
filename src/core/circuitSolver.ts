@@ -86,7 +86,13 @@ const BREAKER_TYPES = new Set([
   'service_disconnect_2p',
   'safety_breaker_2p',
   'rcbo_1pn',
+  'afdd_1pn',
+  'mccb_3p',
+  'mpcb_3p',
 ]);
+
+/** Breakers with adjustable time-current settings: trip timing is done in their behaviour tick, not by the 1.3 x rule */
+const ADJUSTABLE_BREAKERS = new Set(['mccb_3p', 'mpcb_3p']);
 
 /** Positive (CW) 3-phase rotation sequences */
 const CW_SEQUENCES = ['L1,L2,L3', 'L2,L3,L1', 'L3,L1,L2'];
@@ -591,7 +597,42 @@ export function solveCircuit(
 
     let contactsChanged = false;
     for (const dev of devices) {
-      if (dev.type === 'psu_24vdc') {
+      if (dev.type === 'mccb_3p') {
+        const uv = isCoilPowered(dev.id, 'uv_a1', 'uv_a2');
+        if (!!dev.state.uvPowered !== uv) {
+          dev.state.uvPowered = uv;
+          contactsChanged = true;
+          break;
+        }
+      } else if (dev.type === 'voltage_relay' || dev.type === 'earth_leakage_relay' || dev.type === 'ptc_relay') {
+        const supplied = isCoilPowered(dev.id, 'a1', 'a2');
+        dev.state.supplied = supplied;
+        if (dev.type === 'voltage_relay') {
+          // line-to-line when the two sense terminals sit on different phases, else line-to-neutral
+          const kA = terminalKey(dev.id, 'a1');
+          const kB = terminalKey(dev.id, 'a2');
+          const llK = nodePotentials[kA] === 'live' && nodePotentials[kB] === 'live';
+          const base = Math.max(nodeVoltages[kA] || 0, nodeVoltages[kB] || 0);
+          const sense = supplied ? Math.round(llK ? base * Math.sqrt(3) : base) : 0;
+          const nominal = Number(dev.state.nominalV) || 220;
+          dev.state.senseV = sense;
+          dev.state.windowOk = supplied && sense >= nominal * (1 - (Number(dev.state.underPct) || 15) / 100) && sense <= nominal * (1 + (Number(dev.state.overPct) || 10) / 100);
+        } else if (dev.type === 'ptc_relay') {
+          const motor = deviceById.get(String(dev.state.motorId || ''));
+          const temp = Number(motor?.state.windingC);
+          const wc = Number.isFinite(temp) ? temp : 40;
+          const limit = Number(dev.state.tripTempC) || 120;
+          dev.state.windingC = wc;
+          if (wc >= limit) dev.state.ptcTripped = true;
+          else if (wc < limit - 20) dev.state.ptcTripped = false;
+          const on = supplied && !dev.state.ptcTripped;
+          if (!!dev.state.relayOn !== on) {
+            dev.state.relayOn = on;
+            contactsChanged = true;
+            break;
+          }
+        }
+      } else if (dev.type === 'psu_24vdc') {
         const hasAc = isCoilPowered(dev.id, 'in_l', 'in_n');
         const load = dcLoadsBySupply()[dev.id] || 0;
         const rated = Number(dev.state.ratedAmps) || 5;
@@ -984,10 +1025,11 @@ export function solveCircuit(
       if (dev.type === 'pump_booster_3p') dev.state.pumping = isRunning;
       dev.state.motorDirection = direction;
       dev.state.motorFault = fault;
+      const loadK = (Number(dev.state.loadPct) || 100) / 100; // shaft load: above 100 % the motor draws more than nameplate
       dev.state.measuredAmps = isRunning
-        ? distinctPhases.size === 3
+        ? (distinctPhases.size === 3
           ? motorLineAmps(dev.state.wattage || 2200, lineVolts)
-          : (dev.state.wattage || 2200) / gridVoltage
+          : (dev.state.wattage || 2200) / gridVoltage) * loadK
         : 0;
       if (isRunning) {
         totalWatts += dev.state.wattage || 2200;
@@ -1476,7 +1518,7 @@ export function solveCircuit(
   }
 
   for (const dev of devices) {
-    if (!BREAKER_TYPES.has(dev.type) || !dev.state.closed || dev.state.tripped) continue;
+    if (!BREAKER_TYPES.has(dev.type) || ADJUSTABLE_BREAKERS.has(dev.type) || !dev.state.closed || dev.state.tripped) continue;
     if (trippedDevices.includes(dev.id)) continue;
     const rated = dev.state.ratedAmps || 16;
     const curve = dev.state.tripCurve || 'C';
@@ -1497,6 +1539,151 @@ export function solveCircuit(
     if (breakerAmps > rated * 1.3) {
       trippedDevices.push(dev.id);
       tripReasons[dev.id] = `Thermal Overload Trip: Load current (${breakerAmps.toFixed(1)}A) exceeds breaker rating (${rated}A)`;
+    }
+  }
+
+  // ── Protection and metering devices (batch 3.1) ─────────────────────────────────────────────
+  const wireAmpsAt = (dev: ElectricalDevice, terminalId: string) => {
+    let amps = 0;
+    for (const w of wires) {
+      const here = (w.fromDeviceId === dev.id && w.fromTerminalId === terminalId) || (w.toDeviceId === dev.id && w.toTerminalId === terminalId);
+      if (here && w.fromDeviceId !== w.toDeviceId) amps = Math.max(amps, wireCurrents[w.id] || 0);
+    }
+    return amps;
+  };
+  const upstreamChain = (dev: ElectricalDevice): ElectricalDevice[] => {
+    const chain: ElectricalDevice[] = [];
+    const seenDev = new Set<string>();
+    for (const t of dev.terminals) {
+      let curr: string | undefined = terminalKey(dev.id, t.id);
+      if (nodePotentials[curr] !== 'live') continue;
+      const seen = new Set<string>();
+      while (curr && !seen.has(curr)) {
+        seen.add(curr);
+        const up = deviceById.get(devOfNode(curr));
+        if (up && up.id !== dev.id && !seenDev.has(up.id)) {
+          seenDev.add(up.id);
+          chain.push(up);
+        }
+        curr = liveParent[curr]?.prevNode;
+      }
+    }
+    return chain;
+  };
+
+  for (const ct of devices) if (ct.type === 'core_balance_ct') ct.state.leakageMa = 0;
+  for (const dev of devices) {
+    const hasLeak = !!dev.state.hasEarthFault && deviceEnergized[dev.id];
+    const loose = !!dev.state.looseTerminal && deviceEnergized[dev.id];
+    dev.state.arcing = false;
+    if (!hasLeak && !loose) continue;
+    const chain = upstreamChain(dev);
+    if (hasLeak) {
+      const faultMa = Number(dev.state.faultMa) || 500;
+      for (const up of chain) {
+        if (up.type === 'core_balance_ct') up.state.leakageMa = Math.max(Number(up.state.leakageMa) || 0, faultMa);
+        else if ((up.type === 'rcd_4p' || up.type === 'gfci_receptacle') && up.state.closed && !up.state.tripped && faultMa >= (Number(up.state.sensitivityMa) || 30)) {
+          if (!trippedDevices.includes(up.id)) {
+            trippedDevices.push(up.id);
+            tripReasons[up.id] = `Earth Leakage Trip: ${faultMa} mA leakage to earth at ${dev.name || dev.id} (IΔn ${up.state.sensitivityMa || 30} mA)`;
+          }
+          break;
+        }
+      }
+    }
+    if (loose) {
+      // A loose terminal carrying current makes a series arc. Only an AFDD can see it; an MCB sees a normal load.
+      dev.state.arcing = true;
+      const afdd = chain.find((up) => up.type === 'afdd_1pn' && up.state.closed && !up.state.tripped);
+      sparks.push({
+        id: `arc_${dev.id}`,
+        x: dev.x + dev.width / 2,
+        y: dev.y + dev.height / 2,
+        severity: 'minor',
+        timestamp: Date.now(),
+        message: `SERIES ARC at a loose terminal of ${dev.name || dev.id}${afdd ? ' (AFDD will trip)' : ': no arc-fault protection upstream, fire hazard'}`,
+      });
+      if (afdd && !trippedDevices.includes(afdd.id)) {
+        trippedDevices.push(afdd.id);
+        tripReasons[afdd.id] = `AFDD Arc-Fault Trip: series arcing detected downstream at ${dev.name || dev.id}`;
+      }
+    }
+  }
+  for (const dev of devices) {
+    if (dev.type === 'mccb_3p' && dev.state.shuntTrip && dev.state.closed && !dev.state.tripped && isCoilPowered(dev.id, 'sht_a1', 'sht_a2') && !trippedDevices.includes(dev.id)) {
+      trippedDevices.push(dev.id);
+      tripReasons[dev.id] = 'Shunt trip: the C1-C2 coil was energized by a control signal';
+    }
+    if (dev.type === 'mccb_3p' && dev.state.uvRelease && dev.state.closed && !dev.state.tripped && dev.state.uvPowered === false && !trippedDevices.includes(dev.id)) {
+      // Cannot happen for a breaker that has just closed on a live release; covers loss of its supply
+    }
+    if (dev.type === 'earth_leakage_relay') {
+      let leak = 0;
+      for (const w of wires) {
+        for (const [a, b] of [[w.fromDeviceId, w.toDeviceId], [w.toDeviceId, w.fromDeviceId]] as const) {
+          const ct = a === dev.id ? deviceById.get(b) : undefined;
+          if (ct && ct.type === 'core_balance_ct') leak = Math.max(leak, Number(ct.state.leakageMa) || 0);
+        }
+      }
+      dev.state.leakageMa = leak;
+    }
+    if (dev.type === 'current_transformer') {
+      const primary = Math.max(wireAmpsAt(dev, 'p1'), wireAmpsAt(dev, 'p2'));
+      const ratio = Math.max(1, (Number(dev.state.primaryA) || 100) / 5);
+      const k1 = terminalKey(dev.id, 's1');
+      const k2 = terminalKey(dev.id, 's2');
+      // The secondary is closed when a path leads from S1 back to S2 (shorting link or ammeter)
+      const seen = new Set([k1]);
+      const queue = [k1];
+      while (queue.length) {
+        const cur = queue.shift()!;
+        for (const n of adj[cur] ?? []) if (!seen.has(n)) { seen.add(n); queue.push(n); }
+      }
+      const closed = seen.has(k2);
+      dev.state.primaryAmps = Math.round(primary * 100) / 100;
+      dev.state.openSecondary = primary > 0.05 && !closed;
+      dev.state.secondaryA = closed ? Math.round((primary / ratio) * 1000) / 1000 : 0;
+      if (dev.state.openSecondary) {
+        sparks.push({
+          id: `ct_open_${dev.id}`, x: dev.x + dev.width / 2, y: dev.y + dev.height, severity: 'minor', timestamp: Date.now(),
+          message: `OPEN CT SECONDARY on ${dev.name || dev.id}: dangerous voltage across S1-S2 while the primary carries ${primary.toFixed(1)} A. Short S1-S2 or connect an ammeter`,
+        });
+      }
+      deviceEnergized[dev.id] = primary > 0.05;
+    }
+    if (dev.type === 'panel_ammeter') {
+      let reading = 0;
+      const start = terminalKey(dev.id, 'i1');
+      const seen = new Set([start]);
+      const queue = [start];
+      while (queue.length) {
+        const cur = queue.shift()!;
+        const ct = deviceById.get(devOfNode(cur));
+        if (ct && ct.type === 'current_transformer' && !ct.state.openSecondary) reading = Math.max(reading, Number(ct.state.primaryAmps) || 0);
+        for (const n of adj[cur] ?? []) if (!seen.has(n)) { seen.add(n); queue.push(n); }
+      }
+      dev.state.readingA = Math.round(reading * 10) / 10;
+      deviceEnergized[dev.id] = reading > 0;
+    }
+    if (dev.type === 'voltmeter_selector') {
+      const sel = String(dev.state.selector || 'OFF');
+      const [x, y] = sel === 'OFF' ? [] : sel.split('-').map((p) => p.toLowerCase());
+      let volts = 0;
+      if (x && y) {
+        const a = terminalKey(dev.id, x);
+        const b = terminalKey(dev.id, y);
+        if (nodePotentials[a] === 'live' && nodePotentials[b] === 'live' && nodePhases[a] && nodePhases[b] && nodePhases[a] !== nodePhases[b]) {
+          volts = Math.round(Math.max(nodeVoltages[a] || 0, nodeVoltages[b] || 0) * Math.sqrt(3));
+        } else if ((nodePotentials[a] === 'live' && nodePotentials[b] === 'neutral') || (nodePotentials[b] === 'live' && nodePotentials[a] === 'neutral')) {
+          volts = Math.round(nodePotentials[a] === 'live' ? nodeVoltages[a] || 0 : nodeVoltages[b] || 0);
+        }
+      }
+      dev.state.readingV = volts;
+      deviceEnergized[dev.id] = volts > 0;
+    }
+    if (dev.type === 'voltage_relay' || dev.type === 'earth_leakage_relay' || dev.type === 'ptc_relay') {
+      deviceEnergized[dev.id] = !!dev.state.supplied;
+      if (dev.state.supplied) totalWatts += 3;
     }
   }
 

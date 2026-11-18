@@ -12,10 +12,11 @@
  *    (conventional time 1 h for 16-63 A).
  *  - fuse_aM   IEC 60269-1 / 60269-2: motor back-up fuse; no overload protection below about 4 In and it
  *    must ride through a motor start (6.3 In for at least 5 s).
+ *  - mccb_thermal  IEC 60947-2 long-time element (teaching shape, multiples of Ir).
  *  - overload_class10  IEC 60947-4-1: trip class 10 (7.2 Ir trips in more than 4 s and at most 10 s;
  *    1.5 Ir within 2 min; 1.2 Ir within 2 h; no trip at 1.05 Ir).
  */
-export type TripCurveKind = 'mcb_B' | 'mcb_C' | 'mcb_D' | 'fuse_gG' | 'fuse_aM' | 'overload_class10';
+export type TripCurveKind = 'mcb_B' | 'mcb_C' | 'mcb_D' | 'fuse_gG' | 'fuse_aM' | 'overload_class10' | 'mccb_thermal';
 
 type CurvePoint = readonly [multiple: number, seconds: number];
 
@@ -26,6 +27,8 @@ const CURVES: Record<TripCurveKind, readonly CurvePoint[]> = {
   fuse_gG: [[1.25, 7200], [1.6, 3000], [2, 300], [3, 40], [5, 3], [10, 0.1], [20, 0.01]],
   fuse_aM: [[4, 400], [6.3, 10], [8, 2], [10, 0.5], [20, 0.02]],
   overload_class10: [[1.05, 7200], [1.2, 5400], [1.5, 100], [7.2, 7], [10, 3.5]],
+  // MCCB long-time (thermal) element, multiples of the Ir setting: teaching shape of IEC 60947-2, not a manufacturer curve
+  mccb_thermal: [[1.05, 7200], [1.3, 3600], [2, 300], [6, 15], [10, 3]],
 };
 
 /** How long a motor start draws inrush in the model (s). A correctly sized aM fuse rides through it. */

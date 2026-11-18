@@ -37,7 +37,7 @@ const LIBRARY_TREE: FolderNode[] = [
   {
     id: 'residential',
     label: 'Residential Wiring Devices (PEC)',
-    types: ['switch_1gang', 'switch_2gang', 'switch_3gang', 'dimmer_switch', 'switch_3way', 'switch_4way', 'socket_duplex', 'modular_combo_plate', 'socket_schuko', 'light_bulb'],
+    types: ['switch_1gang', 'switch_2gang', 'switch_3gang', 'dimmer_switch', 'switch_3way', 'switch_4way', 'socket_duplex', 'modular_combo_plate', 'socket_schuko', 'gfci_receptacle', 'light_bulb'],
   },
   {
     id: 'panelboards',
@@ -45,9 +45,11 @@ const LIBRARY_TREE: FolderNode[] = [
     children: [
       { id: 'pole1', label: '1 Pole', types: ['mcb_1p'] },
       { id: 'pole2', label: '2 Poles (Bolt-On & DIN)', types: ['mcb_2p', 'service_disconnect_2p', 'ats_changeover'] },
-      { id: 'pole3', label: '3 Poles', types: ['mcb_3p'] },
+      { id: 'pole3', label: '3 Poles', types: ['mcb_3p', 'mccb_3p', 'mpcb_3p', 'rotary_isolator_3p'] },
       { id: 'fuses', label: 'Fuses & Fuse Switches', types: ['fuse_holder_1p', 'fuse_switch_disconnector_3p'] },
-      { id: 'safety', label: 'RCD / Safety Breakers', types: ['rcd_2p', 'rcbo_1pn', 'safety_breaker_2p', 'spd_surge'] },
+      { id: 'safety', label: 'RCD / Safety Breakers', types: ['rcd_2p', 'rcd_4p', 'rcbo_1pn', 'afdd_1pn', 'safety_breaker_2p', 'spd_surge'] },
+      { id: 'relays', label: 'Protection Relays & Instrument Transformers', types: ['voltage_relay', 'earth_leakage_relay', 'core_balance_ct', 'ptc_relay', 'current_transformer', 'panel_ammeter', 'voltmeter_selector'] },
+      { id: 'terminals', label: 'Terminal & Distribution Blocks', types: ['terminal_block', 'distribution_block'] },
       { id: 'mounting', label: 'Panelboards, DIN Rails & Meters', types: ['din_rail_track', 'panel_meter'] },
     ],
   },

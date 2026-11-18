@@ -118,7 +118,22 @@ export type DeviceType =
   | 'beacon'
   | 'tower_light'
   | 'motor_1p'
-  | 'capacitor_run';
+  | 'capacitor_run'
+  | 'rcd_4p'
+  | 'gfci_receptacle'
+  | 'afdd_1pn'
+  | 'mccb_3p'
+  | 'mpcb_3p'
+  | 'rotary_isolator_3p'
+  | 'voltage_relay'
+  | 'earth_leakage_relay'
+  | 'core_balance_ct'
+  | 'ptc_relay'
+  | 'current_transformer'
+  | 'panel_ammeter'
+  | 'voltmeter_selector'
+  | 'terminal_block'
+  | 'distribution_block';
 
 export interface ElectricalDevice {
   id: string;

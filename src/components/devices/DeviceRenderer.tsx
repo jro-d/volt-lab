@@ -8,6 +8,7 @@ import { GeneratorDevice } from './GeneratorDevice';
 import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
 import { PhaseMonitorDevice } from './PhaseMonitorDevice';
 import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
+import { ProtectionModuleDevice, GfciDevice, MonitoringRelayDevice, CtDevice, AmmeterDevice, VoltmeterSelectorDevice, TerminalBlockDevice } from './ProtectionDevices';
 import { Motor1pDevice, CapacitorDevice } from './SinglePhaseMotor';
 import { PsuDevice, SensorDevice, Plc24Device } from './DcDevices';
 import { RcdDevice } from './RcdDevice';
@@ -113,6 +114,28 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
         return <BeaconDevice {...commonProps} />;
       case 'tower_light':
         return <TowerLightDevice {...commonProps} />;
+      case 'rcd_4p':
+      case 'afdd_1pn':
+      case 'mccb_3p':
+      case 'mpcb_3p':
+      case 'rotary_isolator_3p':
+        return <ProtectionModuleDevice {...commonProps} />;
+      case 'gfci_receptacle':
+        return <GfciDevice {...commonProps} />;
+      case 'voltage_relay':
+      case 'earth_leakage_relay':
+      case 'ptc_relay':
+        return <MonitoringRelayDevice {...commonProps} />;
+      case 'core_balance_ct':
+      case 'current_transformer':
+        return <CtDevice {...commonProps} />;
+      case 'panel_ammeter':
+        return <AmmeterDevice {...commonProps} />;
+      case 'voltmeter_selector':
+        return <VoltmeterSelectorDevice {...commonProps} />;
+      case 'terminal_block':
+      case 'distribution_block':
+        return <TerminalBlockDevice {...commonProps} />;
       case 'motor_1p':
         return <Motor1pDevice {...commonProps} />;
       case 'capacitor_run':
