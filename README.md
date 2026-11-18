@@ -12,6 +12,7 @@
 29. **Conveyor Stop: Inductive Sensor into a PLC Input, Relay Output to a Contactor** — 24 V DC supply, three-wire sensor, PLC and interface relay switching an AC contactor.
 30. **Overload Alarm: Thermal Overload Contact Drives a Beacon and Horn** — the overload relay 97-98 contact starts a flashing beacon and a horn.
 31. **Capacitor-Start Motor: Wiring the Starting Capacitor and Reversing Rotation** — start winding, 100 µF capacitor and centrifugal switch on a 0.37 kW single-phase motor.
+32. **Dead-Testing a 3-Phase Motor Circuit Before Energizing** — continuity, insulation (a damaged motor winding), earth electrode and phase rotation tests.
 
 ---
 
@@ -52,6 +53,9 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Annunciation**: panel buzzer / horn (audible, mutable), signal beacon (steady or flashing, selectable colour) and a three-segment red / amber / green tower light; each runs from 24 V DC or 230 V AC.
 - **Single-phase motors**: one motor with split-phase, capacitor-start and PSC variants (main U1-U2 and start winding Z1-Z2, visible centrifugal switch that opens at 75 % speed, reversal by swapping the start winding leads) and a separate motor capacitor wired in series with the start winding. A missing or open capacitor leaves the motor humming (no start capacitor), a wrong value is flagged with a high running current.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
+
+#### Test instruments
+Click **DMM** in the toolbar and pick an instrument in its panel: **DMM / clamp** (volts between two terminals, amps on a wire), **Megger** (insulation resistance at 250 / 500 / 1000 V between two terminals or a terminal and PE; refuses on an energized circuit; reads the `insulation` condition set on a motor in the inspector), **Earth** (electrode resistance of a ground pit), **Rotation** (click the three phases in turn: CW or CCW) and **Continuity** (de-energized only; beeps on a closed path, contacts shown at rest).
 
 ### 4. Marine & industrial motor control trainer
 - **Phase tracking**: the solver follows L1 / L2 / L3 through breakers, contactors and overload relays. U1-V1-W1 = L1-L2-L3 spins the motor **clockwise (FORWARD)**; swapping two lines spins it **counter-clockwise (REVERSE)**. A missing line shows a **single-phasing** fault.

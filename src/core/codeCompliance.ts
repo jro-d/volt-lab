@@ -4,6 +4,7 @@ import { getWireStandards, CONDUIT_FILL_STANDARDS } from '../data/standardsData'
 import { SolvedCircuit } from './circuitSolver';
 import { parsePhysicalLadder } from './ladderEngine';
 import { findAcDcCrossWires } from './dcDomain';
+import { EARTH_NOTE_OHMS } from './instruments';
 
 /** Devices that live inside a distribution board or motor control enclosure (internal panel jumpers, not branch conduit runs) */
 const PANEL_DEVICE_TYPES = new Set([
@@ -279,6 +280,24 @@ export function analyzeCodeCompliance(
       affectedDeviceId: motors[0].id,
       recommendation: 'Install a thermal overload relay (TOR) after the contactor, set its dial to the motor FLA and wire its 95-96 NC contact in series with the coil circuit.'
     });
+  }
+  // Information only: a high-resistance earth electrode (no code limit is cited; the level is a rule of thumb)
+  for (const pit of devices.filter(d => d.type === 'ground_pit')) {
+    const ohms = Number(pit.state.earthResistanceOhms);
+    if (Number.isFinite(ohms) && ohms > EARTH_NOTE_OHMS) {
+      violations.push({
+        id: `viol_high_earth_resistance_${pit.id}`,
+        codeStandard: standard,
+        severity: 'info',
+        category: 'grounding',
+        // No clause cited on purpose: confirm the limit that applies against your copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (limit to be verified)' : 'IEC 60364 (limit to be verified)',
+        title: 'High Earth Electrode Resistance',
+        message: `${pit.name || pit.id} measures ${ohms} Ω to earth, above the ${EARTH_NOTE_OHMS} Ω rule-of-thumb level. Earth faults may not draw enough current to trip protection quickly.`,
+        affectedDeviceId: pit.id,
+        recommendation: 'Measure with the earth tester, then add rods, lengthen the rod or improve the soil contact until the value meets the limit your code sets.'
+      });
+    }
   }
   // 24 V DC control wiring must never be joined to AC line / neutral conductors
   for (const x of findAcDcCrossWires(devices, wires)) {

@@ -1345,6 +1345,38 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
+      {/* --- INSULATION / EARTH CONDITION (read back by the test instruments) --- */}
+      {device && (device.type === 'motor_ac_industrial' || device.type === 'motor_6lead_star_delta' || device.type === 'motor_1p' || device.type === 'pump_booster_3p' || device.type === 'ground_pit') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const isPit = device.type === 'ground_pit';
+        const key = isPit ? 'earthResistanceOhms' : 'insulationMOhm';
+        const opts = isPit
+          ? [{ v: 2, label: '2 Ω' }, { v: 5, label: '5 Ω' }, { v: 25, label: '25 Ω' }, { v: 60, label: '60 Ω' }]
+          : [{ v: 999, label: 'Good' }, { v: 2, label: 'Degraded' }, { v: 0.3, label: 'Damaged' }];
+        const current = Number(device.state[key] ?? (isPit ? 4.8 : 999));
+        return (
+          <div className="space-y-2 mt-2 pt-2 border-t border-border/80">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+              {isPit ? 'Electrode Resistance (what the earth tester reads)' : 'Winding Insulation (what the insulation tester reads)'}
+            </label>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>
+              {opts.map((o) => (
+                <button
+                  key={o.v}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${current === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* --- SINGLE-PHASE MOTOR + CAPACITOR --- */}
       {device && (device.type === 'motor_1p' || device.type === 'capacitor_run') && (() => {
         const apply = (patch: Record<string, any>) => {

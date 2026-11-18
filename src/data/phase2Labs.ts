@@ -188,6 +188,16 @@ const csWires: ElectricalWire[] = [
   wr('src', 'pe', 'pe', 'pe_main', GREEN, G12), wr('pe', 'pe_1', 'm1', 'pe', GREEN, G12),
 ];
 
+// ── 6 · Dead-testing a 3-phase motor circuit before energizing ────────────────────────────────────
+const dtDevices: ElectricalDevice[] = [
+  ...clone(dolDevices).map((d: ElectricalDevice) => (d.id === 'mdol_m1' ? { ...d, state: { ...d.state, insulationMOhm: 0.3 } } : d)),
+  dev('ground_pit', 330, 700, 'mdol_pit', { name: 'GP1 Ground Pit', state: { earthResistanceOhms: 5 } }),
+];
+const dtWires: ElectricalWire[] = [
+  ...clone(dolWires),
+  wr('mdol_pit', 'clamp', 'mdol_pe', 'pe_main', GREEN, G12),
+];
+
 export const PHASE2_LABS: LabLesson[] = [
   {
     id: 'lab-pump-hoa-float',
@@ -286,5 +296,22 @@ export const PHASE2_LABS: LabLesson[] = [
       'Swap the Z1 and Z2 leads of the start winding to reverse the rotation, then change the motor type to PSC to see a motor with no centrifugal switch.',
     ],
     project: labProject('proj_capacitor_start_motor', 'Capacitor-Start Motor', 'Start capacitor, centrifugal switch and reversal of a single-phase motor.', csDevices, csWires, 230),
+  },
+  {
+    id: 'lab-dead-testing-motor',
+    title: 'Dead-Testing a 3-Phase Motor Circuit Before Energizing',
+    subtitle: 'Insulation tester, continuity buzzer, earth tester and phase rotation meter',
+    category: 'industrial',
+    badge: '🧪 Dead Test',
+    difficulty: 'Advanced',
+    description:
+      'A finished DOL starter, ready to energize. Before the first start an electrician proves the circuit dead and tests it: continuity of the protective earth, insulation resistance of the motor winding, resistance of the earth electrode, and (once live) the phase rotation. This motor has damaged winding insulation, which only the insulation tester will find.',
+    objectives: [
+      'In the toolbar open DMM and choose Continuity. Click the L1 terminal of Q1 and then the U1 terminal of the motor: the buzzer beeps on a closed path. Do the same between two phases and note the result.',
+      'Choose Megger at 500 V and click a motor winding terminal and the motor PE terminal: the reading is far below 1 MΩ, so the motor is not safe to energize. Select the motor and set the winding insulation to Good, then test again.',
+      'Choose Earth and click the rod clamp of the ground pit to read the electrode resistance. Try the Megger while the simulation is running: it refuses.',
+      'Press ▶ Simulate, choose Rotation and click the L1, L2 and L3 terminals of the feeder in turn to read CW or CCW before pressing START.',
+    ],
+    project: labProject('proj_dead_testing_motor', 'Dead-Testing a 3-Phase Motor Circuit', 'Insulation, continuity, earth and rotation tests on a DOL starter.', dtDevices, dtWires, 440),
   },
 ];

@@ -38,6 +38,8 @@ export interface SolvedCircuit {
   devicePatches: Record<string, Record<string, unknown>>;
   /** Peak motor starting current (A) seen by each upstream overcurrent device that is not a breaker (fuses) */
   inrushByDevice: Record<string, number>;
+  /** Terminal connectivity graph; only filled by a `graphOnly` solve (used by the continuity tester) */
+  adjacency?: Record<string, string[]>;
 }
 
 /**
@@ -98,7 +100,8 @@ export function solveCircuit(
   devices: ElectricalDevice[],
   wires: ElectricalWire[],
   standard: CodeStandard = 'PEC',
-  gridVoltage: number = 230
+  gridVoltage: number = 230,
+  options: { graphOnly?: boolean } = {}
 ): SolvedCircuit {
   const nodeVoltages: Record<string, number> = {};
   const nodePotentials: Record<string, 'live' | 'neutral' | 'earth' | 'switched' | 'none'> = {};
@@ -572,6 +575,14 @@ export function solveCircuit(
     }
     return false;
   };
+
+  // Test instruments only need the wiring graph with every contact at rest: build it once and stop
+  if (options.graphOnly) {
+    executePass();
+    const adjacency: Record<string, string[]> = {};
+    for (const k in adj) adjacency[k] = [...adj[k]];
+    return { ...createDeEnergizedSolution(wires), adjacency };
+  }
 
   // Dynamic Cascade Evaluation. Electromagnetic devices settle ONE AT A TIME (first in the list wins),
   // which reproduces real-world races such as two interlocked contactors fighting for the same supply.

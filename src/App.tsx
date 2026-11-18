@@ -18,7 +18,8 @@ import { WiringCanvas } from './components/canvas/WiringCanvas';
 import { SchematicCanvas } from './components/canvas/SchematicCanvas';
 import { LadderCanvas } from './components/canvas/LadderCanvas';
 import { LadderRung } from './types/ladder';
-import { sound } from './utils/soundFx';
+import { sound, playBuzzerBeep } from './utils/soundFx';
+import { measureInsulation, measureEarthResistance, measureRotation, measureContinuity, type InstrumentId } from './core/instruments';
 import { replaceBlownFuse, resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
@@ -68,8 +69,11 @@ export const App: React.FC = () => {
   const [dmmMode, setDmmMode] = useState<boolean>(false);
   const [rewiringTarget, setRewiringTarget] = useState<{ wireId: string; moveEnd: 'from' | 'to' } | null>(null);
   const [dmmProbeA, setDmmProbeA] = useState<{ deviceId: string; terminalId: string } | null>(null);
+  const [instrument, setInstrument] = useState<InstrumentId>('dmm');
+  const [meggerVolts, setMeggerVolts] = useState<250 | 500 | 1000>(500);
+  const [rotationProbes, setRotationProbes] = useState<[string, string][]>([]);
   const [dmmReadout, setDmmReadout] = useState<{
-    mode: 'voltage' | 'clamp' | 'idle';
+    mode: 'voltage' | 'clamp' | 'idle' | 'test';
     primary: string;
     secondary?: string;
     label?: string;
@@ -268,6 +272,7 @@ export const App: React.FC = () => {
 
   // Digital Multimeter / Clamp Meter handlers
   const handleDmmClampWire = (wireId: string) => {
+    if (instrument !== 'dmm') return;
     const amps = solved.wireCurrents[wireId] || 0;
     const vd = solved.wireVoltageDropPercents[wireId] || 0;
     const wire = project.wires.find((w) => w.id === wireId);
@@ -282,7 +287,55 @@ export const App: React.FC = () => {
     });
   };
 
+  const showTest = (r: { label: string; primary: string; secondary?: string; beep?: boolean }) => {
+    setDmmReadout({ mode: 'test', label: r.label, primary: r.primary, secondary: r.secondary });
+    if (r.beep) playBuzzerBeep();
+  };
+
+  const handleSelectInstrument = (id: InstrumentId) => {
+    setInstrument(id);
+    setDmmProbeA(null);
+    setRotationProbes([]);
+    setDmmReadout(null);
+  };
+
+  /** Click on a terminal while a test instrument (not the DMM) is selected */
+  const handleInstrumentTerminal = (deviceId: string, terminalId: string) => {
+    const tag = (d: string, t: string) => `${project.devices.find((x) => x.id === d)?.terminals.find((x) => x.id === t)?.label || t}`;
+    if (instrument === 'earth') {
+      showTest(measureEarthResistance(project.devices, deviceId));
+      return;
+    }
+    if (instrument === 'rotation') {
+      const next = [...rotationProbes, [deviceId, terminalId] as [string, string]];
+      if (next.length < 3) {
+        setRotationProbes(next);
+        setDmmReadout({ mode: 'test', label: `ROTATION PROBE ${next.length}/3 on ${tag(deviceId, terminalId)}`, primary: next.length === 1 ? 'SELECT L2' : 'SELECT L3', secondary: 'Click the L1, L2 and L3 sources in turn' });
+        return;
+      }
+      setRotationProbes([]);
+      showTest(measureRotation(solved, next));
+      return;
+    }
+    // megger and continuity both take two terminals
+    if (!dmmProbeA) {
+      setDmmProbeA({ deviceId, terminalId });
+      setDmmReadout({ mode: 'test', label: `PROBE 1 on ${tag(deviceId, terminalId)}`, primary: 'SELECT 2nd', secondary: 'Click the second terminal (or PE)' });
+      return;
+    }
+    const a: [string, string] = [dmmProbeA.deviceId, dmmProbeA.terminalId];
+    const b: [string, string] = [deviceId, terminalId];
+    setDmmProbeA(null);
+    showTest(instrument === 'megger'
+      ? measureInsulation(project.devices, project.wires, a, b, meggerVolts, isSimulating)
+      : measureContinuity(project.devices, project.wires, a, b, isSimulating));
+  };
+
   const handleDmmProbeTerminal = (deviceId: string, terminalId: string) => {
+    if (instrument !== 'dmm') {
+      handleInstrumentTerminal(deviceId, terminalId);
+      return;
+    }
     const keyB = `${deviceId}:${terminalId}`;
     const devB = project.devices.find((d) => d.id === deviceId);
     const termB = devB?.terminals.find((t) => t.id === terminalId);
@@ -1075,6 +1128,7 @@ export const App: React.FC = () => {
         onToggleDmmMode={() => {
           setDmmMode(v => !v);
           setDmmProbeA(null);
+          setRotationProbes([]);
           setDmmReadout(null);
         }}
         isHudOpen={isHudOpen}
@@ -1160,6 +1214,10 @@ export const App: React.FC = () => {
               onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
               dmmMode={dmmMode}
               dmmReadout={dmmReadout}
+              instrument={instrument}
+              onSelectInstrument={handleSelectInstrument}
+              meggerVolts={meggerVolts}
+              onMeggerVolts={setMeggerVolts}
               onDmmClampWire={handleDmmClampWire}
               onDmmProbeTerminal={handleDmmProbeTerminal}
               onConnectWire={handleConnectWire}
@@ -1228,6 +1286,10 @@ export const App: React.FC = () => {
               onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
               dmmMode={dmmMode}
               dmmReadout={dmmReadout}
+              instrument={instrument}
+              onSelectInstrument={handleSelectInstrument}
+              meggerVolts={meggerVolts}
+              onMeggerVolts={setMeggerVolts}
               onDmmClampWire={handleDmmClampWire}
               onDmmProbeTerminal={handleDmmProbeTerminal}
                   onConnectWire={handleConnectWire}
