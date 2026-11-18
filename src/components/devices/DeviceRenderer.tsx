@@ -6,6 +6,7 @@ import { McbDevice } from './McbDevice';
 import { FuseDevice } from './FuseDevice';
 import { GeneratorDevice } from './GeneratorDevice';
 import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
+import { PhaseMonitorDevice } from './PhaseMonitorDevice';
 import { RcdDevice } from './RcdDevice';
 import { SpdDevice } from './SpdDevice';
 import { BusbarDevice } from './BusbarDevice';
@@ -103,6 +104,8 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'mcb_2p':
       case 'mcb_3p':
         return <McbDevice {...commonProps} />;
+      case 'phase_monitor_relay':
+        return <PhaseMonitorDevice {...commonProps} />;
       case 'float_switch':
       case 'pressure_switch':
         return <LevelSwitchDevice {...commonProps} />;

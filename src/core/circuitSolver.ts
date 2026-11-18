@@ -544,6 +544,29 @@ export function solveCircuit(
           contactsChanged = true;
           break;
         }
+      } else if (dev.type === 'phase_monitor_relay') {
+        const senseKeys = ['l1', 'l2', 'l3'].map(t => terminalKey(dev.id, t));
+        const present = senseKeys.map(k => nodePotentials[k] === 'live' && !!nodePhases[k]);
+        const phases = senseKeys.map(k => nodePhases[k]);
+        const nominal = Number(dev.state.nominalV) || 440;
+        const band = (Number(dev.state.underOverPct) || 10) / 100;
+        // sense voltages are phase-to-neutral; the relay compares the line-to-line value with its nominal
+        const lineV = Math.max(...senseKeys.map(k => (nodeVoltages[k] || 0) * Math.sqrt(3)));
+        let fault = '';
+        if (!isCoilPowered(dev.id, 'a1', 'a2')) fault = 'NO SUPPLY';
+        else if (present.some(p => !p)) fault = 'LOST PHASE';
+        else if (!CW_SEQUENCES.includes(phases.join(','))) fault = 'WRONG SEQUENCE';
+        else if (lineV < nominal * (1 - band)) fault = 'UNDERVOLTAGE';
+        else if (lineV > nominal * (1 + band)) fault = 'OVERVOLTAGE';
+        const on = fault === '';
+        const presentNow: Record<string, boolean> = { l1: present[0], l2: present[1], l3: present[2] };
+        dev.state.phasePresent = presentNow;
+        dev.state.phaseFault = fault;
+        if (!!dev.state.phaseOk !== on) {
+          dev.state.phaseOk = on;
+          contactsChanged = true;
+          break;
+        }
       } else if (dev.type === 'contactor_3p') {
         const on = isCoilPowered(dev.id, 'a1', 'a2') || !!dev.state.manualOverride;
         if (!!dev.state.coilEnergized !== on) {
@@ -802,6 +825,9 @@ export function solveCircuit(
       if (isPowered) {
         totalWatts += dev.state.wattage || 65;
       }
+    } else if (dev.type === 'phase_monitor_relay') {
+      deviceEnergized[dev.id] = !!dev.state.phaseOk;
+      if (isCoilPowered(dev.id, 'a1', 'a2')) totalWatts += 3;
     } else if (dev.type === 'pump_booster_1p') {
       const lPot = nodePotentials[terminalKey(dev.id, 'line')];
       const nPot = nodePotentials[terminalKey(dev.id, 'neutral')];

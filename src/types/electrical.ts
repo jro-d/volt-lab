@@ -107,7 +107,8 @@ export type DeviceType =
   | 'float_switch'
   | 'pressure_switch'
   | 'pump_booster_1p'
-  | 'pump_booster_3p';
+  | 'pump_booster_3p'
+  | 'phase_monitor_relay';
 
 export interface ElectricalDevice {
   id: string;

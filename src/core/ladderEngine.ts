@@ -97,6 +97,10 @@ export function getControlElements(dev: ElectricalDevice): PhysicalElement[] {
       add('hand', 'NO', s.tag || 'HOA', 'HAND', 'com', 'hand', s.mode === 'hand');
       add('auto', 'NO', s.tag || 'HOA', 'AUTO', 'com', 'auto', s.mode === 'auto');
       break;
+    case 'phase_monitor_relay':
+      add('pm_no', 'NO', s.tag || 'KP', '15-18', 'com_15', 'no_18', !!s.phaseOk);
+      add('pm_nc', 'NC', s.tag || 'KP', '15-16', 'com_15', 'nc_16', !s.phaseOk);
+      break;
     case 'float_switch':
       add('level_no', 'NO', s.tag || 'LS', 'NO', 'com', 'no', !!s.contactClosed);
       add('level_nc', 'NC', s.tag || 'LS', 'NC', 'com', 'nc', !s.contactClosed);

@@ -339,6 +339,36 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     ]
   },
   {
+    type: 'phase_monitor_relay',
+    category: 'industrial',
+    name: 'Phase Failure / Phase Sequence Relay',
+    defaultLabel: 'KP1',
+    width: 96,
+    height: 112,
+    productStandard: 'IEC 60255-1',
+    modelNumber: 'Phase Monitoring Relay 3P',
+    mountingType: 'din_rail',
+    description: 'Monitors a three-phase supply on terminals L1 / L2 / L3. The changeover output (15-18 NO closes, 15-16 NC opens) is energized only when all three phases are present, the sequence is L1-L2-L3 and the voltage is within the set band of nominal. Supplied through A1 / A2.',
+    defaultProperties: {
+      nominalV: 440,
+      underOverPct: 10,
+      phaseOk: false,
+      phaseFault: '',
+      phasePresent: {},
+      tag: 'KP1',
+    },
+    terminals: [
+      { id: 'l1', name: 'Sense L1', type: 'phase', relX: 0.18, relY: 0.08, label: 'L1', phaseLabel: 'L1' },
+      { id: 'l2', name: 'Sense L2', type: 'phase2', relX: 0.40, relY: 0.08, label: 'L2', phaseLabel: 'L2' },
+      { id: 'l3', name: 'Sense L3', type: 'phase3', relX: 0.62, relY: 0.08, label: 'L3', phaseLabel: 'L3' },
+      { id: 'a1', name: 'Supply A1', type: 'coil', relX: 0.84, relY: 0.08, label: 'A1', phaseLabel: 'A1' },
+      { id: 'a2', name: 'Supply A2', type: 'coil', relX: 0.18, relY: 0.92, label: 'A2', phaseLabel: 'A2' },
+      { id: 'com_15', name: 'Common 15', type: 'common', relX: 0.40, relY: 0.92, label: '15', phaseLabel: 'COM' },
+      { id: 'nc_16', name: 'NC 16', type: 'nc', relX: 0.62, relY: 0.92, label: '16', phaseLabel: 'NC' },
+      { id: 'no_18', name: 'NO 18', type: 'no', relX: 0.84, relY: 0.92, label: '18', phaseLabel: 'NO' },
+    ]
+  },
+  {
     type: 'rcd_2p',
     category: 'protection',
     name: 'Residual Current Device (RCD / ELCB)',

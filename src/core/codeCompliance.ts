@@ -279,6 +279,23 @@ export function analyzeCodeCompliance(
       recommendation: 'Install a thermal overload relay (TOR) after the contactor, set its dial to the motor FLA and wire its 95-96 NC contact in series with the coil circuit.'
     });
   }
+  // Information only: a motor with no phase-failure / phase-sequence protection
+  if (motors.length > 0 && !devices.some(d => d.type === 'phase_monitor_relay')) {
+    for (const motor of motors) {
+      violations.push({
+        id: `viol_motor_no_phase_protection_${motor.id}`,
+        codeStandard: standard,
+        severity: 'info',
+        category: 'ampacity',
+        // Clause intentionally left for the user to confirm against their copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60204-1 (clause to be verified)',
+        title: 'Motor Without Phase Protection',
+        message: `${motor.name || motor.id} has no phase-failure / phase-sequence relay. A lost phase leaves it single-phasing, and swapped phases reverse it, with nothing to stop the starter.`,
+        affectedDeviceId: motor.id,
+        recommendation: 'Consider a phase monitor relay in the control circuit so the starter only runs on a complete supply in the correct sequence.'
+      });
+    }
+  }
   for (const tor of devices.filter(d => d.type === 'thermal_overload_relay')) {
     const ncWired = wires.some(w =>
       (w.fromDeviceId === tor.id && (w.fromTerminalId === 'nc_95' || w.fromTerminalId === 'nc_96')) ||
