@@ -7,7 +7,27 @@
  *   - 1 block with 2 branches              → a parallel (seal-in / latching) branch
  */
 
-export type LadderElementKind = 'NO' | 'NC' | 'COIL' | 'LAMP';
+export type LadderElementKind =
+  | 'NO'
+  | 'NC'
+  | 'COIL'
+  | 'LAMP'
+  // PLC program elements (see core/plcEngine.ts); control ladders keep using the four above
+  | 'PEDGE'
+  | 'NEDGE'
+  | 'NCOIL'
+  | 'SET'
+  | 'RESET'
+  | 'TON'
+  | 'TOF'
+  | 'TP'
+  | 'CTU'
+  | 'CTD'
+  | 'EQ'
+  | 'GT'
+  | 'LT'
+  | 'MOV'
+  | 'ADD';
 
 export interface LadderElement {
   id: string;
@@ -20,6 +40,15 @@ export interface LadderElement {
   deviceId?: string;
   /** Physical element key on the device, e.g. 'aux_no', 'aux_nc', 'coil', 'stop' */
   contactKey?: string;
+  /** PLC address (I0.0, Q0.1, M0.3, MW2, T0, C1) */
+  address?: string;
+  /** Timer preset in milliseconds, or counter preset in counts */
+  preset?: number;
+  /** Compare / MOV / ADD operands: a literal or an address (MW, T, C) */
+  operandA?: string | number;
+  operandB?: string | number;
+  /** Counter reset (CTU) or load (CTD) bit */
+  resetAddress?: string;
 }
 
 export interface LadderBlock {

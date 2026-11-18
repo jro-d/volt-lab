@@ -26,6 +26,7 @@ import {
   PanelRight,
   Trash2,
   Rows3,
+  Cpu,
   FileCode2,
   Sun,
   Moon,
@@ -49,8 +50,8 @@ interface TopNavBarProps {
   standard: CodeStandard;
   onStandardChange: (std: CodeStandard) => void;
   gridVoltage: number;
-  viewMode: 'realistic' | 'split' | 'ladder' | 'schematic';
-  onViewModeChange: (mode: 'realistic' | 'split' | 'ladder' | 'schematic') => void;
+  viewMode: 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc';
+  onViewModeChange: (mode: 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc') => void;
   isCompliant: boolean;
   trippedCount: number;
   activeLabTitle?: string;
@@ -268,6 +269,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             { id: 'split', label: 'Dual View', icon: Layers, tip: 'Split dual view (physical workbench + live ladder / SLD)' },
             { id: 'ladder', label: 'Ladder Logic', icon: Rows3, tip: 'Control ladder diagram (live sync, lab target & rung builder)' },
             { id: 'schematic', label: 'SLD Schematic', icon: SlidersHorizontal, tip: 'Single-line diagram (SLD)' },
+            { id: 'plc', label: 'PLC', icon: Cpu, tip: 'PLC program editor: write, run and monitor ladder logic' },
           ] as const).map((v) => (
             <button
               key={v.id}
