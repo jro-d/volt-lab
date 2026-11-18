@@ -22,6 +22,9 @@ interface StatusBarProps {
   /** Time-current coordination curves dock */
   curvesOpen?: boolean;
   onToggleCurves?: () => void;
+  /** Short-circuit check: fault levels overlay */
+  faultLevelsOn?: boolean;
+  onToggleFaultLevels?: () => void;
 }
 
 const SNAP_CYCLE: SnapSize[] = [10, 5, 0];
@@ -45,6 +48,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onToggleRecorder,
   curvesOpen = false,
   onToggleCurves,
+  faultLevelsOn = false,
+  onToggleFaultLevels,
 }) => {
   const { cursorX, cursorY, zoom, wiring } = useCadStatus();
 
@@ -104,6 +109,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${recorderOpen ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
         >
           📈 Recorder
+        </button>
+      )}
+
+      {onToggleFaultLevels && (
+        <button
+          onClick={onToggleFaultLevels}
+          title="Fault levels: prospective short-circuit current at every device and the interrupting-rating check"
+          className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${faultLevelsOn ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
+        >
+          ⚡ Fault levels
         </button>
       )}
 

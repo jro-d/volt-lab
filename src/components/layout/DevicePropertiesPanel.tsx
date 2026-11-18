@@ -40,6 +40,8 @@ interface DevicePropertiesPanelProps {
   devices?: ElectricalDevice[];
   onRequestRewire?: (wireId: string, moveEnd: 'from' | 'to') => void;
   onDisconnectWire?: (wireId: string) => void;
+  /** Available fault current at this device's input, A (null when the short-circuit check is off or the device is not reached) */
+  faultKa?: number | null;
 }
 
 /** Hold-to-press helper for momentary push buttons in the inspector */
@@ -76,6 +78,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   devices = [],
   onRequestRewire,
   onDisconnectWire,
+  faultKa,
 }) => {
   const patchState = (key: string, value: any) =>
     device && (onPatchDeviceState ? onPatchDeviceState(device.id, { [key]: value }) : onUpdateDeviceProperty(device.id, key, value));
@@ -147,6 +150,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 {device.pecReference || 'PEC 2017'}
               </span>
             </div>
+            {faultKa != null && (
+              <div className="col-span-2" title="Prospective short-circuit current at this device's input (ohmic method, resistive only)">
+                <span className="text-ink-muted block font-medium">Available fault current (Ik):</span>
+                <span className={`font-mono font-semibold ${device.kaRating && device.kaRating < faultKa / 1000 ? 'text-danger' : 'text-ink'}`}>
+                  {(faultKa / 1000).toFixed(faultKa >= 10000 ? 1 : 2)} kA{device.kaRating ? ` vs ${device.kaRating} kAIC rating` : ''}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
