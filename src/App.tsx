@@ -29,6 +29,7 @@ import { inferConductorRole } from './core/conductorRole';
 import { DEFAULT_PROCESS, tickProcess } from './core/process';
 import { Recorder } from './core/recorder';
 import { RecorderPanel } from './components/layout/RecorderPanel';
+import { CurvesPanel } from './components/layout/CurvesPanel';
 import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
@@ -79,6 +80,7 @@ export const App: React.FC = () => {
   const [troubleshoot, setTroubleshoot] = useState<boolean>(false);
   // Timing diagram recorder (hidden until opened from the status bar)
   const [recorderOpen, setRecorderOpen] = useState<boolean>(false);
+  const [curvesOpen, setCurvesOpen] = useState<boolean>(false);
   const recorderRef = useRef<Recorder>(new Recorder());
   const [recVersion, setRecVersion] = useState(0);
   const [recPaused, setRecPaused] = useState(false);
@@ -1087,6 +1089,7 @@ export const App: React.FC = () => {
     setProject(loaded);
     recorderRef.current.clear();
     if ((loaded.recorder?.channels.length ?? 0) > 0) setRecorderOpen(true);
+    setCurvesOpen((loaded.curves?.chain.length ?? 0) > 0);
     setStandard(lab.project.codeStandard);
     setIsLabModalOpen(false);
     setIsLibraryOpen(false);
@@ -1466,6 +1469,21 @@ export const App: React.FC = () => {
         />
       )}
 
+      {curvesOpen && (
+        <CurvesPanel
+          devices={project.devices}
+          wires={project.wires}
+          solved={solved}
+          standard={standard}
+          isSimulating={isSimulating}
+          selectedDeviceId={selectedDeviceId}
+          selectedWireId={selectedWireId}
+          curves={project.curves}
+          onChange={(next) => setProject((prev) => ({ ...prev, curves: next }))}
+          onClose={() => setCurvesOpen(false)}
+        />
+      )}
+
       {/* Bottom CAD Status Bar */}
       <StatusBar
         standard={standard}
@@ -1480,6 +1498,8 @@ export const App: React.FC = () => {
         onToggleTroubleshoot={() => setTroubleshoot((v) => !v)}
         recorderOpen={recorderOpen}
         onToggleRecorder={() => setRecorderOpen((v) => !v)}
+        curvesOpen={curvesOpen}
+        onToggleCurves={() => setCurvesOpen((v) => !v)}
       />
 
       {/* Guided Labs & Scenarios Modal */}

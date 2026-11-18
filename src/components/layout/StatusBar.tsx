@@ -19,6 +19,9 @@ interface StatusBarProps {
   /** Timing diagram recorder dock */
   recorderOpen?: boolean;
   onToggleRecorder?: () => void;
+  /** Time-current coordination curves dock */
+  curvesOpen?: boolean;
+  onToggleCurves?: () => void;
 }
 
 const SNAP_CYCLE: SnapSize[] = [10, 5, 0];
@@ -40,6 +43,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onToggleTroubleshoot,
   recorderOpen = false,
   onToggleRecorder,
+  curvesOpen = false,
+  onToggleCurves,
 }) => {
   const { cursorX, cursorY, zoom, wiring } = useCadStatus();
 
@@ -99,6 +104,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${recorderOpen ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
         >
           📈 Recorder
+        </button>
+      )}
+
+      {onToggleCurves && (
+        <button
+          onClick={onToggleCurves}
+          title="Time-current curves: check selectivity between breakers, fuses and overload relays, motor start and cable damage limits"
+          className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${curvesOpen ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
+        >
+          〰 Curves
         </button>
       )}
 
