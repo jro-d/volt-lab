@@ -6,8 +6,9 @@ import { fuse1pBehavior, fuse3pBehavior } from './fuse';
 import { rcboBehavior } from './rcbo';
 import { generatorBehavior } from './generator';
 import { atsTransferBehavior } from './atsTransfer';
+import { floatSwitchBehavior, pressureSwitchBehavior } from './processSwitches';
 
-const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1pBehavior, fuse3pBehavior, rcboBehavior, generatorBehavior, atsTransferBehavior];
+const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1pBehavior, fuse3pBehavior, rcboBehavior, generatorBehavior, atsTransferBehavior, floatSwitchBehavior, pressureSwitchBehavior];
 
 const byType = new Map<DeviceType, DeviceBehavior>();
 for (const b of BEHAVIORS) for (const t of b.types) byType.set(t, b);

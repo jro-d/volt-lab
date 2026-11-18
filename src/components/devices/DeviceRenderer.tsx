@@ -5,6 +5,7 @@ import { KwhMeterDevice } from './KwhMeterDevice';
 import { McbDevice } from './McbDevice';
 import { FuseDevice } from './FuseDevice';
 import { GeneratorDevice } from './GeneratorDevice';
+import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
 import { RcdDevice } from './RcdDevice';
 import { SpdDevice } from './SpdDevice';
 import { BusbarDevice } from './BusbarDevice';
@@ -102,6 +103,12 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'mcb_2p':
       case 'mcb_3p':
         return <McbDevice {...commonProps} />;
+      case 'float_switch':
+      case 'pressure_switch':
+        return <LevelSwitchDevice {...commonProps} />;
+      case 'pump_booster_1p':
+      case 'pump_booster_3p':
+        return <PumpDevice {...commonProps} />;
       case 'generator_set_1p':
       case 'generator_set_3p':
         return <GeneratorDevice {...commonProps} />;

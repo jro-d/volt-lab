@@ -93,6 +93,18 @@ export function getControlElements(dev: ElectricalDevice): PhysicalElement[] {
       add('coil', 'COIL', s.role ? `${tag}/${s.role}` : tag, 'A1-A2', 'a1', 'a2', !!s.coilEnergized);
       break;
     }
+    case 'selector_hoa':
+      add('hand', 'NO', s.tag || 'HOA', 'HAND', 'com', 'hand', s.mode === 'hand');
+      add('auto', 'NO', s.tag || 'HOA', 'AUTO', 'com', 'auto', s.mode === 'auto');
+      break;
+    case 'float_switch':
+      add('level_no', 'NO', s.tag || 'LS', 'NO', 'com', 'no', !!s.contactClosed);
+      add('level_nc', 'NC', s.tag || 'LS', 'NC', 'com', 'nc', !s.contactClosed);
+      break;
+    case 'pressure_switch':
+      add('press_no', 'NO', s.tag || 'PS', 'NO', 'com', 'no', !!s.contactClosed);
+      add('press_nc', 'NC', s.tag || 'PS', 'NC', 'com', 'nc', !s.contactClosed);
+      break;
     case 'thermal_overload_relay':
       add('trip_nc', 'NC', 'OLR', '95-96', 'nc_95', 'nc_96', !s.tripped);
       add('alarm_no', 'NO', 'OLR', '97-98', 'no_97', 'no_98', !!s.tripped);

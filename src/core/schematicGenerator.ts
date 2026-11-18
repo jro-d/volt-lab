@@ -69,7 +69,7 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     else if (d.type.includes('bulb')) symbol = 'light';
     else if (d.type.includes('socket')) symbol = 'socket';
     else if (d.type.includes('earth') || d.type.includes('pit')) symbol = 'earth';
-    else if (d.type.includes('motor')) symbol = 'motor';
+    else if (d.type.includes('motor') || d.type.includes('pump')) symbol = 'motor';
     else if (d.type === 'appliance_fan') symbol = 'fan';
     else if (d.type === 'appliance_ac') symbol = 'ac';
     else if (d.type === 'appliance_water_heater') symbol = 'heater';

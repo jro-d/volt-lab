@@ -248,6 +248,97 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     ]
   },
   {
+    type: 'float_switch',
+    category: 'control',
+    name: 'Float Switch (Level Control)',
+    defaultLabel: 'LS1',
+    width: 76,
+    height: 150,
+    productStandard: 'IEC 60947-5-1',
+    modelNumber: 'Float Switch Changeover',
+    description: 'Tank level switch with a changeover contact (com / no / nc). The contacts follow the shared tank level with hysteresis: they change at highTrip and lowTrip and hold in between. NC_on_rise is mounted the other way round, so com-no closes at low level (starts a filling pump).',
+    defaultProperties: {
+      level: 50,
+      highTrip: 70,
+      lowTrip: 30,
+      contactForm: 'NO_on_rise',
+      contactClosed: false,
+      tag: 'LS1',
+    },
+    terminals: [
+      { id: 'com', name: 'Common', type: 'common', relX: 0.20, relY: 0.92, label: 'COM', phaseLabel: 'COM' },
+      { id: 'no', name: 'Normally Open', type: 'no', relX: 0.50, relY: 0.92, label: 'NO', phaseLabel: 'NO' },
+      { id: 'nc', name: 'Normally Closed', type: 'nc', relX: 0.80, relY: 0.92, label: 'NC', phaseLabel: 'NC' },
+    ]
+  },
+  {
+    type: 'pressure_switch',
+    category: 'control',
+    name: 'Pressure Switch (Cut-in / Cut-out)',
+    defaultLabel: 'PS1',
+    width: 92,
+    height: 120,
+    productStandard: 'IEC 60947-5-1',
+    modelNumber: 'Pressure Switch Changeover',
+    description: 'Line pressure switch with a changeover contact (com / no / nc). com-no closes (pump demand) when the pressure falls to cutIn and opens again when it rises to cutOut; the gap between them is the hysteresis band.',
+    defaultProperties: {
+      pressure: 0,
+      cutIn: 2,
+      cutOut: 3,
+      contactClosed: false,
+      tag: 'PS1',
+    },
+    terminals: [
+      { id: 'com', name: 'Common', type: 'common', relX: 0.20, relY: 0.92, label: 'COM', phaseLabel: 'COM' },
+      { id: 'no', name: 'Normally Open', type: 'no', relX: 0.50, relY: 0.92, label: 'NO', phaseLabel: 'NO' },
+      { id: 'nc', name: 'Normally Closed', type: 'nc', relX: 0.80, relY: 0.92, label: 'NC', phaseLabel: 'NC' },
+    ]
+  },
+  {
+    type: 'pump_booster_1p',
+    category: 'load',
+    name: 'Booster Pump 1-Phase (0.75 kW)',
+    defaultLabel: 'P1',
+    width: 120,
+    height: 110,
+    productStandard: 'IEC 60034-1',
+    modelNumber: '1-Phase Booster Pump 0.75 kW',
+    description: 'Single-phase booster pump. While powered it raises the shared tank level and line pressure (see the process model); the draw-off slider drains them again.',
+    defaultProperties: {
+      kw: 0.75,
+      wattage: 750,
+      pumping: false,
+    },
+    terminals: [
+      { id: 'line', name: 'Line (L)', type: 'switched', relX: 0.25, relY: 0.92, label: 'L' },
+      { id: 'ground', name: 'Protective Earth (PE)', type: 'earth', relX: 0.50, relY: 0.92, label: 'PE' },
+      { id: 'neutral', name: 'Neutral (N)', type: 'neutral', relX: 0.75, relY: 0.92, label: 'N' },
+    ]
+  },
+  {
+    type: 'pump_booster_3p',
+    category: 'industrial',
+    name: 'Booster Pump 3-Phase (1.5 kW)',
+    defaultLabel: 'P1',
+    width: 140,
+    height: 118,
+    productStandard: 'IEC 60034-1',
+    modelNumber: '3-Phase Booster Pump 1.5 kW',
+    description: 'Three-phase booster pump with the same terminals and electrical behaviour as the industrial induction motor (rotation, single-phasing). While running it raises the shared tank level and line pressure; the draw-off slider drains them again.',
+    defaultProperties: {
+      kw: 1.5,
+      wattage: 1500,
+      pumping: false,
+      running: false,
+    },
+    terminals: [
+      { id: 'u1', name: 'Phase U1', type: 'phase', relX: 0.20, relY: 0.12, label: 'U1', phaseLabel: 'L1' },
+      { id: 'v1', name: 'Phase V1', type: 'phase2', relX: 0.40, relY: 0.12, label: 'V1', phaseLabel: 'L2' },
+      { id: 'w1', name: 'Phase W1', type: 'phase3', relX: 0.60, relY: 0.12, label: 'W1', phaseLabel: 'L3' },
+      { id: 'pe', name: 'Chassis Earth (PE)', type: 'earth', relX: 0.80, relY: 0.12, label: 'PE', phaseLabel: 'PE' },
+    ]
+  },
+  {
     type: 'rcd_2p',
     category: 'protection',
     name: 'Residual Current Device (RCD / ELCB)',

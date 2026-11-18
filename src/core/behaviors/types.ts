@@ -1,4 +1,4 @@
-import type { DeviceType, ElectricalDevice, ElectricalWire } from '../../types/electrical';
+import type { DeviceType, ElectricalDevice, ElectricalWire, ProcessState } from '../../types/electrical';
 import type { PhaseId, SolvedCircuit } from '../circuitSolver';
 
 /** Two terminal ids of the same device that are conductively joined. */
@@ -18,6 +18,8 @@ export interface TickContext {
   wires: ElectricalWire[];
   /** Project grid frequency, Hz */
   gridFrequency: number;
+  /** Shared tank / line-pressure state (pumps, float and pressure switches) */
+  process?: ProcessState;
 }
 
 /**

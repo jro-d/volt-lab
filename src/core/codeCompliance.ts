@@ -168,7 +168,7 @@ export function analyzeCodeCompliance(
           recommendation: 'Consider System A (Pigtail Splice with wire nuts in an orange octagonal box) so downstream continuity does not depend on this receptacle body.'
         });
       }
-    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'safety_breaker_2p') {
+    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'pump_booster_1p' || dev.type === 'pump_booster_3p' || dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'safety_breaker_2p') {
       const gndWire = wires.find(w => 
         (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ground' || w.fromTerminalId === 'pe')) || 
         (w.toDeviceId === dev.id && (w.toTerminalId === 'ground' || w.toTerminalId === 'pe'))
@@ -263,7 +263,7 @@ export function analyzeCodeCompliance(
   }
 
   // 4b. Motor control: overload protection & reversing interlocks (PEC 4.30 / IEC 60204-1)
-  const motors = devices.filter(d => d.type === 'motor_ac_industrial' || d.type === 'motor_6lead_star_delta');
+  const motors = devices.filter(d => d.type === 'motor_ac_industrial' || d.type === 'pump_booster_3p' || d.type === 'motor_6lead_star_delta');
   const contactors = devices.filter(d => d.type === 'contactor_3p');
   const hasTor = devices.some(d => d.type === 'thermal_overload_relay');
   if (motors.length > 0 && contactors.length > 0 && !hasTor) {

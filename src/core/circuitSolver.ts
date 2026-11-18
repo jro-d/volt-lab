@@ -646,7 +646,7 @@ export function solveCircuit(
       while (curr && !seen.has(curr)) {
         seen.add(curr);
         const d = deviceById.get(devOfNode(curr));
-        if (d && (d.type === 'contactor_3p' || d.type === 'thermal_overload_relay' || d.type === 'motor_ac_industrial' || d.type === 'motor_6lead_star_delta')) {
+        if (d && (d.type === 'contactor_3p' || d.type === 'thermal_overload_relay' || d.type === 'motor_ac_industrial' || d.type === 'pump_booster_3p' || d.type === 'motor_6lead_star_delta')) {
           arcNode = curr;
           break;
         }
@@ -802,6 +802,14 @@ export function solveCircuit(
       if (isPowered) {
         totalWatts += dev.state.wattage || 65;
       }
+    } else if (dev.type === 'pump_booster_1p') {
+      const lPot = nodePotentials[terminalKey(dev.id, 'line')];
+      const nPot = nodePotentials[terminalKey(dev.id, 'neutral')];
+      const isPowered = lPot === 'live' && nPot === 'neutral';
+      deviceEnergized[dev.id] = isPowered;
+      dev.state.powered = isPowered;
+      dev.state.pumping = isPowered;
+      if (isPowered) totalWatts += (Number(dev.state.kw) || 0.75) * 1000;
     } else if (dev.type === 'appliance_ac') {
       const lPot = nodePotentials[terminalKey(dev.id, 'line')];
       const nPot = nodePotentials[terminalKey(dev.id, 'neutral')];
@@ -811,7 +819,7 @@ export function solveCircuit(
       if (isPowered) {
         totalWatts += dev.state.wattage || 1200;
       }
-    } else if (dev.type === 'motor_ac_industrial') {
+    } else if (dev.type === 'motor_ac_industrial' || dev.type === 'pump_booster_3p') {
       const tk = ['u1', 'v1', 'w1'].map(t => terminalKey(dev.id, t));
       const pots = tk.map(k => nodePotentials[k]);
       const phases = tk.map(k => nodePhases[k]);
@@ -836,6 +844,7 @@ export function solveCircuit(
       deviceEnergized[dev.id] = isRunning;
       dev.state.running = isRunning;
       dev.state.motorRunning = isRunning;
+      if (dev.type === 'pump_booster_3p') dev.state.pumping = isRunning;
       dev.state.motorDirection = direction;
       dev.state.motorFault = fault;
       dev.state.measuredAmps = isRunning
@@ -1064,13 +1073,16 @@ export function solveCircuit(
     } else if (dev.type === 'appliance_fan') {
       const w = dev.state.wattage || 65;
       traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
+    } else if (dev.type === 'pump_booster_1p') {
+      const w = (Number(dev.state.kw) || 0.75) * 1000;
+      traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
     } else if (dev.type === 'appliance_ac') {
       const w = dev.state.wattage || 1200;
       traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
     } else if (dev.type === 'appliance_water_heater') {
       const w = dev.state.wattage || 3500;
       traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
-    } else if (dev.type === 'motor_ac_industrial') {
+    } else if (dev.type === 'motor_ac_industrial' || dev.type === 'pump_booster_3p') {
       const w = dev.state.wattage || 2200;
       const isThreePhase = !!nodePhases[terminalKey(dev.id, 'u1')];
       if (isThreePhase) {
@@ -1233,7 +1245,7 @@ export function solveCircuit(
 
   const motorInrushByBreaker: Record<string, number> = {};
   for (const dev of devices) {
-    if ((dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta') && deviceEnergized[dev.id]) {
+    if ((dev.type === 'motor_ac_industrial' || dev.type === 'pump_booster_3p' || dev.type === 'motor_6lead_star_delta') && deviceEnergized[dev.id]) {
       const startKey = terminalKey(dev.id, 'u1');
       const runAmps = dev.state.measuredAmps || (dev.state.wattage || 2200) / gridVoltage;
       const inrushMult = hasVfdUpstream(startKey)

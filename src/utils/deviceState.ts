@@ -30,6 +30,8 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorDirection' in state) state.motorDirection = null;
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
+  if (device.type === 'pump_booster_1p' || device.type === 'pump_booster_3p') state.pumping = false;
+  if (device.type === 'float_switch' || device.type === 'pressure_switch') state.contactClosed = false;
   if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') {
     // A stopped plant when the grid is de-energized
     state.running = false;

@@ -102,7 +102,12 @@ export type DeviceType =
   | 'fuse_switch_disconnector_3p'
   | 'rcbo_1pn'
   | 'generator_set_1p'
-  | 'generator_set_3p';
+  | 'generator_set_3p'
+  // Roadmap phase 2
+  | 'float_switch'
+  | 'pressure_switch'
+  | 'pump_booster_1p'
+  | 'pump_booster_3p';
 
 export interface ElectricalDevice {
   id: string;
@@ -198,4 +203,13 @@ export interface ElectricalProject {
   ladder?: LadderRung[];
   /** Lab reference ladder diagram (target logic) */
   targetLadder?: LadderRung[];
+  /** Shared tank / line-pressure state for pumps, float and pressure switches (see core/process.ts) */
+  process?: ProcessState;
+}
+
+/** Tank level (%), line pressure (bar) and the draw-off slider (litres per minute) of the project's process. */
+export interface ProcessState {
+  tankLevel: number;
+  lineBar: number;
+  drawOffLpm: number;
 }

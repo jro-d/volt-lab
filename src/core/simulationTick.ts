@@ -1,13 +1,14 @@
-import type { ElectricalDevice, ElectricalWire } from '../types/electrical';
+import type { ElectricalDevice, ElectricalWire, ProcessState } from '../types/electrical';
 import type { SolvedCircuit } from './circuitSolver';
 import { behaviorFor } from './behaviors/registry';
+import { PROCESS_DEVICE_TYPES } from './process';
 
 /** Simulation step used by the app while the grid is energized (seconds). */
 export const TICK_SECONDS = 0.5;
 
 /** True when at least one device has time-dependent behaviour, so the app needs to run the tick. */
 export function needsTick(devices: ElectricalDevice[]): boolean {
-  return devices.some((d) => !!behaviorFor(d.type)?.tick);
+  return devices.some((d) => !!behaviorFor(d.type)?.tick || PROCESS_DEVICE_TYPES.has(d.type));
 }
 
 /**
@@ -19,13 +20,14 @@ export function tickSimulation(
   wires: ElectricalWire[],
   solved: SolvedCircuit,
   gridFrequency: number,
-  dtSec: number = TICK_SECONDS
+  dtSec: number = TICK_SECONDS,
+  process?: ProcessState
 ): ElectricalDevice[] {
   let changed = false;
   const next = devices.map((dev) => {
     const tick = behaviorFor(dev.type)?.tick;
     if (!tick) return dev;
-    const updated = tick(dev, { solved, wires, gridFrequency }, dtSec);
+    const updated = tick(dev, { solved, wires, gridFrequency, process }, dtSec);
     if (updated !== dev) changed = true;
     return updated;
   });

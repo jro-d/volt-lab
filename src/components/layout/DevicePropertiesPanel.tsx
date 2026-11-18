@@ -25,6 +25,9 @@ interface DevicePropertiesPanelProps {
   onUpdateWiresProperty?: (wireIds: string[], updates: Partial<ElectricalWire>) => void;
   standard: CodeStandard;
   onUpdateDeviceProperty: (deviceId: string, key: string, value: any) => void;
+  /** Shared tank / line-pressure state and its updater (pumps, float and pressure switches) */
+  process?: { tankLevel: number; lineBar: number; drawOffLpm: number };
+  onUpdateProcess?: (patch: Partial<{ tankLevel: number; lineBar: number; drawOffLpm: number }>) => void;
   onUpdateWireProperty: (wireId: string, updates: Partial<ElectricalWire>) => void;
   onDeleteSelected: () => void;
   onClose: () => void;
@@ -61,6 +64,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   onUpdateWiresProperty,
   standard,
   onUpdateDeviceProperty,
+  process,
+  onUpdateProcess,
   onUpdateWireProperty,
   onDeleteSelected,
   onClose,
@@ -1533,6 +1538,120 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             </div>
             <span className="text-[9px] text-ink-muted block">
               Grid dead and generator live: the load moves to the generator after the delay (the load is dead meanwhile). When the grid returns the load goes back at once. The two sources are never connected together.
+            </span>
+          </div>
+        );
+      })()}
+
+      {/* --- FLOAT SWITCH / PRESSURE SWITCH / PUMPS (shared process model) --- */}
+      {device && (device.type === 'float_switch' || device.type === 'pressure_switch') && (() => {
+        const isFloat = device.type === 'float_switch';
+        const proc = process || { tankLevel: 50, lineBar: 0, drawOffLpm: 10 };
+        const closed = !!device.state.contactClosed;
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const slider = (label: string, value: number, min: number, max: number, step: number, unit: string, onChange: (v: number) => void) => (
+          <div>
+            <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
+              <span className="font-bold uppercase tracking-wider">{label}</span>
+              <span className="font-mono text-ink font-bold">{value} {unit}</span>
+            </div>
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={step}
+              value={value}
+              onChange={(e) => onChange(Number(e.target.value))}
+              className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
+            />
+          </div>
+        );
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+                {isFloat ? 'Level Switch' : 'Pressure Switch'}
+              </label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${closed ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {closed ? 'COM-NO CLOSED' : 'COM-NC CLOSED'}
+              </span>
+            </div>
+            {isFloat ? (
+              <>
+                {slider('Tank Level', Math.round(proc.tankLevel), 0, 100, 1, '%', (v) => onUpdateProcess?.({ tankLevel: v }))}
+                {slider('High Trip', Number(device.state.highTrip) || 70, 10, 100, 1, '%', (v) => apply({ highTrip: v }))}
+                {slider('Low Trip', Number(device.state.lowTrip) || 30, 0, 90, 1, '%', (v) => apply({ lowTrip: v }))}
+                <div className="grid grid-cols-2 gap-1">
+                  {[
+                    { v: 'NO_on_rise', label: 'NO on rise', sub: 'closes at high level' },
+                    { v: 'NC_on_rise', label: 'NC on rise', sub: 'closes at low level' },
+                  ].map((k) => (
+                    <button
+                      key={k.v}
+                      onClick={() => apply({ contactForm: k.v })}
+                      className={`py-1 rounded-lg border text-xs font-mono font-bold flex flex-col items-center transition ${
+                        (device.state.contactForm || 'NO_on_rise') === k.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                      }`}
+                    >
+                      {k.label}
+                      <span className="text-[9px] font-sans font-normal opacity-80">{k.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {slider('Line Pressure', Number(proc.lineBar.toFixed(2)), 0, 5, 0.1, 'bar', (v) => onUpdateProcess?.({ lineBar: v }))}
+                {slider('Cut-In (pump on)', Number(device.state.cutIn) || 2, 0.5, 4.5, 0.1, 'bar', (v) => apply({ cutIn: v }))}
+                {slider('Cut-Out (pump off)', Number(device.state.cutOut) || 3, 0.5, 5, 0.1, 'bar', (v) => apply({ cutOut: v }))}
+              </>
+            )}
+            {slider('Draw-Off (consumers)', Math.round(proc.drawOffLpm), 0, 60, 1, 'L/min', (v) => onUpdateProcess?.({ drawOffLpm: v }))}
+            <span className="text-[9px] text-ink-muted block">
+              {isFloat
+                ? 'The contacts change at the trip levels and hold in between (hysteresis). A running pump raises the shared tank level; the draw-off slider drains it. The process runs 30x faster than real time.'
+                : 'com-no closes when the pressure falls to cut-in and opens at cut-out. A running pump raises the line pressure; the draw-off slider lowers it.'}
+            </span>
+          </div>
+        );
+      })()}
+
+      {device && (device.type === 'pump_booster_1p' || device.type === 'pump_booster_3p') && (() => {
+        const kwNow = Number(device.state.kw) || (device.type === 'pump_booster_3p' ? 1.5 : 0.75);
+        const options = device.type === 'pump_booster_3p' ? [0.75, 1.5, 2.2, 3.7] : [0.37, 0.75, 1.1, 1.5];
+        const setKw = (k: number) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, { kw: k, wattage: k * 1000 });
+          else {
+            onUpdateDeviceProperty(device.id, 'kw', k);
+            onUpdateDeviceProperty(device.id, 'wattage', k * 1000);
+          }
+        };
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Booster Pump</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.pumping ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {device.state.motorFault ? `⚠ ${device.state.motorFault}` : device.state.pumping ? '● PUMPING' : '○ STOPPED'}
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {options.map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setKw(k)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    kwNow === k ? 'bg-ok text-surface border-ok shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {k} kW
+                </button>
+              ))}
+            </div>
+            <span className="text-[9px] text-ink-muted block">
+              While pumping, the pump adds 40 L/min per kW to the shared tank and raises the line pressure.
             </span>
           </div>
         );

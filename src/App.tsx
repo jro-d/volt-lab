@@ -22,6 +22,7 @@ import { sound } from './utils/soundFx';
 import { replaceBlownFuse, resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
+import { DEFAULT_PROCESS, tickProcess } from './core/process';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
 
@@ -339,8 +340,9 @@ export const App: React.FC = () => {
     if (!isSimulating || !needsTick(project.devices)) return;
     const id = window.setInterval(() => {
       setProject((prev) => {
-        const devices = tickSimulation(prev.devices, prev.wires, solved, prev.gridFrequency, TICK_SECONDS);
-        return devices === prev.devices ? prev : { ...prev, devices };
+        const devices = tickSimulation(prev.devices, prev.wires, solved, prev.gridFrequency, TICK_SECONDS, prev.process);
+        const process = tickProcess(devices, prev.process, TICK_SECONDS);
+        return devices === prev.devices && process === prev.process ? prev : { ...prev, devices, process };
       });
     }, TICK_SECONDS * 1000);
     return () => window.clearInterval(id);
@@ -1111,6 +1113,8 @@ export const App: React.FC = () => {
         <main className="flex-1 flex overflow-hidden relative">
           {/* Interactive Device & Conductor Inspector Panel */}
           <DevicePropertiesPanel
+        process={project.process}
+        onUpdateProcess={(patch) => setProject((prev) => ({ ...prev, process: { ...(prev.process || DEFAULT_PROCESS), ...patch } }))}
             device={inspectorOpen && multiWires.length === 0 ? selectedDevice : null}
             wire={inspectorOpen && multiWires.length === 0 ? project.wires.find(w => w.id === selectedWireId) || null : null}
             wires={inspectorOpen ? multiWires : []}
