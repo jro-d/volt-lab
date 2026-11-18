@@ -262,7 +262,7 @@ const LAMP_COLORS: Record<string, string> = {
   BLUE: 'var(--lamp-blue-on)',
 };
 
-const GENERIC: Record<LadderElementKind, { tag: string; sub: string }[]> = {
+const GENERIC: Partial<Record<LadderElementKind, { tag: string; sub: string }[]>> = {
   NO: [
     { tag: 'START', sub: '3-4' },
     { tag: 'FWD', sub: '3-4' },
@@ -393,7 +393,7 @@ export const LadderCanvas: React.FC<LadderCanvasProps> = ({
         const dev = devices.find((d) => d.id === e.deviceId);
         return { key: e.key, label: `${e.tag} · ${e.sub} — ${dev?.name || 'device'}`, el: physicalToLadderElement(e) };
       });
-    const genOpts = GENERIC[armed].map((g) => ({
+    const genOpts = (GENERIC[armed] || []).map((g) => ({
       key: `gen:${g.tag}:${g.sub}`,
       label: `${g.tag} · ${g.sub} (generic, unlinked)`,
       el: { id: '', kind: armed, tag: g.tag, sub: g.sub } as LadderElement,

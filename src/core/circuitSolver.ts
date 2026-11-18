@@ -732,7 +732,10 @@ export function solveCircuit(
         const prevOut = (dev.state.plcOutputs || {}) as Record<string, boolean>;
         const out: Record<string, boolean> = {};
         for (let n = 0; n < 8; n++) out[`q${n}`] = false;
-        if (running) {
+        if (running && dev.state.program === 'user') {
+          // user program: the scan engine (behaviors/plcProgram.ts) writes plcOutputs on each simulation step
+          for (let n = 0; n < 8; n++) out[`q${n}`] = !!prevOut[`q${n}`];
+        } else if (running) {
           if (dev.state.program === 'start_stop_latch') {
             // I0.0 = START (NO), I0.1 = STOP wired NC (true while healthy); Q0.0 seals in through itself
             out.q0 = (inp.i0 || !!prevOut.q0) && inp.i1;
@@ -799,19 +802,21 @@ export function solveCircuit(
             i4: nodePotentials[terminalKey(dev.id, 'i4')] === 'live',
           };
           dev.state.plcInputs = inp;
-          // Standard PLC Ladder Logic: I1 drives Q1, I2 drives Q2, etc.
-          const outp: Record<string, boolean> = {
-            q1: inp.i1,
-            q2: inp.i2,
-            q3: inp.i3,
-            q4: inp.i4,
-          };
-          const oldOut = dev.state.plcOutputs || {};
-          if (oldOut.q1 !== outp.q1 || oldOut.q2 !== outp.q2 || oldOut.q3 !== outp.q3 || oldOut.q4 !== outp.q4) {
-            contactsChanged = true;
+          if (dev.state.program !== 'user') {
+            // Standard PLC Ladder Logic: I1 drives Q1, I2 drives Q2, etc.
+            const outp: Record<string, boolean> = {
+              q1: inp.i1,
+              q2: inp.i2,
+              q3: inp.i3,
+              q4: inp.i4,
+            };
+            const oldOut = dev.state.plcOutputs || {};
+            if (oldOut.q1 !== outp.q1 || oldOut.q2 !== outp.q2 || oldOut.q3 !== outp.q3 || oldOut.q4 !== outp.q4) {
+              contactsChanged = true;
+            }
+            dev.state.plcOutputs = outp;
+            if (contactsChanged) break;
           }
-          dev.state.plcOutputs = outp;
-          if (contactsChanged) break;
         }
       } else if (dev.type === 'ats_changeover' && dev.state.autoMode !== false && !(Number(dev.state.transferDelaySec) > 0)) {
         const normLive = nodePotentials[terminalKey(dev.id, 'norm_l')] === 'live';
