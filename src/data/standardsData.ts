@@ -226,3 +226,16 @@ export function getDefaultWireGauge(standard: CodeStandard, circuitType: 'lighti
     }
   }
 }
+
+/**
+ * Cable damage constant k for the adiabatic withstand t = (k x S / I)^2 (S in mm2, I in A, t up to about 5 s).
+ * The value is the one usually quoted for PVC-insulated copper conductors; it is flagged because it has not been
+ * checked against the project's copy of the code.
+ */
+export const CABLE_DAMAGE_K = {
+  copper_pvc: {
+    k: 115,
+    needsVerification: true,
+    note: 'Copper conductor, PVC insulation: confirm k against the code table before using the plot for design.',
+  },
+} as const;
