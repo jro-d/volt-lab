@@ -1932,6 +1932,133 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         );
       })()}
 
+      {/* --- BATCH 3.2: SOURCES AND POWER SYSTEMS (adjustable properties) --- */}
+      {device && (() => {
+        type Spec = { key: string; label: string; min: number; max: number; step: number; unit: string; def: number };
+        const SPECS: Record<string, Spec[]> = {
+          pv_string: [
+            { key: 'irradiance', label: 'Irradiance', min: 0, max: 100, step: 5, unit: '%', def: 100 },
+            { key: 'kwp', label: 'Peak power', min: 1, max: 6, step: 0.5, unit: 'kWp', def: 3 },
+          ],
+          inverter_gridtie: [{ key: 'ratedW', label: 'Rated output', min: 1000, max: 6000, step: 500, unit: 'W', def: 3000 }],
+          ups_battery: [
+            { key: 'capacityWh', label: 'Battery capacity', min: 50, max: 2000, step: 50, unit: 'Wh', def: 500 },
+            { key: 'socPct', label: 'State of charge', min: 0, max: 100, step: 5, unit: '%', def: 100 },
+          ],
+          transformer_1p_pole: [
+            { key: 'ratio', label: 'Turns ratio (primary : secondary)', min: 1, max: 4, step: 0.01, unit: ': 1', def: 1.91 },
+            { key: 'kva', label: 'Rating', min: 1, max: 100, step: 1, unit: 'kVA', def: 25 },
+            { key: 'regulationPct', label: 'Regulation at full load', min: 1, max: 8, step: 0.5, unit: '%', def: 3 },
+          ],
+          transformer_3p_delta_wye: [
+            { key: 'ratio', label: 'Turns ratio (line : line)', min: 0.5, max: 4, step: 0.05, unit: ': 1', def: 1.1 },
+            { key: 'kva', label: 'Rating', min: 10, max: 500, step: 5, unit: 'kVA', def: 75 },
+            { key: 'regulationPct', label: 'Regulation at full load', min: 1, max: 8, step: 0.5, unit: '%', def: 3 },
+          ],
+          capacitor_bank_3p: [
+            { key: 'kvarPerStep', label: 'Step size', min: 1, max: 25, step: 1, unit: 'kvar', def: 5 },
+            { key: 'steps', label: 'Steps', min: 1, max: 4, step: 1, unit: '', def: 4 },
+          ],
+          pf_controller: [
+            { key: 'targetPf', label: 'Target power factor', min: 0.8, max: 1, step: 0.01, unit: '', def: 0.95 },
+            { key: 'stepDelaySec', label: 'Step delay', min: 1, max: 20, step: 1, unit: 's', def: 2 },
+          ],
+          reverse_power_relay: [{ key: 'delaySec', label: 'Trip delay', min: 1, max: 20, step: 1, unit: 's', def: 3 }],
+          preferential_trip_relay: [
+            { key: 'thresholdPct', label: 'Threshold (of kVA rating)', min: 50, max: 100, step: 1, unit: '%', def: 90 },
+            { key: 'delaySec', label: 'Trip delay', min: 0.5, max: 2, step: 0.5, unit: 's', def: 0.5 },
+          ],
+          generator_set_1p: [{ key: 'freqOffsetHz', label: 'Frequency offset (speed)', min: -1, max: 1, step: 0.05, unit: 'Hz', def: 0 }],
+          generator_set_3p: [{ key: 'freqOffsetHz', label: 'Frequency offset (speed)', min: -1, max: 1, step: 0.05, unit: 'Hz', def: 0 }],
+        };
+        const specs = SPECS[device.type];
+        const isGen = device.type === 'generator_set_1p' || device.type === 'generator_set_3p';
+        const isFeeder = device.type === 'source_3phase_440v';
+        const isTransformer = device.type.startsWith('transformer_');
+        if (!specs && !isFeeder) return null;
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const hint: Record<string, string> = {
+          pv_string: 'Power follows the irradiance. Click the panel on the device to switch between sun and night.',
+          inverter_gridtie: 'Exports only while it sees the grid on its AC terminals (anti-islanding); waits 5 s after the grid returns. The meter does the import / export accounting.',
+          ups_battery: 'On loss of input the battery drives the output until it is empty. Energy runs 60x faster than real time so a discharge can be watched.',
+          transformer_1p_pole: 'Secondary = primary / ratio. The loaded voltage drops by the regulation at the present load.',
+          transformer_3p_delta_wye: 'Dyn11 delta-wye. Secondary line voltage = primary line voltage / ratio. The 30 degree phase shift is not modelled.',
+          capacitor_bank_3p: 'Step i is switched in by its control input c_i against cn. A step needs 3 s to discharge before it can be switched in again.',
+          pf_controller: 'Wire com to a control supply and k1-k4 to the bank control inputs. It adds a step while the plant lags and removes one when it is over-corrected.',
+          reverse_power_relay: 'Wire the sense terminals to the generator output. Set the generator to Motoring (engine failure) to see it trip.',
+          preferential_trip_relay: 'Wire the sense terminals to the generator output and the contact to a shunt trip. It latches: press RESET on the device to clear it.',
+        };
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+              {isFeeder ? 'Feeder Earthing' : isGen ? 'Paralleling' : 'Adjustments'}
+            </label>
+            {isFeeder && (
+              <div className="grid grid-cols-2 gap-1">
+                {[
+                  { v: 'solid', label: 'Solidly earthed', sub: 'TN: PE is the earth reference' },
+                  { v: 'isolated', label: 'Isolated (IT)', sub: 'first earth fault tolerated' },
+                ].map((k) => (
+                  <button
+                    key={k.v}
+                    onClick={() => apply({ earthing: k.v })}
+                    className={`py-1 rounded-lg border text-xs font-mono font-bold flex flex-col items-center transition ${
+                      (device.state.earthing || 'solid') === k.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                    }`}
+                  >
+                    {k.label}
+                    <span className="text-[9px] font-sans font-normal opacity-80">{k.sub}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {(specs || []).map((sp) => {
+              const raw = Number(device.state[sp.key]);
+              const value = Number.isFinite(raw) && device.state[sp.key] !== undefined ? raw : sp.def;
+              return (
+                <div key={sp.key}>
+                  <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
+                    <span className="font-bold uppercase tracking-wider">{sp.label}</span>
+                    <span className="font-mono text-ink font-bold">{value} {sp.unit}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={sp.min}
+                    max={sp.max}
+                    step={sp.step}
+                    value={value}
+                    onChange={(e) => apply({ [sp.key]: Number(e.target.value) })}
+                    className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
+                  />
+                </div>
+              );
+            })}
+            {isGen && (
+              <button
+                onClick={() => apply({ motoring: !device.state.motoring })}
+                className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${
+                  device.state.motoring ? 'bg-danger-soft text-danger border-danger/60' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                }`}
+              >
+                {device.state.motoring ? '⚠ MOTORING (engine failure): click to clear' : 'Simulate engine failure (motoring)'}
+              </button>
+            )}
+            {isTransformer && (
+              <div className="bg-surface-sunken p-2.5 rounded-md border border-border grid grid-cols-3 gap-2 text-xs font-mono">
+                <div><span className="text-[9px] text-ink-muted block font-sans">PRIMARY</span><span className="font-bold text-ink">{device.state.primaryV || 0} V</span></div>
+                <div><span className="text-[9px] text-ink-muted block font-sans">NO LOAD</span><span className="font-bold text-ink">{device.state.secondaryUnloadedV || 0} V</span></div>
+                <div><span className="text-[9px] text-ink-muted block font-sans">LOADED</span><span className="font-bold text-ink">{device.state.secondaryLoadedV || 0} V</span></div>
+              </div>
+            )}
+            {hint[device.type] && <span className="text-[9px] text-ink-muted block">{hint[device.type]}</span>}
+            {isGen && <span className="text-[9px] text-ink-muted block">A frequency offset makes the set slip against another one so a synchroscope shows a rotating phase difference (slowed 10x).</span>}
+          </div>
+        );
+      })()}
+
       {/* --- TIMER RELAY (KT) --- */}
       {device && device.type === 'timer_relay' && (() => {
         const mode = (device.state.timerMode as TimerMode) || 'on_delay';
