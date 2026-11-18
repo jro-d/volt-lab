@@ -3,6 +3,7 @@ import { buildFaultContext } from './faults';
 import { SparkEvent } from '../types/simulation';
 import { getWireStandards } from '../data/standardsData';
 import { behaviorFor } from './behaviors/registry';
+import { interlockedOut } from './behaviors/controlModules';
 import { PSU_RECOVERY_SEC } from './behaviors/dcDevices';
 import { CENTRIFUGAL_PCT } from './behaviors/singlePhaseMotor';
 import { floodDc, dcLoadAmps, isDcCoilDevice, type DcPotential, type DcResult } from './dcDomain';
@@ -783,7 +784,8 @@ export function solveCircuit(
           break;
         }
       } else if (dev.type === 'contactor_3p') {
-        const on = isCoilPowered(dev.id, 'a1', 'a2') || !!dev.state.manualOverride;
+        // A mechanical interlock holds this contactor out while its partner is pulled in (first in the list wins)
+        const on = (isCoilPowered(dev.id, 'a1', 'a2') && !(!dev.state.coilEnergized && interlockedOut(devices, dev))) || !!dev.state.manualOverride;
         if (!!dev.state.coilEnergized !== on) {
           dev.state.coilEnergized = on;
           dev.state.closed = on;
@@ -1316,6 +1318,19 @@ export function solveCircuit(
       // A closed external contact between start_a and start_b (reached through the wiring) means "run"
       dev.state.remoteStart = isConnected(terminalKey(dev.id, 'start_a'), terminalKey(dev.id, 'start_b'));
       deviceEnergized[dev.id] = !!dev.state.running && !dev.state.overloaded;
+    } else {
+      // Devices that declare coils / control inputs (control modules): energized when one is powered
+      const coils = behaviorFor(dev.type)?.coils?.(dev);
+      if (coils) {
+        let any = false;
+        for (const c of coils) {
+          if (isCoilPowered(dev.id, c.a, c.b)) {
+            any = true;
+            totalWatts += c.watts;
+          }
+        }
+        deviceEnergized[dev.id] = any;
+      }
     }
   }
 
@@ -1516,6 +1531,13 @@ export function solveCircuit(
       const liveT = a1Pot === 'live' ? 'a1' : 'a2';
       const neutT = a1Pot === 'live' ? 'a2' : 'a1';
       traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), 4 / gridVoltage);
+    } else {
+      for (const c of behaviorFor(dev.type)?.coils?.(dev) ?? []) {
+        if (!isCoilPowered(dev.id, c.a, c.b)) continue;
+        const liveT = nodePotentials[terminalKey(dev.id, c.a)] === 'live' ? c.a : c.b;
+        const neutT = liveT === c.a ? c.b : c.a;
+        traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), c.watts / gridVoltage);
+      }
     }
   }
 

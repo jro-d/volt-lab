@@ -53,6 +53,8 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
   const nodes: SchematicNode[] = devices.map(d => {
     let symbol: SchematicNode['symbol'] = 'breaker';
     if (d.type.startsWith('fuse')) symbol = 'fuse';
+    else if (['star_delta_timer', 'counter_relay', 'impulse_relay', 'staircase_timer', 'time_switch_24h', 'alternating_relay', 'ssr_1p', 'safety_relay', 'aux_contact_block'].includes(d.type)) symbol = 'relay';
+    else if (['operator_pilot', 'two_hand_station', 'door_interlock_switch', 'pull_cord_switch', 'mechanical_interlock'].includes(d.type)) symbol = 'switch';
     else if (d.type === 'pv_string') symbol = 'pv';
     else if (d.type === 'inverter_gridtie') symbol = 'inverter';
     else if (d.type === 'ups_battery') symbol = 'battery';

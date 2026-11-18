@@ -84,6 +84,15 @@ const LIBRARY_TREE: FolderNode[] = [
     ],
   },
   {
+    id: 'control_timing',
+    label: 'Control & Timing Modules',
+    children: [
+      { id: 'timers', label: 'Timers, Counters & Latching', types: ['star_delta_timer', 'counter_relay', 'impulse_relay', 'staircase_timer', 'time_switch_24h', 'alternating_relay', 'ssr_1p'] },
+      { id: 'operators', label: 'Operators & Contact Blocks', types: ['operator_pilot', 'aux_contact_block', 'mechanical_interlock'] },
+      { id: 'safety', label: 'Safety Devices', types: ['safety_relay', 'two_hand_station', 'door_interlock_switch', 'pull_cord_switch'] },
+    ],
+  },
+  {
     id: 'appliances',
     label: 'Appliances & Loads',
     types: ['appliance_tv', 'appliance_water_heater', 'appliance_fan', 'appliance_ac', 'pump_booster_1p'],

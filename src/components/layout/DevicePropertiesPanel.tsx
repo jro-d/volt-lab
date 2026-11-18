@@ -1,3 +1,4 @@
+import { ModuleInspector } from './ModuleInspector';
 import React from 'react';
 import { ElectricalDevice, ElectricalWire, CodeStandard } from '../../types/electrical';
 import { getWireStandards, COLOR_STANDARDS } from '../../data/standardsData';
@@ -2069,6 +2070,18 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           </div>
         );
       })()}
+
+      {/* --- GENERIC DEVICE MODULES (batches 3.3 onward): controls from data/moduleSpecs.ts --- */}
+      {device && (
+        <ModuleInspector
+          device={device}
+          devices={devices || []}
+          apply={(patch) => {
+            if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+            else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+          }}
+        />
+      )}
 
       {/* --- TIMER RELAY (KT) --- */}
       {device && device.type === 'timer_relay' && (() => {

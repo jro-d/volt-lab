@@ -102,7 +102,9 @@ for (const def of catalog) {
       if (typeof v !== 'number' || v < 0 || v > 1) fail(`"${def.type}": terminal "${term.id}" ${axis}=${v} is outside 0..1`);
     }
   }
-  if (!def.terminals || def.terminals.length === 0) fail(`"${def.type}": no terminals`);
+  // Purely mechanical accessories (a link between two contactors) have no electrical terminals
+  const MECHANICAL_ONLY = new Set(['mechanical_interlock']);
+  if ((!def.terminals || def.terminals.length === 0) && !MECHANICAL_ONLY.has(def.type)) fail(`"${def.type}": no terminals`);
   if (!def.productStandard) fail(`"${def.type}": missing productStandard`);
   if (!def.modelNumber) fail(`"${def.type}": missing modelNumber`);
   if (hasBrand(JSON.stringify(def))) fail(`"${def.type}": contains a manufacturer name (devices must be brand-neutral)`);

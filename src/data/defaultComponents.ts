@@ -1,4 +1,5 @@
 import { DeviceType, DeviceCategory, DeviceTerminal, ElectricalDevice } from '../types/electrical';
+import { BATCH33_DEVICES } from './batch33Devices';
 
 export interface ComponentDefinition {
   type: DeviceType;
@@ -2391,6 +2392,7 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
       { id: 'w', name: 'Motor Out W', type: 'load', relX: 0.75, relY: 0.94, label: 'W/T3', phaseLabel: '3' },
     ],
   },
+  ...BATCH33_DEVICES,
 ];
 
 export function createDeviceFromCatalog(type: DeviceType, x: number, y: number, customId?: string): ElectricalDevice {

@@ -24,3 +24,30 @@ export function withState(dev: ElectricalDevice, patch: Record<string, unknown>)
   }
   return dev;
 }
+
+import type { SolvedCircuit } from '../circuitSolver';
+
+/** AC coil / control input powered: live on one terminal and neutral (or another phase) on the other. */
+export function coilPowered(solved: SolvedCircuit, dev: ElectricalDevice, a: string, b: string): boolean {
+  const ka = `${dev.id}:${a}`;
+  const kb = `${dev.id}:${b}`;
+  const pa = solved.nodePotentials[ka];
+  const pb = solved.nodePotentials[kb];
+  if ((pa === 'live' && pb === 'neutral') || (pb === 'live' && pa === 'neutral')) return true;
+  if (pa === 'live' && pb === 'live') {
+    const fa = solved.nodePhases[ka];
+    const fb = solved.nodePhases[kb];
+    return !!fa && !!fb && fa !== fb;
+  }
+  return false;
+}
+
+/** 24 V DC input: + on the first terminal, 0 V on the second. */
+export function dcCoilPowered(solved: SolvedCircuit, dev: ElectricalDevice, pos: string, neg: string): boolean {
+  return solved.dcPotentials[`${dev.id}:${pos}`] === 'dc_pos' && solved.dcPotentials[`${dev.id}:${neg}`] === 'dc_neg';
+}
+
+/** The terminal sits on a live conductor. */
+export function isLive(solved: SolvedCircuit, dev: ElectricalDevice, terminal: string): boolean {
+  return solved.nodePotentials[`${dev.id}:${terminal}`] === 'live';
+}

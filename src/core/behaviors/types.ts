@@ -49,4 +49,11 @@ export interface DeviceBehavior {
    * same reference when nothing changed, otherwise an updated copy.
    */
   tick?(dev: ElectricalDevice, ctx: TickContext, dtSec: number): ElectricalDevice;
+
+  /**
+   * AC coils / control inputs the device presents to the supply. The solver adds their power to the load, draws
+   * the current through the wiring and marks the device energized when any of them is powered. The behaviour's
+   * own `tick` decides what the contacts do (see `coilPowered` in util.ts).
+   */
+  coils?(dev: ElectricalDevice): { a: string; b: string; watts: number }[];
 }

@@ -64,6 +64,45 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.timerSec = 0;
   }
   if (device.type === 'synchroscope') state.inSync = false;
+  // Batch 3.3: control modules return to their power-up state (set points and handle positions stay)
+  if (device.type === 'star_delta_timer') {
+    state.phase = 'idle';
+    state.elapsedSec = 0;
+  }
+  if (device.type === 'counter_relay') {
+    state.count = 0;
+    state.out = false;
+    state.countPrev = false;
+  }
+  if (device.type === 'impulse_relay') {
+    state.latched = false;
+    state.coilPrev = false;
+  }
+  if (device.type === 'staircase_timer') {
+    state.remainingSec = 0;
+    state.active = false;
+  }
+  if (device.type === 'time_switch_24h') state.out = false;
+  if (device.type === 'alternating_relay') {
+    state.lead = 2;
+    state.coilOn = false;
+  }
+  if (device.type === 'ssr_1p') state.on = false;
+  if (device.type === 'operator_pilot') state.lit = false;
+  if (device.type === 'aux_contact_block') state.engaged = false;
+  if (device.type === 'safety_relay') {
+    state.powered = false;
+    state.ch1 = false;
+    state.ch2 = false;
+    state.outOn = false;
+    state.fault = false;
+    state.discrepancy = false;
+    state.x2Prev = false;
+  }
+  if (device.type === 'two_hand_station') {
+    state.armed = false;
+    state.needRelease = false;
+  }
   if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') state.phaseAngleDeg = 0;
   if (device.type === 'motor_ac_industrial' || device.type === 'pump_booster_3p' || device.type === 'motor_6lead_star_delta') state.windingC = 40;
   if (device.type === 'mccb_3p' || device.type === 'mpcb_3p') state.heat = 0;
