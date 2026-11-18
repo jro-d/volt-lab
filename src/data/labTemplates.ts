@@ -5,6 +5,7 @@ import { PHASE1_LABS } from './phase1Labs';
 import { PHASE2_LABS } from './phase2Labs';
 import { BATCH32_LABS } from './batch32Labs';
 import { PHASE3_LABS } from './phase3Labs';
+import { CURVES_LAB } from './curvesLab';
 
 export type LabCategory = 'all' | 'sockets' | 'lighting' | 'splice' | 'appliances' | 'residential' | 'industrial' | 'automation';
 
@@ -33,6 +34,7 @@ export const LAB_LESSONS: LabLesson[] = [
   // Batch 3.2: sources and power systems
   ...BATCH32_LABS,
   ...PHASE3_LABS,
+  CURVES_LAB,
 
   // 0. PHILIPPINE RESIDENTIAL BRANCH CIRCUIT (standard devices)
   {

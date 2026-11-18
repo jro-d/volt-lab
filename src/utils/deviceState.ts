@@ -30,6 +30,11 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorDirection' in state) state.motorDirection = null;
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
+  if (device.type === 'plc_micro_controller' || device.type === 'plc_24vdc_16io') {
+    // The scan memory (timers, counters, latches) clears with the PLC power; the program itself stays
+    state.plcRuntime = undefined;
+    state.plcScans = 0;
+  }
   if (device.type === 'pump_booster_1p' || device.type === 'pump_booster_3p') state.pumping = false;
   // Batch 3.2: live readouts clear; stored energy (UPS charge, meter registers) and handle positions stay
   if (device.type === 'ups_battery') {

@@ -275,6 +275,21 @@ export interface ElectricalProject {
   faultsVersion?: number;
   /** Timing diagram recorder channels (versioned so older saves keep loading) */
   recorder?: { v: 1; channels: RecorderChannel[] };
+  /** Coordination curves panel: the device chain (upstream first), a cable and a motor to plot */
+  curves?: { v: 1; chain: string[]; wireId?: string; motorId?: string };
+  /** Short-circuit check (off until enabled): source level and optional transformer, see core/shortCircuit.ts */
+  shortCircuit?: ShortCircuitSettings;
+}
+
+/** Settings of the ohmic short-circuit check. */
+export interface ShortCircuitSettings {
+  v: 1;
+  /** Fault levels, the inspector card, the canvas badges and the interrupting-rating rule are active */
+  enabled: boolean;
+  /** Short-circuit level at the supply terminals, kA */
+  sourceKa: number;
+  /** Supply transformer in series with the source, if any */
+  transformer?: { kva: number; zPct: number };
 }
 
 /** One recorded signal: a device state value, the energized flag, a terminal voltage or a wire current. */

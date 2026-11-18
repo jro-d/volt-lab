@@ -29,12 +29,16 @@ import { inferConductorRole } from './core/conductorRole';
 import { DEFAULT_PROCESS, tickProcess } from './core/process';
 import { Recorder } from './core/recorder';
 import { RecorderPanel } from './components/layout/RecorderPanel';
+import { CurvesPanel } from './components/layout/CurvesPanel';
+import { FaultLevelsPanel } from './components/layout/FaultLevelsPanel';
+import { computeFaultLevels, checkInterruptingRatings, DEFAULT_SHORT_CIRCUIT } from './core/shortCircuit';
+import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
-type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
+type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc';
 
 function loadEmbeddedProject(): ElectricalProject | null {
   try {
@@ -78,6 +82,7 @@ export const App: React.FC = () => {
   const [troubleshoot, setTroubleshoot] = useState<boolean>(false);
   // Timing diagram recorder (hidden until opened from the status bar)
   const [recorderOpen, setRecorderOpen] = useState<boolean>(false);
+  const [curvesOpen, setCurvesOpen] = useState<boolean>(false);
   const recorderRef = useRef<Recorder>(new Recorder());
   const [recVersion, setRecVersion] = useState(0);
   const [recPaused, setRecPaused] = useState(false);
@@ -286,10 +291,27 @@ export const App: React.FC = () => {
     };
   }, [isSimulating, analysis, project.wires, project.devices, sparkFlash]);
 
+  // Short-circuit check: prospective fault level at every device input (static, off until enabled)
+  const faultLevels = useMemo(
+    () => (project.shortCircuit?.enabled ? computeFaultLevels(project.devices, project.wires, standard, project.gridVoltage, project.shortCircuit) : null),
+    [project.shortCircuit, project.devices, project.wires, standard, project.gridVoltage]
+  );
+  const faultBadges = useMemo(() => {
+    if (!faultLevels) return undefined;
+    const status: Record<string, 'error' | 'warning' | 'ok'> = {};
+    for (const c of checkInterruptingRatings(project.devices, faultLevels)) status[c.deviceId] = c.status;
+    const out: Record<string, { text: string; tone: 'error' | 'warning' | 'ok' }> = {};
+    for (const [id, lvl] of Object.entries(faultLevels.byDevice)) {
+      if (!project.devices.some((d) => d.id === id)) continue;
+      out[id] = { text: `${(lvl.ik / 1000).toFixed(lvl.ik >= 10000 ? 1 : 2)} kA`, tone: status[id] || 'ok' };
+    }
+    return out;
+  }, [faultLevels, project.devices]);
+
   // Run Live Code Compliance Analysis (static checks run in both modes)
   const report = useMemo(() => {
-    return analyzeCodeCompliance(analysis.devicesForAnalysis, project.wires, analysis.result, standard, project.gridVoltage);
-  }, [analysis, project.wires, standard, project.gridVoltage]);
+    return analyzeCodeCompliance(analysis.devicesForAnalysis, project.wires, analysis.result, standard, project.gridVoltage, faultLevels);
+  }, [analysis, project.wires, standard, project.gridVoltage, faultLevels]);
 
   // Digital Multimeter / Clamp Meter handlers
   const handleFaults = useCallback((faults: import('./types/electrical').InjectedFault[]) => {
@@ -1086,6 +1108,7 @@ export const App: React.FC = () => {
     setProject(loaded);
     recorderRef.current.clear();
     if ((loaded.recorder?.channels.length ?? 0) > 0) setRecorderOpen(true);
+    setCurvesOpen((loaded.curves?.chain.length ?? 0) > 0);
     setStandard(lab.project.codeStandard);
     setIsLabModalOpen(false);
     setIsLibraryOpen(false);
@@ -1245,6 +1268,7 @@ export const App: React.FC = () => {
               setInspectorOpen(false);
             }}
             isLibraryOpen={isLibraryOpen}
+            faultKa={faultLevels && selectedDevice ? (faultLevels.byDevice[selectedDevice.id]?.ik ?? null) : null}
           />
 
           {viewMode === 'realistic' && (
@@ -1290,6 +1314,7 @@ export const App: React.FC = () => {
               onDeleteDevice={handleDeleteSelected}
               fitKey={`${project.id}-realistic`}
               insetLeft={isLibraryOpen ? 336 : 0}
+              deviceBadges={faultBadges}
             />
           )}
 
@@ -1298,6 +1323,15 @@ export const App: React.FC = () => {
               devices={project.devices}
               wires={project.wires}
               solved={solved}
+            />
+          )}
+
+          {viewMode === 'plc' && (
+            <PlcEditor
+              devices={project.devices}
+              selectedDeviceId={selectedDeviceId}
+              isSimulating={isSimulating}
+              onPatchDeviceState={handlePatchDeviceState}
             />
           )}
 
@@ -1362,6 +1396,7 @@ export const App: React.FC = () => {
                   onDeleteDevice={handleDeleteSelected}
                   fitKey={`${project.id}-split`}
                   insetLeft={isLibraryOpen ? 336 : 0}
+              deviceBadges={faultBadges}
                 />
               </div>
               <div className="w-full h-full relative flex flex-col">
@@ -1456,6 +1491,33 @@ export const App: React.FC = () => {
         />
       )}
 
+      {project.shortCircuit?.enabled && faultLevels && (
+        <FaultLevelsPanel
+          settings={project.shortCircuit}
+          levels={faultLevels}
+          devices={project.devices}
+          onChange={(next) => setProject((prev) => ({ ...prev, shortCircuit: next }))}
+          onSelectDevice={(id) => handleSelectDevice(id)}
+          onClose={() => setProject((prev) => ({ ...prev, shortCircuit: prev.shortCircuit ? { ...prev.shortCircuit, enabled: false } : undefined }))}
+          isLibraryOpen={isLibraryOpen}
+        />
+      )}
+
+      {curvesOpen && (
+        <CurvesPanel
+          devices={project.devices}
+          wires={project.wires}
+          solved={solved}
+          standard={standard}
+          isSimulating={isSimulating}
+          selectedDeviceId={selectedDeviceId}
+          selectedWireId={selectedWireId}
+          curves={project.curves}
+          onChange={(next) => setProject((prev) => ({ ...prev, curves: next }))}
+          onClose={() => setCurvesOpen(false)}
+        />
+      )}
+
       {/* Bottom CAD Status Bar */}
       <StatusBar
         standard={standard}
@@ -1470,6 +1532,10 @@ export const App: React.FC = () => {
         onToggleTroubleshoot={() => setTroubleshoot((v) => !v)}
         recorderOpen={recorderOpen}
         onToggleRecorder={() => setRecorderOpen((v) => !v)}
+        curvesOpen={curvesOpen}
+        faultLevelsOn={!!project.shortCircuit?.enabled}
+        onToggleFaultLevels={() => setProject((prev) => ({ ...prev, shortCircuit: prev.shortCircuit ? { ...prev.shortCircuit, enabled: !prev.shortCircuit.enabled } : { ...DEFAULT_SHORT_CIRCUIT } }))}
+        onToggleCurves={() => setCurvesOpen((v) => !v)}
       />
 
       {/* Guided Labs & Scenarios Modal */}
