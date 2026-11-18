@@ -1326,8 +1326,72 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           <span className="text-[9px] text-ink-muted block">
             8-Pin DPDT Form-C Contacts (Common 11/21, NC 12/22, NO 14/24).
           </span>
+          <div className="grid grid-cols-2 gap-1">
+            {[{ v: 'ac', label: 'AC coil' }, { v: 'dc24', label: '24 V DC coil' }].map((k) => (
+              <button
+                key={k.v}
+                onClick={() => onUpdateDeviceProperty(device.id, 'coilType', k.v)}
+                className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                  (device.state.coilType || 'ac') === k.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                }`}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[9px] text-ink-muted block">
+            A DC coil: A1 = +24 V, A2 = 0 V. Never wire it to an AC line.
+          </span>
         </div>
       )}
+
+      {/* --- 24 V DC DOMAIN: supply, sensors, PLC --- */}
+      {device && (device.type === 'psu_24vdc' || device.type === 'sensor_inductive' || device.type === 'sensor_capacitive' || device.type === 'sensor_photoelectric' || device.type === 'plc_24vdc_16io') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | number | boolean; label: string }[], fallback: string | number | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        const note = (device.state.psuFault || device.state.wiringNote || device.state.supplyNote || device.state.dcNote) as string | undefined;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">24 V DC Control Domain</label>
+            {device.type === 'psu_24vdc' && choice('Rated current', 'ratedAmps', [{ v: 2.5, label: '2.5 A' }, { v: 5, label: '5 A' }, { v: 10, label: '10 A' }], 5)}
+            {device.type.startsWith('sensor_') && (
+              <>
+                {choice('Output', 'output', [{ v: 'PNP', label: 'PNP' }, { v: 'NPN', label: 'NPN' }], 'PNP')}
+                {choice('Contact', 'contact', [{ v: 'NO', label: 'NO' }, { v: 'NC', label: 'NC' }], 'NO')}
+                {choice('Target', 'detected', [{ v: false, label: 'Clear' }, { v: true, label: 'Detected' }], false)}
+              </>
+            )}
+            {device.type === 'plc_24vdc_16io' && (
+              <>
+                {choice('CPU', 'plcRunning', [{ v: true, label: 'RUN' }, { v: false, label: 'STOP' }], true)}
+                {choice('Program', 'program', [{ v: 'passthrough', label: 'Qn = In' }, { v: 'start_stop_latch', label: 'Start/Stop' }], 'passthrough')}
+                {choice('Inputs', 'inputMode', [{ v: 'sinking', label: 'Sinking (PNP)' }, { v: 'sourcing', label: 'Sourcing (NPN)' }], 'sinking')}
+              </>
+            )}
+            {note && <div className="text-[10px] font-bold text-danger bg-danger-soft/60 border border-danger/40 rounded-lg px-2 py-1">{note}</div>}
+          </div>
+        );
+      })()}
 
       {/* --- FUSE HOLDER / FUSE SWITCH DISCONNECTOR --- */}
       {device && (device.type === 'fuse_holder_1p' || device.type === 'fuse_switch_disconnector_3p') && (() => {

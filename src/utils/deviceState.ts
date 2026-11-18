@@ -31,6 +31,21 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
   if (device.type === 'pump_booster_1p' || device.type === 'pump_booster_3p') state.pumping = false;
+  if (device.type === 'psu_24vdc') {
+    state.dcOutputOn = false;
+    state.psuTripped = false;
+    state.psuRecoverSec = 0;
+    state.psuFault = '';
+    state.dcLoadAmps = 0;
+  }
+  if (device.type === 'sensor_inductive' || device.type === 'sensor_capacitive' || device.type === 'sensor_photoelectric') {
+    state.outActive = false;
+    state.sensorPowered = false;
+    state.wiringNote = '';
+    state.supplyNote = '';
+  }
+  if (device.type === 'plc_24vdc_16io') state.dcNote = '';
+  if (device.type === 'industrial_relay_dpdt' && state.coilType === 'dc24') state.coilEnergized = false;
   if (device.type === 'float_switch' || device.type === 'pressure_switch') state.contactClosed = false;
   if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') {
     // A stopped plant when the grid is de-energized

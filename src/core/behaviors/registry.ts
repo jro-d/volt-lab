@@ -8,8 +8,9 @@ import { generatorBehavior } from './generator';
 import { atsTransferBehavior } from './atsTransfer';
 import { floatSwitchBehavior, pressureSwitchBehavior } from './processSwitches';
 import { phaseMonitorBehavior } from './phaseMonitor';
+import { psuBehavior, dcSensorBehavior, plc24Behavior } from './dcDevices';
 
-const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1pBehavior, fuse3pBehavior, rcboBehavior, generatorBehavior, atsTransferBehavior, floatSwitchBehavior, pressureSwitchBehavior, phaseMonitorBehavior];
+const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1pBehavior, fuse3pBehavior, rcboBehavior, generatorBehavior, atsTransferBehavior, floatSwitchBehavior, pressureSwitchBehavior, phaseMonitorBehavior, psuBehavior, dcSensorBehavior, plc24Behavior];
 
 const byType = new Map<DeviceType, DeviceBehavior>();
 for (const b of BEHAVIORS) for (const t of b.types) byType.set(t, b);

@@ -27,7 +27,7 @@ export interface DeviceTerminal {
   relX: number; // percentage (0..1) or pixel relative to device width
   relY: number; // percentage (0..1) or pixel relative to device height
   label?: string;
-  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'W2' | 'U2' | 'V2' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2';
+  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'W2' | 'U2' | 'V2' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2' | '+24V' | '0V' | 'SIG';
   spliceGroup?: string; // for junction boxes where terminals in the same group are shorted
 }
 
@@ -108,7 +108,12 @@ export type DeviceType =
   | 'pressure_switch'
   | 'pump_booster_1p'
   | 'pump_booster_3p'
-  | 'phase_monitor_relay';
+  | 'phase_monitor_relay'
+  | 'psu_24vdc'
+  | 'sensor_inductive'
+  | 'sensor_capacitive'
+  | 'sensor_photoelectric'
+  | 'plc_24vdc_16io';
 
 export interface ElectricalDevice {
   id: string;

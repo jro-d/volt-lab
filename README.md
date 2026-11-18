@@ -7,6 +7,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff.svg)](https://vitejs.dev/)
+27. **Automatic Pump Control with HOA: Float Switch, Overload, Run Lamp** — the pump fills a tank, the float switch starts and stops it with hysteresis, HAND overrides it.
+28. **DOL Starter Protected by a Phase Monitor** — swap two phases and the starter refuses to run.
+29. **Conveyor Stop: Inductive Sensor into a PLC Input, Relay Output to a Contactor** — 24 V DC supply, three-wire sensor, PLC and interface relay switching an AC contactor.
 
 ---
 
@@ -41,6 +44,9 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Boxes & splices**: PVC utility box, octagonal junction boxes, 4-way junction box, twist-on wire nut, lever-clamp splice connector.
 - **Motor control**: 440 V three-phase feeder, 440/220 V control transformer, 3-pole AC-3 contactor (13-14 NO and 21-22 NC auxiliaries, **X-ray cutaway**), Class 10 thermal overload relay (dial, TEST, RESET, 95-96 / 97-98), timer relay (on-delay, off-delay, flasher and one-shot), DPDT control relay, Start/Stop, FWD/REV/STOP and E-stop stations, HOA selector, roller limit switch, 22 mm pilot lights.
 - **Motors & drives**: TEFC 3-phase induction motor with CW / CCW rotation badge, 6-lead Wye-Delta motor, VFD, micro PLC (4 inputs, 4 relay outputs).
+- **Process control**: float switch (high / low trip with hysteresis, NO / NC on rise), pressure switch (cut-in / cut-out), and 1-phase / 3-phase booster pumps that raise a shared tank level or line pressure (a small documented process model, not a fluid simulator).
+- **Phase monitoring**: phase failure / phase sequence relay (lost phase, swapped phases, under / overvoltage release the 15-18 output).
+- **24 V DC control domain**: DIN-rail 24 V supply with current-limit shutdown and automatic restart, three-wire inductive, capacitive and photoelectric sensors (PNP / NPN, NO / NC, click the sensing face to place a target), a 24 V DC PLC (8 inputs, 8 sourcing outputs, RUN / STOP, passthrough or start / stop demo program) and a 24 V DC coil option on the control relay. The DC side is solved separately from AC: wiring a 24 V net to an AC line or neutral shuts the supply down and is reported as an error; NPN sensors on PNP inputs and reversed sensor supplies show a visible fault note.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
 ### 4. Marine & industrial motor control trainer

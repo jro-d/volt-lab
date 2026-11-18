@@ -66,7 +66,7 @@ const LIBRARY_TREE: FolderNode[] = [
       { id: 'motors', label: 'Motors & Drives (VFD)', types: ['motor_ac_industrial', 'motor_6lead_star_delta', 'pump_booster_3p', 'vfd_drive'] },
     ],
   },
-  { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller'] },
+  { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller', 'plc_24vdc_16io', 'psu_24vdc', 'sensor_inductive', 'sensor_capacitive', 'sensor_photoelectric'] },
   {
     id: 'service',
     label: 'Service Entrance & Grounding',

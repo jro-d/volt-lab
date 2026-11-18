@@ -3,6 +3,7 @@ import { CodeViolation, ElectricalAnalysisReport } from '../types/codes';
 import { getWireStandards, CONDUIT_FILL_STANDARDS } from '../data/standardsData';
 import { SolvedCircuit } from './circuitSolver';
 import { parsePhysicalLadder } from './ladderEngine';
+import { findAcDcCrossWires } from './dcDomain';
 
 /** Devices that live inside a distribution board or motor control enclosure (internal panel jumpers, not branch conduit runs) */
 const PANEL_DEVICE_TYPES = new Set([
@@ -277,6 +278,22 @@ export function analyzeCodeCompliance(
       message: 'A contactor-controlled motor has no thermal overload relay. A locked rotor or single-phasing condition will overheat the windings before the MCB responds.',
       affectedDeviceId: motors[0].id,
       recommendation: 'Install a thermal overload relay (TOR) after the contactor, set its dial to the motor FLA and wire its 95-96 NC contact in series with the coil circuit.'
+    });
+  }
+  // 24 V DC control wiring must never be joined to AC line / neutral conductors
+  for (const x of findAcDcCrossWires(devices, wires)) {
+    violations.push({
+      id: `viol_ac_dc_mix_${x.wire.id}`,
+      codeStandard: standard,
+      severity: 'error',
+      category: 'polarity',
+      // Clause intentionally left for the user to confirm against their copy of the code
+      articleRef: 'IEC 60204-1 (clause to be verified)',
+      title: 'AC and DC Circuits Connected',
+      message: `${x.dcDevice.name || x.dcDevice.id} (24 V DC) is wired to the same net as ${x.acDevice.name || x.acDevice.id} (AC line / neutral). The two systems must stay separate; the 24 V supply shuts down and the DC devices can be destroyed.`,
+      affectedDeviceId: x.dcDevice.id,
+      affectedWireId: x.wire.id,
+      recommendation: 'Remove the wire between the AC and DC sides. Use a relay (coil on DC, contacts on AC) to cross between the two.'
     });
   }
   // Information only: a motor with no phase-failure / phase-sequence protection

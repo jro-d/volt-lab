@@ -2,7 +2,7 @@ import { ElectricalDevice, ElectricalWire } from '../types/electrical';
 import { LadderElement, LadderElementKind, LadderRung } from '../types/ladder';
 import type { LabLesson } from './labTemplates';
 import { dolDevices, dolWires } from './motorControlLabs';
-import { labDevice as dev, labWire as wr, labProject, BLUE, GREEN, ORANGE, G12, G14 } from './phase1Labs';
+import { labDevice as dev, labWire as wr, labProject, BLUE, GREEN, ORANGE, RED, G12, G14 } from './phase1Labs';
 
 /**
  * Roadmap phase 2 labs: pumps with level and pressure switches, phase monitor relay, 24 V DC sensors,
@@ -106,6 +106,50 @@ const pmTarget: LadderRung[] = [
   { id: 'tgt_pm_2', blocks: pmRung(), output: ladderEl('LAMP', 'PL_RUN', 'GREEN', 'mdol_pl_run', 'lamp') },
 ];
 
+// ── 3 · Conveyor stop: inductive sensor into a 24 V DC PLC input, relay output to a contactor ──────
+const cvDevices: ElectricalDevice[] = [
+  dev('source_3phase_440v', 40, 30, 'src', { name: '440V 3Φ 60Hz Feeder' }),
+  dev('mcb_3p', 68, 176, 'q1', { name: 'Q1 Main 3P MCB 16A', state: { ratedAmps: 16, tripCurve: 'D' } }),
+  dev('contactor_3p', 60, 330, 'km1', { name: 'KM1 Conveyor Contactor', state: { tag: 'KM1' } }),
+  dev('thermal_overload_relay', 60, 520, 'f2', { name: 'F2 Thermal Overload', state: { tag: 'F2', tripAmps: 6 } }),
+  dev('motor_ac_industrial', 56, 700, 'm1', { name: 'M1 Conveyor Motor 3HP 440V', state: { tag: 'M1', wattage: 2200, motorHp: 3 } }),
+  dev('earth_busbar', 260, 680, 'pe', { name: 'PE Earth Bar' }),
+  dev('mcb_2p', 330, 176, 'q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
+  dev('control_transformer', 306, 330, 'tc1', { name: 'TC1 Control Transformer 440/220V', state: { tag: 'TC1' } }),
+  dev('psu_24vdc', 520, 300, 'ps1', { name: 'PS1 24 V DC Supply 5 A', state: { tag: 'PS1', ratedAmps: 5 } }),
+  dev('plc_24vdc_16io', 640, 300, 'plc', { name: 'A1 PLC 24 V DC', state: { tag: 'A1', program: 'passthrough', inputMode: 'sinking' } }),
+  dev('sensor_inductive', 540, 470, 'b1', { name: 'B1 Inductive Sensor (end of belt)', state: { tag: 'B1', output: 'PNP', contact: 'NC', rangeMm: 8 } }),
+  dev('industrial_relay_dpdt', 700, 470, 'k1', { name: 'K1 Interface Relay 24 V DC', state: { tag: 'K1', coilType: 'dc24' } }),
+];
+const cvWires: ElectricalWire[] = [
+  // power circuit
+  wr('src', 'l1', 'q1', 'in_l1', L1, G12), wr('src', 'l2', 'q1', 'in_l2', L2, G12), wr('src', 'l3', 'q1', 'in_l3', L3, G12),
+  wr('q1', 'out_l1', 'km1', 'l1', L1, G12), wr('q1', 'out_l2', 'km1', 'l2', L2, G12), wr('q1', 'out_l3', 'km1', 'l3', L3, G12),
+  wr('km1', 't1', 'f2', 'l1', L1, G12), wr('km1', 't2', 'f2', 'l2', L2, G12), wr('km1', 't3', 'f2', 'l3', L3, G12),
+  wr('f2', 't1', 'm1', 'u1', L1, G12), wr('f2', 't2', 'm1', 'v1', L2, G12), wr('f2', 't3', 'm1', 'w1', L3, G12),
+  wr('src', 'pe', 'pe', 'pe_main', GREEN, G12),
+  wr('pe', 'pe_1', 'm1', 'pe', GREEN, G12),
+  // 220 V control power
+  wr('q1', 'out_l1', 'q2', 'in_1', L1, G12), wr('q1', 'out_l2', 'q2', 'in_2', L2, G12),
+  wr('q2', 'out_1', 'tc1', 'h1', L1, G14), wr('q2', 'out_2', 'tc1', 'h2', L2, G14),
+  // 24 V DC supply from the control transformer secondary
+  wr('tc1', 'x1', 'ps1', 'in_l', ORANGE), wr('tc1', 'x2', 'ps1', 'in_n', BLUE),
+  // 24 V DC side: + rail
+  wr('ps1', 'v_pos', 'plc', 'l_pos', RED), wr('ps1', 'v_pos', 'b1', 'brown', RED),
+  // 0 V rail
+  wr('ps1', 'v_neg', 'plc', 'm_neg', BLUE), wr('ps1', 'v_neg', 'b1', 'blue', BLUE), wr('ps1', 'v_neg', 'k1', 'a2', BLUE),
+  // sensor signal -> PLC input I0.0, PLC output Q0.0 -> relay coil
+  wr('b1', 'black', 'plc', 'i0', RED),
+  wr('plc', 'q0', 'k1', 'a1', RED),
+  // relay contact 11-14 in the 220 V coil circuit of the contactor: X1 -> K1 -> OLR -> KM1 -> X2
+  wr('tc1', 'x1', 'k1', 'com_1', ORANGE),
+  wr('k1', 'no_1', 'f2', 'nc_95', ORANGE),
+  wr('f2', 'nc_96', 'km1', 'a1', ORANGE),
+  wr('km1', 'a2', 'tc1', 'x2', BLUE),
+];
+const cvRung = () => ladderSeries(ladderEl('NO', 'K1', '11-14', 'k1', 'no_1'), ladderEl('NC', 'OLR', '95-96', 'f2', 'trip_nc'));
+const cvTarget: LadderRung[] = [{ id: 'tgt_cv_1', blocks: cvRung(), output: ladderEl('COIL', 'KM1', 'A1-A2', 'km1', 'coil') }];
+
 export const PHASE2_LABS: LabLesson[] = [
   {
     id: 'lab-pump-hoa-float',
@@ -146,6 +190,26 @@ export const PHASE2_LABS: LabLesson[] = [
     project: {
       ...labProject('proj_phase_monitor_dol', 'DOL Starter with Phase Monitor Relay', 'Phase monitor 15-18 in series with the DOL control rung.', pmDevices, pmWires, 440),
       targetLadder: pmTarget,
+    },
+  },
+  {
+    id: 'lab-conveyor-stop-dc',
+    title: 'Conveyor Stop: Inductive Sensor into a PLC Input, Relay Output to a Contactor',
+    subtitle: '24 V DC control domain: supply, three-wire sensor, PLC, interface relay',
+    category: 'industrial',
+    badge: '🔌 24 V DC',
+    difficulty: 'Advanced',
+    description:
+      'A conveyor motor is started by contactor KM1. KM1 is switched by a 24 V DC interface relay K1, which is driven by PLC output Q0.0. An inductive sensor (PNP, normally closed form) at the end of the belt feeds PLC input I0.0, and the PLC program simply copies I0.0 to Q0.0. With the belt clear the sensor output is high, so the conveyor runs; a box reaching the sensor turns the output off and stops the belt (a broken sensor wire stops it too, which is why NC is used). The 24 V DC side is a separate domain: it must never be wired to the 220 V control circuit except through the relay contact.',
+    objectives: [
+      'Press ▶ Simulate: PS1 shows 24 V, the sensor and PLC power LEDs light, I0.0 is on, Q0.0 is on, K1 and KM1 pull in and the motor runs.',
+      'Click the sensing face of B1 to put a box in front of it: I0.0 and Q0.0 drop out and the conveyor stops. Click again to release it.',
+      'Select B1 and change the output from PNP to NPN: the PLC input is a sinking (PNP) input, so a clear NPN OUTPUT INTO PNP (SINKING) INPUT note appears and the belt never starts. Change it back.',
+      'Swap the brown and blue sensor wires: B1 shows REVERSED SUPPLY. Then wire a +24 V rail terminal to a 220 V terminal and watch PS1 shut down with AC/DC CROSS-CONNECTION.',
+    ],
+    project: {
+      ...labProject('proj_conveyor_stop_dc', 'Conveyor Stop (Sensor, PLC, Relay, Contactor)', 'Inductive sensor to PLC input, relay output to a contactor.', cvDevices, cvWires, 440),
+      targetLadder: cvTarget,
     },
   },
 ];
