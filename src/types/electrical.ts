@@ -27,7 +27,7 @@ export interface DeviceTerminal {
   relX: number; // percentage (0..1) or pixel relative to device width
   relY: number; // percentage (0..1) or pixel relative to device height
   label?: string;
-  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'W2' | 'U2' | 'V2' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2';
+  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'W2' | 'U2' | 'V2' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2' | '+24V' | '0V' | 'SIG';
   spliceGroup?: string; // for junction boxes where terminals in the same group are shorted
 }
 
@@ -102,7 +102,23 @@ export type DeviceType =
   | 'fuse_switch_disconnector_3p'
   | 'rcbo_1pn'
   | 'generator_set_1p'
-  | 'generator_set_3p';
+  | 'generator_set_3p'
+  // Roadmap phase 2
+  | 'float_switch'
+  | 'pressure_switch'
+  | 'pump_booster_1p'
+  | 'pump_booster_3p'
+  | 'phase_monitor_relay'
+  | 'psu_24vdc'
+  | 'sensor_inductive'
+  | 'sensor_capacitive'
+  | 'sensor_photoelectric'
+  | 'plc_24vdc_16io'
+  | 'buzzer_horn'
+  | 'beacon'
+  | 'tower_light'
+  | 'motor_1p'
+  | 'capacitor_run';
 
 export interface ElectricalDevice {
   id: string;
@@ -198,4 +214,13 @@ export interface ElectricalProject {
   ladder?: LadderRung[];
   /** Lab reference ladder diagram (target logic) */
   targetLadder?: LadderRung[];
+  /** Shared tank / line-pressure state for pumps, float and pressure switches (see core/process.ts) */
+  process?: ProcessState;
+}
+
+/** Tank level (%), line pressure (bar) and the draw-off slider (litres per minute) of the project's process. */
+export interface ProcessState {
+  tankLevel: number;
+  lineBar: number;
+  drawOffLpm: number;
 }

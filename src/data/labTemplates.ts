@@ -2,6 +2,7 @@ import { ElectricalProject, CodeStandard } from '../types/electrical';
 import { createDeviceFromCatalog } from './defaultComponents';
 import { MOTOR_CONTROL_LABS } from './motorControlLabs';
 import { PHASE1_LABS } from './phase1Labs';
+import { PHASE2_LABS } from './phase2Labs';
 
 export type LabCategory = 'all' | 'sockets' | 'lighting' | 'splice' | 'appliances' | 'residential' | 'industrial' | 'automation';
 
@@ -23,6 +24,9 @@ export const LAB_LESSONS: LabLesson[] = [
 
   // Roadmap phase 1: timer functions, fuses, RCBO, generator and ATS
   ...PHASE1_LABS,
+
+  // Roadmap phase 2: process control, protection relays, DC sensors, annunciation, 1-phase motors, instruments
+  ...PHASE2_LABS,
 
   // 0. PHILIPPINE RESIDENTIAL BRANCH CIRCUIT (standard devices)
   {

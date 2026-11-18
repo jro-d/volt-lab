@@ -25,6 +25,9 @@ interface DevicePropertiesPanelProps {
   onUpdateWiresProperty?: (wireIds: string[], updates: Partial<ElectricalWire>) => void;
   standard: CodeStandard;
   onUpdateDeviceProperty: (deviceId: string, key: string, value: any) => void;
+  /** Shared tank / line-pressure state and its updater (pumps, float and pressure switches) */
+  process?: { tankLevel: number; lineBar: number; drawOffLpm: number };
+  onUpdateProcess?: (patch: Partial<{ tankLevel: number; lineBar: number; drawOffLpm: number }>) => void;
   onUpdateWireProperty: (wireId: string, updates: Partial<ElectricalWire>) => void;
   onDeleteSelected: () => void;
   onClose: () => void;
@@ -61,6 +64,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   onUpdateWiresProperty,
   standard,
   onUpdateDeviceProperty,
+  process,
+  onUpdateProcess,
   onUpdateWireProperty,
   onDeleteSelected,
   onClose,
@@ -1321,8 +1326,195 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           <span className="text-[9px] text-ink-muted block">
             8-Pin DPDT Form-C Contacts (Common 11/21, NC 12/22, NO 14/24).
           </span>
+          <div className="grid grid-cols-2 gap-1">
+            {[{ v: 'ac', label: 'AC coil' }, { v: 'dc24', label: '24 V DC coil' }].map((k) => (
+              <button
+                key={k.v}
+                onClick={() => onUpdateDeviceProperty(device.id, 'coilType', k.v)}
+                className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                  (device.state.coilType || 'ac') === k.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                }`}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[9px] text-ink-muted block">
+            A DC coil: A1 = +24 V, A2 = 0 V. Never wire it to an AC line.
+          </span>
         </div>
       )}
+
+      {/* --- INSULATION / EARTH CONDITION (read back by the test instruments) --- */}
+      {device && (device.type === 'motor_ac_industrial' || device.type === 'motor_6lead_star_delta' || device.type === 'motor_1p' || device.type === 'pump_booster_3p' || device.type === 'ground_pit') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const isPit = device.type === 'ground_pit';
+        const key = isPit ? 'earthResistanceOhms' : 'insulationMOhm';
+        const opts = isPit
+          ? [{ v: 2, label: '2 Ω' }, { v: 5, label: '5 Ω' }, { v: 25, label: '25 Ω' }, { v: 60, label: '60 Ω' }]
+          : [{ v: 999, label: 'Good' }, { v: 2, label: 'Degraded' }, { v: 0.3, label: 'Damaged' }];
+        const current = Number(device.state[key] ?? (isPit ? 4.8 : 999));
+        return (
+          <div className="space-y-2 mt-2 pt-2 border-t border-border/80">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+              {isPit ? 'Electrode Resistance (what the earth tester reads)' : 'Winding Insulation (what the insulation tester reads)'}
+            </label>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>
+              {opts.map((o) => (
+                <button
+                  key={o.v}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${current === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* --- SINGLE-PHASE MOTOR + CAPACITOR --- */}
+      {device && (device.type === 'motor_1p' || device.type === 'capacitor_run') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | number | boolean; label: string }[], fallback: string | number | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        const note = (device.state.motorFault || device.state.motorNote) as string | undefined;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            {device.type === 'motor_1p' ? (
+              <>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Single-Phase Motor</label>
+                {choice('Type', 'motorKind', [{ v: 'split_phase', label: 'Split-phase' }, { v: 'capacitor_start', label: 'Cap-start' }, { v: 'psc', label: 'PSC' }], 'capacitor_start')}
+                <div className="text-[10px] font-mono text-ink-muted">
+                  Speed {Math.round(Number(device.state.speedPct) || 0)} % · centrifugal switch {device.state.motorKind === 'psc' ? 'none' : device.state.centrifugalOpen ? 'OPEN' : 'closed'} · {Number(device.state.measuredAmps || 0).toFixed(1)} A
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Motor Capacitor</label>
+                {choice('Value', 'uF', [{ v: 12, label: '12 µF' }, { v: 25, label: '25 µF' }, { v: 50, label: '50 µF' }, { v: 100, label: '100 µF' }, { v: 150, label: '150 µF' }], 100)}
+                {choice('Condition', 'open', [{ v: false, label: 'Good' }, { v: true, label: 'Failed open' }], false)}
+              </>
+            )}
+            {note && <div className="text-[10px] font-bold text-danger bg-danger-soft/60 border border-danger/40 rounded-lg px-2 py-1">{note}</div>}
+          </div>
+        );
+      })()}
+
+      {/* --- ANNUNCIATORS: buzzer, beacon, tower light --- */}
+      {device && (device.type === 'buzzer_horn' || device.type === 'beacon' || device.type === 'tower_light') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | boolean; label: string }[], fallback: string | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Annunciator</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.active ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {device.state.active ? (device.type === 'buzzer_horn' ? '● SOUNDING' : '● LIT') : '○ OFF'}
+              </span>
+            </div>
+            {choice('Supply', 'supply', [{ v: 'ac230', label: '230 V AC' }, { v: 'dc24', label: '24 V DC' }], 'ac230')}
+            {device.type === 'beacon' && (
+              <>
+                {choice('Mode', 'mode', [{ v: 'steady', label: 'Steady' }, { v: 'flashing', label: 'Flashing' }], 'steady')}
+                {choice('Colour', 'color', [{ v: 'red', label: 'Red' }, { v: 'amber', label: 'Amber' }, { v: 'green', label: 'Green' }, { v: 'blue', label: 'Blue' }], 'red')}
+              </>
+            )}
+            {device.type === 'buzzer_horn' && choice('Sound', 'muted', [{ v: false, label: 'On' }, { v: true, label: 'Muted' }], false)}
+          </div>
+        );
+      })()}
+
+      {/* --- 24 V DC DOMAIN: supply, sensors, PLC --- */}
+      {device && (device.type === 'psu_24vdc' || device.type === 'sensor_inductive' || device.type === 'sensor_capacitive' || device.type === 'sensor_photoelectric' || device.type === 'plc_24vdc_16io') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | number | boolean; label: string }[], fallback: string | number | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        const note = (device.state.psuFault || device.state.wiringNote || device.state.supplyNote || device.state.dcNote) as string | undefined;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">24 V DC Control Domain</label>
+            {device.type === 'psu_24vdc' && choice('Rated current', 'ratedAmps', [{ v: 2.5, label: '2.5 A' }, { v: 5, label: '5 A' }, { v: 10, label: '10 A' }], 5)}
+            {device.type.startsWith('sensor_') && (
+              <>
+                {choice('Output', 'output', [{ v: 'PNP', label: 'PNP' }, { v: 'NPN', label: 'NPN' }], 'PNP')}
+                {choice('Contact', 'contact', [{ v: 'NO', label: 'NO' }, { v: 'NC', label: 'NC' }], 'NO')}
+                {choice('Target', 'detected', [{ v: false, label: 'Clear' }, { v: true, label: 'Detected' }], false)}
+              </>
+            )}
+            {device.type === 'plc_24vdc_16io' && (
+              <>
+                {choice('CPU', 'plcRunning', [{ v: true, label: 'RUN' }, { v: false, label: 'STOP' }], true)}
+                {choice('Program', 'program', [{ v: 'passthrough', label: 'Qn = In' }, { v: 'start_stop_latch', label: 'Start/Stop' }], 'passthrough')}
+                {choice('Inputs', 'inputMode', [{ v: 'sinking', label: 'Sinking (PNP)' }, { v: 'sourcing', label: 'Sourcing (NPN)' }], 'sinking')}
+              </>
+            )}
+            {note && <div className="text-[10px] font-bold text-danger bg-danger-soft/60 border border-danger/40 rounded-lg px-2 py-1">{note}</div>}
+          </div>
+        );
+      })()}
 
       {/* --- FUSE HOLDER / FUSE SWITCH DISCONNECTOR --- */}
       {device && (device.type === 'fuse_holder_1p' || device.type === 'fuse_switch_disconnector_3p') && (() => {
@@ -1533,6 +1725,120 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             </div>
             <span className="text-[9px] text-ink-muted block">
               Grid dead and generator live: the load moves to the generator after the delay (the load is dead meanwhile). When the grid returns the load goes back at once. The two sources are never connected together.
+            </span>
+          </div>
+        );
+      })()}
+
+      {/* --- FLOAT SWITCH / PRESSURE SWITCH / PUMPS (shared process model) --- */}
+      {device && (device.type === 'float_switch' || device.type === 'pressure_switch') && (() => {
+        const isFloat = device.type === 'float_switch';
+        const proc = process || { tankLevel: 50, lineBar: 0, drawOffLpm: 10 };
+        const closed = !!device.state.contactClosed;
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const slider = (label: string, value: number, min: number, max: number, step: number, unit: string, onChange: (v: number) => void) => (
+          <div>
+            <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
+              <span className="font-bold uppercase tracking-wider">{label}</span>
+              <span className="font-mono text-ink font-bold">{value} {unit}</span>
+            </div>
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={step}
+              value={value}
+              onChange={(e) => onChange(Number(e.target.value))}
+              className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
+            />
+          </div>
+        );
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+                {isFloat ? 'Level Switch' : 'Pressure Switch'}
+              </label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${closed ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {closed ? 'COM-NO CLOSED' : 'COM-NC CLOSED'}
+              </span>
+            </div>
+            {isFloat ? (
+              <>
+                {slider('Tank Level', Math.round(proc.tankLevel), 0, 100, 1, '%', (v) => onUpdateProcess?.({ tankLevel: v }))}
+                {slider('High Trip', Number(device.state.highTrip) || 70, 10, 100, 1, '%', (v) => apply({ highTrip: v }))}
+                {slider('Low Trip', Number(device.state.lowTrip) || 30, 0, 90, 1, '%', (v) => apply({ lowTrip: v }))}
+                <div className="grid grid-cols-2 gap-1">
+                  {[
+                    { v: 'NO_on_rise', label: 'NO on rise', sub: 'closes at high level' },
+                    { v: 'NC_on_rise', label: 'NC on rise', sub: 'closes at low level' },
+                  ].map((k) => (
+                    <button
+                      key={k.v}
+                      onClick={() => apply({ contactForm: k.v })}
+                      className={`py-1 rounded-lg border text-xs font-mono font-bold flex flex-col items-center transition ${
+                        (device.state.contactForm || 'NO_on_rise') === k.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                      }`}
+                    >
+                      {k.label}
+                      <span className="text-[9px] font-sans font-normal opacity-80">{k.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {slider('Line Pressure', Number(proc.lineBar.toFixed(2)), 0, 5, 0.1, 'bar', (v) => onUpdateProcess?.({ lineBar: v }))}
+                {slider('Cut-In (pump on)', Number(device.state.cutIn) || 2, 0.5, 4.5, 0.1, 'bar', (v) => apply({ cutIn: v }))}
+                {slider('Cut-Out (pump off)', Number(device.state.cutOut) || 3, 0.5, 5, 0.1, 'bar', (v) => apply({ cutOut: v }))}
+              </>
+            )}
+            {slider('Draw-Off (consumers)', Math.round(proc.drawOffLpm), 0, 60, 1, 'L/min', (v) => onUpdateProcess?.({ drawOffLpm: v }))}
+            <span className="text-[9px] text-ink-muted block">
+              {isFloat
+                ? 'The contacts change at the trip levels and hold in between (hysteresis). A running pump raises the shared tank level; the draw-off slider drains it. The process runs 30x faster than real time.'
+                : 'com-no closes when the pressure falls to cut-in and opens at cut-out. A running pump raises the line pressure; the draw-off slider lowers it.'}
+            </span>
+          </div>
+        );
+      })()}
+
+      {device && (device.type === 'pump_booster_1p' || device.type === 'pump_booster_3p') && (() => {
+        const kwNow = Number(device.state.kw) || (device.type === 'pump_booster_3p' ? 1.5 : 0.75);
+        const options = device.type === 'pump_booster_3p' ? [0.75, 1.5, 2.2, 3.7] : [0.37, 0.75, 1.1, 1.5];
+        const setKw = (k: number) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, { kw: k, wattage: k * 1000 });
+          else {
+            onUpdateDeviceProperty(device.id, 'kw', k);
+            onUpdateDeviceProperty(device.id, 'wattage', k * 1000);
+          }
+        };
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Booster Pump</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.pumping ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {device.state.motorFault ? `⚠ ${device.state.motorFault}` : device.state.pumping ? '● PUMPING' : '○ STOPPED'}
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {options.map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setKw(k)}
+                  className={`py-1 text-xs font-mono font-bold rounded-lg border transition ${
+                    kwNow === k ? 'bg-ok text-surface border-ok shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {k} kW
+                </button>
+              ))}
+            </div>
+            <span className="text-[9px] text-ink-muted block">
+              While pumping, the pump adds 40 L/min per kW to the shared tank and raises the line pressure.
             </span>
           </div>
         );

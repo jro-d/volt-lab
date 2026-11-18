@@ -7,6 +7,12 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff.svg)](https://vitejs.dev/)
+27. **Automatic Pump Control with HOA: Float Switch, Overload, Run Lamp** — the pump fills a tank, the float switch starts and stops it with hysteresis, HAND overrides it.
+28. **DOL Starter Protected by a Phase Monitor** — swap two phases and the starter refuses to run.
+29. **Conveyor Stop: Inductive Sensor into a PLC Input, Relay Output to a Contactor** — 24 V DC supply, three-wire sensor, PLC and interface relay switching an AC contactor.
+30. **Overload Alarm: Thermal Overload Contact Drives a Beacon and Horn** — the overload relay 97-98 contact starts a flashing beacon and a horn.
+31. **Capacitor-Start Motor: Wiring the Starting Capacitor and Reversing Rotation** — start winding, 100 µF capacitor and centrifugal switch on a 0.37 kW single-phase motor.
+32. **Dead-Testing a 3-Phase Motor Circuit Before Energizing** — continuity, insulation (a damaged motor winding), earth electrode and phase rotation tests.
 
 ---
 
@@ -41,7 +47,15 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Boxes & splices**: PVC utility box, octagonal junction boxes, 4-way junction box, twist-on wire nut, lever-clamp splice connector.
 - **Motor control**: 440 V three-phase feeder, 440/220 V control transformer, 3-pole AC-3 contactor (13-14 NO and 21-22 NC auxiliaries, **X-ray cutaway**), Class 10 thermal overload relay (dial, TEST, RESET, 95-96 / 97-98), timer relay (on-delay, off-delay, flasher and one-shot), DPDT control relay, Start/Stop, FWD/REV/STOP and E-stop stations, HOA selector, roller limit switch, 22 mm pilot lights.
 - **Motors & drives**: TEFC 3-phase induction motor with CW / CCW rotation badge, 6-lead Wye-Delta motor, VFD, micro PLC (4 inputs, 4 relay outputs).
+- **Process control**: float switch (high / low trip with hysteresis, NO / NC on rise), pressure switch (cut-in / cut-out), and 1-phase / 3-phase booster pumps that raise a shared tank level or line pressure (a small documented process model, not a fluid simulator).
+- **Phase monitoring**: phase failure / phase sequence relay (lost phase, swapped phases, under / overvoltage release the 15-18 output).
+- **24 V DC control domain**: DIN-rail 24 V supply with current-limit shutdown and automatic restart, three-wire inductive, capacitive and photoelectric sensors (PNP / NPN, NO / NC, click the sensing face to place a target), a 24 V DC PLC (8 inputs, 8 sourcing outputs, RUN / STOP, passthrough or start / stop demo program) and a 24 V DC coil option on the control relay. The DC side is solved separately from AC: wiring a 24 V net to an AC line or neutral shuts the supply down and is reported as an error; NPN sensors on PNP inputs and reversed sensor supplies show a visible fault note.
+- **Annunciation**: panel buzzer / horn (audible, mutable), signal beacon (steady or flashing, selectable colour) and a three-segment red / amber / green tower light; each runs from 24 V DC or 230 V AC.
+- **Single-phase motors**: one motor with split-phase, capacitor-start and PSC variants (main U1-U2 and start winding Z1-Z2, visible centrifugal switch that opens at 75 % speed, reversal by swapping the start winding leads) and a separate motor capacitor wired in series with the start winding. A missing or open capacitor leaves the motor humming (no start capacitor), a wrong value is flagged with a high running current.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
+
+#### Test instruments
+Click **DMM** in the toolbar and pick an instrument in its panel: **DMM / clamp** (volts between two terminals, amps on a wire), **Megger** (insulation resistance at 250 / 500 / 1000 V between two terminals or a terminal and PE; refuses on an energized circuit; reads the `insulation` condition set on a motor in the inspector), **Earth** (electrode resistance of a ground pit), **Rotation** (click the three phases in turn: CW or CCW) and **Continuity** (de-energized only; beeps on a closed path, contacts shown at rest).
 
 ### 4. Marine & industrial motor control trainer
 - **Phase tracking**: the solver follows L1 / L2 / L3 through breakers, contactors and overload relays. U1-V1-W1 = L1-L2-L3 spins the motor **clockwise (FORWARD)**; swapping two lines spins it **counter-clockwise (REVERSE)**. A missing line shows a **single-phasing** fault.

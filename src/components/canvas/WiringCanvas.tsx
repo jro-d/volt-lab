@@ -57,8 +57,13 @@ interface WiringCanvasProps {
   dmmMode?: boolean;
   onDmmProbeTerminal?: (deviceId: string, terminalId: string) => void;
   onDmmClampWire?: (wireId: string) => void;
+  /** Which test instrument the probes act as, and the insulation tester's test voltage */
+  instrument?: 'dmm' | 'megger' | 'earth' | 'rotation' | 'continuity';
+  onSelectInstrument?: (id: 'dmm' | 'megger' | 'earth' | 'rotation' | 'continuity') => void;
+  meggerVolts?: 250 | 500 | 1000;
+  onMeggerVolts?: (v: 250 | 500 | 1000) => void;
   dmmReadout?: {
-    mode: 'voltage' | 'clamp' | 'idle';
+    mode: 'voltage' | 'clamp' | 'idle' | 'test';
     primary: string;
     secondary?: string;
     label?: string;
@@ -105,6 +110,10 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   onDmmProbeTerminal,
   onDmmClampWire,
   dmmReadout = null,
+  instrument = 'dmm',
+  onSelectInstrument,
+  meggerVolts = 500,
+  onMeggerVolts,
 }) => {
   const containerRef = useRef<SVGSVGElement | null>(null);
 
@@ -1110,14 +1119,41 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-warning-fill animate-pulse" />
               <span className="text-[10px] font-bold tracking-widest text-warning uppercase">
-                True RMS DMM / Clamp
+                {instrument === 'dmm' ? 'True RMS DMM / Clamp' : 'Test Instrument'}
               </span>
             </div>
             <span className="text-[9px] font-mono text-ink-muted">CAT IV 600V</span>
           </div>
+          {onSelectInstrument && (
+            <div className="pointer-events-auto mb-2 flex flex-wrap gap-1">
+              {([['dmm', 'DMM'], ['megger', 'Megger'], ['earth', 'Earth'], ['rotation', 'Rotation'], ['continuity', 'Continuity']] as const).map(([id, name]) => (
+                <button
+                  key={id}
+                  onClick={() => onSelectInstrument(id)}
+                  className={`px-1.5 py-0.5 rounded border text-[10px] font-mono font-bold transition ${instrument === id ? 'bg-probe text-on-probe border-probe' : 'bg-surface hover:bg-surface-sunken text-ink border-border'}`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+          {instrument === 'megger' && onMeggerVolts && (
+            <div className="pointer-events-auto mb-2 flex items-center gap-1">
+              <span className="text-[9px] text-ink-muted uppercase tracking-wider mr-1">Test</span>
+              {([250, 500, 1000] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => onMeggerVolts(v)}
+                  className={`px-1.5 py-0.5 rounded border text-[10px] font-mono font-bold ${meggerVolts === v ? 'bg-probe text-on-probe border-probe' : 'bg-surface hover:bg-surface-sunken text-ink border-border'}`}
+                >
+                  {v} V
+                </button>
+              ))}
+            </div>
+          )}
           <div className="rounded-lg bg-ok-soft/80 border border-ok/50 px-3 py-2 font-mono">
             <div className="text-[10px] text-ok/80 uppercase tracking-wider">
-              {dmmReadout?.label || 'Click 2 terminals (V) or 1 wire (A)'}
+              {dmmReadout?.label || (instrument === 'dmm' ? 'Click 2 terminals (V) or 1 wire (A)' : instrument === 'megger' ? 'Click 2 terminals (or a terminal and PE), circuit de-energized' : instrument === 'earth' ? 'Click the rod clamp of a ground pit' : instrument === 'rotation' ? 'Click the L1, L2 and L3 sources in turn (energized)' : 'Click 2 terminals, circuit de-energized')}
             </div>
             <div className="text-2xl font-black text-ok tracking-tight mt-0.5">
               {dmmReadout?.primary || '---'}

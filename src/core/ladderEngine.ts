@@ -93,6 +93,22 @@ export function getControlElements(dev: ElectricalDevice): PhysicalElement[] {
       add('coil', 'COIL', s.role ? `${tag}/${s.role}` : tag, 'A1-A2', 'a1', 'a2', !!s.coilEnergized);
       break;
     }
+    case 'selector_hoa':
+      add('hand', 'NO', s.tag || 'HOA', 'HAND', 'com', 'hand', s.mode === 'hand');
+      add('auto', 'NO', s.tag || 'HOA', 'AUTO', 'com', 'auto', s.mode === 'auto');
+      break;
+    case 'phase_monitor_relay':
+      add('pm_no', 'NO', s.tag || 'KP', '15-18', 'com_15', 'no_18', !!s.phaseOk);
+      add('pm_nc', 'NC', s.tag || 'KP', '15-16', 'com_15', 'nc_16', !s.phaseOk);
+      break;
+    case 'float_switch':
+      add('level_no', 'NO', s.tag || 'LS', 'NO', 'com', 'no', !!s.contactClosed);
+      add('level_nc', 'NC', s.tag || 'LS', 'NC', 'com', 'nc', !s.contactClosed);
+      break;
+    case 'pressure_switch':
+      add('press_no', 'NO', s.tag || 'PS', 'NO', 'com', 'no', !!s.contactClosed);
+      add('press_nc', 'NC', s.tag || 'PS', 'NC', 'com', 'nc', !s.contactClosed);
+      break;
     case 'thermal_overload_relay':
       add('trip_nc', 'NC', 'OLR', '95-96', 'nc_95', 'nc_96', !s.tripped);
       add('alarm_no', 'NO', 'OLR', '97-98', 'no_97', 'no_98', !!s.tripped);
@@ -120,6 +136,12 @@ export function getControlElements(dev: ElectricalDevice): PhysicalElement[] {
       add('coil', 'COIL', `${tag} (${s.delaySec ?? 5}s)`, 'A1-A2', 'a1', 'a2', !!s.energized);
       break;
     }
+    case 'buzzer_horn':
+      add('lamp', 'LAMP', s.tag || 'HA', 'HORN', 'a1', 'a2', !!s.active);
+      break;
+    case 'beacon':
+      add('lamp', 'LAMP', s.tag || 'HL', 'BEACON', 'a1', 'a2', !!s.active);
+      break;
     case 'pilot_light_indicator': {
       const colour = (s.pilotColor || 'green').toUpperCase();
       add('lamp', 'LAMP', s.tag || `PL_${colour === 'RED' ? 'FAULT' : colour === 'GREEN' ? 'RUN' : colour}`, colour, 'x1', 'x2', !!s.lit);

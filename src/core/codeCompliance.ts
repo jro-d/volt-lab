@@ -3,6 +3,8 @@ import { CodeViolation, ElectricalAnalysisReport } from '../types/codes';
 import { getWireStandards, CONDUIT_FILL_STANDARDS } from '../data/standardsData';
 import { SolvedCircuit } from './circuitSolver';
 import { parsePhysicalLadder } from './ladderEngine';
+import { findAcDcCrossWires } from './dcDomain';
+import { EARTH_NOTE_OHMS } from './instruments';
 
 /** Devices that live inside a distribution board or motor control enclosure (internal panel jumpers, not branch conduit runs) */
 const PANEL_DEVICE_TYPES = new Set([
@@ -168,7 +170,7 @@ export function analyzeCodeCompliance(
           recommendation: 'Consider System A (Pigtail Splice with wire nuts in an orange octagonal box) so downstream continuity does not depend on this receptacle body.'
         });
       }
-    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'safety_breaker_2p') {
+    } else if (dev.type === 'appliance_water_heater' || dev.type === 'appliance_ac' || dev.type === 'pump_booster_1p' || dev.type === 'pump_booster_3p' || dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta' || dev.type === 'safety_breaker_2p') {
       const gndWire = wires.find(w => 
         (w.fromDeviceId === dev.id && (w.fromTerminalId === 'ground' || w.fromTerminalId === 'pe')) || 
         (w.toDeviceId === dev.id && (w.toTerminalId === 'ground' || w.toTerminalId === 'pe'))
@@ -263,7 +265,7 @@ export function analyzeCodeCompliance(
   }
 
   // 4b. Motor control: overload protection & reversing interlocks (PEC 4.30 / IEC 60204-1)
-  const motors = devices.filter(d => d.type === 'motor_ac_industrial' || d.type === 'motor_6lead_star_delta');
+  const motors = devices.filter(d => d.type === 'motor_ac_industrial' || d.type === 'pump_booster_3p' || d.type === 'motor_6lead_star_delta');
   const contactors = devices.filter(d => d.type === 'contactor_3p');
   const hasTor = devices.some(d => d.type === 'thermal_overload_relay');
   if (motors.length > 0 && contactors.length > 0 && !hasTor) {
@@ -278,6 +280,57 @@ export function analyzeCodeCompliance(
       affectedDeviceId: motors[0].id,
       recommendation: 'Install a thermal overload relay (TOR) after the contactor, set its dial to the motor FLA and wire its 95-96 NC contact in series with the coil circuit.'
     });
+  }
+  // Information only: a high-resistance earth electrode (no code limit is cited; the level is a rule of thumb)
+  for (const pit of devices.filter(d => d.type === 'ground_pit')) {
+    const ohms = Number(pit.state.earthResistanceOhms);
+    if (Number.isFinite(ohms) && ohms > EARTH_NOTE_OHMS) {
+      violations.push({
+        id: `viol_high_earth_resistance_${pit.id}`,
+        codeStandard: standard,
+        severity: 'info',
+        category: 'grounding',
+        // No clause cited on purpose: confirm the limit that applies against your copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (limit to be verified)' : 'IEC 60364 (limit to be verified)',
+        title: 'High Earth Electrode Resistance',
+        message: `${pit.name || pit.id} measures ${ohms} Ω to earth, above the ${EARTH_NOTE_OHMS} Ω rule-of-thumb level. Earth faults may not draw enough current to trip protection quickly.`,
+        affectedDeviceId: pit.id,
+        recommendation: 'Measure with the earth tester, then add rods, lengthen the rod or improve the soil contact until the value meets the limit your code sets.'
+      });
+    }
+  }
+  // 24 V DC control wiring must never be joined to AC line / neutral conductors
+  for (const x of findAcDcCrossWires(devices, wires)) {
+    violations.push({
+      id: `viol_ac_dc_mix_${x.wire.id}`,
+      codeStandard: standard,
+      severity: 'error',
+      category: 'polarity',
+      // Clause intentionally left for the user to confirm against their copy of the code
+      articleRef: 'IEC 60204-1 (clause to be verified)',
+      title: 'AC and DC Circuits Connected',
+      message: `${x.dcDevice.name || x.dcDevice.id} (24 V DC) is wired to the same net as ${x.acDevice.name || x.acDevice.id} (AC line / neutral). The two systems must stay separate; the 24 V supply shuts down and the DC devices can be destroyed.`,
+      affectedDeviceId: x.dcDevice.id,
+      affectedWireId: x.wire.id,
+      recommendation: 'Remove the wire between the AC and DC sides. Use a relay (coil on DC, contacts on AC) to cross between the two.'
+    });
+  }
+  // Information only: a motor with no phase-failure / phase-sequence protection
+  if (motors.length > 0 && !devices.some(d => d.type === 'phase_monitor_relay')) {
+    for (const motor of motors) {
+      violations.push({
+        id: `viol_motor_no_phase_protection_${motor.id}`,
+        codeStandard: standard,
+        severity: 'info',
+        category: 'ampacity',
+        // Clause intentionally left for the user to confirm against their copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60204-1 (clause to be verified)',
+        title: 'Motor Without Phase Protection',
+        message: `${motor.name || motor.id} has no phase-failure / phase-sequence relay. A lost phase leaves it single-phasing, and swapped phases reverse it, with nothing to stop the starter.`,
+        affectedDeviceId: motor.id,
+        recommendation: 'Consider a phase monitor relay in the control circuit so the starter only runs on a complete supply in the correct sequence.'
+      });
+    }
   }
   for (const tor of devices.filter(d => d.type === 'thermal_overload_relay')) {
     const ncWired = wires.some(w =>

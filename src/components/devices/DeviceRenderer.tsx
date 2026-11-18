@@ -5,6 +5,11 @@ import { KwhMeterDevice } from './KwhMeterDevice';
 import { McbDevice } from './McbDevice';
 import { FuseDevice } from './FuseDevice';
 import { GeneratorDevice } from './GeneratorDevice';
+import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
+import { PhaseMonitorDevice } from './PhaseMonitorDevice';
+import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
+import { Motor1pDevice, CapacitorDevice } from './SinglePhaseMotor';
+import { PsuDevice, SensorDevice, Plc24Device } from './DcDevices';
 import { RcdDevice } from './RcdDevice';
 import { SpdDevice } from './SpdDevice';
 import { BusbarDevice } from './BusbarDevice';
@@ -102,6 +107,32 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'mcb_2p':
       case 'mcb_3p':
         return <McbDevice {...commonProps} />;
+      case 'buzzer_horn':
+        return <BuzzerDevice {...commonProps} />;
+      case 'beacon':
+        return <BeaconDevice {...commonProps} />;
+      case 'tower_light':
+        return <TowerLightDevice {...commonProps} />;
+      case 'motor_1p':
+        return <Motor1pDevice {...commonProps} />;
+      case 'capacitor_run':
+        return <CapacitorDevice {...commonProps} />;
+      case 'psu_24vdc':
+        return <PsuDevice {...commonProps} />;
+      case 'sensor_inductive':
+      case 'sensor_capacitive':
+      case 'sensor_photoelectric':
+        return <SensorDevice {...commonProps} />;
+      case 'plc_24vdc_16io':
+        return <Plc24Device {...commonProps} />;
+      case 'phase_monitor_relay':
+        return <PhaseMonitorDevice {...commonProps} />;
+      case 'float_switch':
+      case 'pressure_switch':
+        return <LevelSwitchDevice {...commonProps} />;
+      case 'pump_booster_1p':
+      case 'pump_booster_3p':
+        return <PumpDevice {...commonProps} />;
       case 'generator_set_1p':
       case 'generator_set_3p':
         return <GeneratorDevice {...commonProps} />;

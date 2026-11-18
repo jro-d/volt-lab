@@ -333,7 +333,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           <RibbonButton
             onClick={onToggleDmmMode}
             active={dmmMode}
-            title="Digital Multimeter & Clamp Meter (Click wire for Amps, or 2 terminals for Volts)"
+            title="Meters & Test Instruments: DMM / clamp (click a wire for Amps, 2 terminals for Volts), insulation tester, earth tester, phase rotation meter, continuity buzzer"
             label="DMM"
           >
             <Zap className="w-4 h-4" />

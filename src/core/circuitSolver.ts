@@ -2,6 +2,9 @@ import { ElectricalDevice, ElectricalWire, CodeStandard } from '../types/electri
 import { SparkEvent } from '../types/simulation';
 import { getWireStandards } from '../data/standardsData';
 import { behaviorFor } from './behaviors/registry';
+import { PSU_RECOVERY_SEC } from './behaviors/dcDevices';
+import { CENTRIFUGAL_PCT } from './behaviors/singlePhaseMotor';
+import { floodDc, dcLoadAmps, isDcCoilDevice, type DcPotential, type DcResult } from './dcDomain';
 
 export type PhaseId = 'L1' | 'L2' | 'L3';
 
@@ -18,6 +21,8 @@ export interface SolvedCircuit {
   nodePotentials: Record<string, 'live' | 'neutral' | 'earth' | 'switched' | 'none'>;
   /** Individual 3-phase line identity of energized nodes (only for 3-phase sources) */
   nodePhases: Record<string, PhaseId>;
+  /** 24 V DC control-domain potentials (kept apart from the AC nodePotentials) */
+  dcPotentials: Record<string, DcPotential>;
   deviceEnergized: Record<string, boolean>;
   wireCurrents: Record<string, number>;
   wireFlowDirections: Record<string, 'forward' | 'reverse'>;
@@ -33,6 +38,8 @@ export interface SolvedCircuit {
   devicePatches: Record<string, Record<string, unknown>>;
   /** Peak motor starting current (A) seen by each upstream overcurrent device that is not a breaker (fuses) */
   inrushByDevice: Record<string, number>;
+  /** Terminal connectivity graph; only filled by a `graphOnly` solve (used by the continuity tester) */
+  adjacency?: Record<string, string[]>;
 }
 
 /**
@@ -54,6 +61,7 @@ export function createDeEnergizedSolution(wires: ElectricalWire[]): SolvedCircui
     nodeVoltages: {},
     nodePotentials: {},
     nodePhases: {},
+    dcPotentials: {},
     deviceEnergized: {},
     wireCurrents,
     wireFlowDirections,
@@ -92,7 +100,8 @@ export function solveCircuit(
   devices: ElectricalDevice[],
   wires: ElectricalWire[],
   standard: CodeStandard = 'PEC',
-  gridVoltage: number = 230
+  gridVoltage: number = 230,
+  options: { graphOnly?: boolean } = {}
 ): SolvedCircuit {
   const nodeVoltages: Record<string, number> = {};
   const nodePotentials: Record<string, 'live' | 'neutral' | 'earth' | 'switched' | 'none'> = {};
@@ -107,6 +116,7 @@ export function solveCircuit(
   const tripReasons: Record<string, string> = {};
   const devicePatches: Record<string, Record<string, unknown>> = {};
   let faults: CircuitFault[] = [];
+  let dc: DcResult = { potentials: {}, sourceOf: {}, mixNodes: [], mixedPsus: [], shorted: [] };
 
   const deviceById = new Map(devices.map(d => [d.id, d]));
 
@@ -515,6 +525,42 @@ export function solveCircuit(
         traverse([terminalKey(dev.id, 'x1')], 'live', dev.state.secondaryVolts || 220, liveParent);
       }
     }
+
+    // 24 V DC control domain: isolated from the AC floods above, flagged if the two ever touch
+    dc = floodDc(devices, adj, nodePotentials);
+  };
+
+  /** Coil / load sees + on one terminal and 0 V on the other (24 V DC) */
+  const isDcPowered = (devId: string, tPos: string, tNeg: string) =>
+    dc.potentials[terminalKey(devId, tPos)] === 'dc_pos' && dc.potentials[terminalKey(devId, tNeg)] === 'dc_neg';
+
+  /** Annunciator supply: 24 V DC (+ on the segment / A1, 0 V on COM / A2) or 230 V AC (line / neutral either way round) */
+  const annunciatorPowered = (dev: ElectricalDevice, hot: string, ret: string) => {
+    if (dev.state.supply === 'dc24') return isDcPowered(dev.id, hot, ret);
+    const a = nodePotentials[terminalKey(dev.id, hot)];
+    const b = nodePotentials[terminalKey(dev.id, ret)];
+    return (a === 'live' && b === 'neutral') || (b === 'live' && a === 'neutral');
+  };
+
+  /** Total nominal load (A) on each 24 V supply, from the DC devices that are powered */
+  const dcLoadsBySupply = () => {
+    const loads: Record<string, number> = {};
+    const add = (posNode: string, amps: number) => {
+      const src = dc.sourceOf[posNode];
+      if (src) loads[src] = (loads[src] || 0) + amps;
+    };
+    for (const d of devices) {
+      if (d.type === 'sensor_inductive' || d.type === 'sensor_capacitive' || d.type === 'sensor_photoelectric') {
+        if (isDcPowered(d.id, 'brown', 'blue')) add(terminalKey(d.id, 'brown'), dcLoadAmps(d));
+      } else if (d.type === 'plc_24vdc_16io') {
+        if (isDcPowered(d.id, 'l_pos', 'm_neg')) add(terminalKey(d.id, 'l_pos'), dcLoadAmps(d));
+      } else if (d.type === 'tower_light' && d.state.supply === 'dc24') {
+        for (const seg of ['r', 'a', 'g']) if (isDcPowered(d.id, seg, 'com')) add(terminalKey(d.id, seg), dcLoadAmps(d));
+      } else if (isDcCoilDevice(d) && isDcPowered(d.id, 'a1', 'a2')) {
+        add(terminalKey(d.id, 'a1'), dcLoadAmps(d));
+      }
+    }
+    return loads;
   };
 
   /** Coil sees a complete circuit: live↔neutral, or two different phases (line-to-line coil) */
@@ -530,6 +576,14 @@ export function solveCircuit(
     return false;
   };
 
+  // Test instruments only need the wiring graph with every contact at rest: build it once and stop
+  if (options.graphOnly) {
+    executePass();
+    const adjacency: Record<string, string[]> = {};
+    for (const k in adj) adjacency[k] = [...adj[k]];
+    return { ...createDeEnergizedSolution(wires), adjacency };
+  }
+
   // Dynamic Cascade Evaluation. Electromagnetic devices settle ONE AT A TIME (first in the list wins),
   // which reproduces real-world races such as two interlocked contactors fighting for the same supply.
   for (let pass = 0; pass < 16; pass++) {
@@ -537,10 +591,90 @@ export function solveCircuit(
 
     let contactsChanged = false;
     for (const dev of devices) {
-      if (dev.type === 'industrial_relay_dpdt') {
-        const on = isCoilPowered(dev.id, 'a1', 'a2') || !!dev.state.manualTest;
+      if (dev.type === 'psu_24vdc') {
+        const hasAc = isCoilPowered(dev.id, 'in_l', 'in_n');
+        const load = dcLoadsBySupply()[dev.id] || 0;
+        const rated = Number(dev.state.ratedAmps) || 5;
+        let fault = '';
+        if (dc.mixedPsus.includes(dev.id)) fault = 'AC/DC CROSS-CONNECTION';
+        else if (dc.shorted.includes(dev.id)) fault = 'OUTPUT SHORT';
+        else if (load > rated) fault = 'OVERLOAD';
+        dev.state.dcLoadAmps = Math.round(load * 1000) / 1000;
+        if (fault && dev.state.dcOutputOn && !dev.state.psuTripped) {
+          dev.state.psuTripped = true;
+          dev.state.psuRecoverSec = PSU_RECOVERY_SEC;
+          dev.state.psuFault = fault;
+        }
+        const on = hasAc && !dev.state.psuTripped;
+        if (!!dev.state.dcOutputOn !== on) {
+          dev.state.dcOutputOn = on;
+          contactsChanged = true;
+          break;
+        }
+      } else if (dev.type === 'sensor_inductive' || dev.type === 'sensor_capacitive' || dev.type === 'sensor_photoelectric') {
+        const powered = isDcPowered(dev.id, 'brown', 'blue');
+        const reversed = dc.potentials[terminalKey(dev.id, 'brown')] === 'dc_neg' && dc.potentials[terminalKey(dev.id, 'blue')] === 'dc_pos';
+        const active = powered && (dev.state.contact === 'NC' ? !dev.state.detected : !!dev.state.detected);
+        dev.state.sensorPowered = powered;
+        dev.state.supplyNote = reversed ? 'REVERSED SUPPLY (brown on 0 V, blue on +24 V)' : '';
+        if (!!dev.state.outActive !== active) {
+          dev.state.outActive = active;
+          contactsChanged = true;
+          break;
+        }
+      } else if (dev.type === 'plc_24vdc_16io') {
+        const powered = isDcPowered(dev.id, 'l_pos', 'm_neg');
+        const running = powered && dev.state.plcRunning !== false;
+        const wantPot: DcPotential = dev.state.inputMode === 'sourcing' ? 'dc_neg' : 'dc_pos';
+        const inp: Record<string, boolean> = {};
+        for (let n = 0; n < 8; n++) inp[`i${n}`] = powered && dc.potentials[terminalKey(dev.id, `i${n}`)] === wantPot;
+        const prevOut = (dev.state.plcOutputs || {}) as Record<string, boolean>;
+        const out: Record<string, boolean> = {};
+        for (let n = 0; n < 8; n++) out[`q${n}`] = false;
+        if (running) {
+          if (dev.state.program === 'start_stop_latch') {
+            // I0.0 = START (NO), I0.1 = STOP wired NC (true while healthy); Q0.0 seals in through itself
+            out.q0 = (inp.i0 || !!prevOut.q0) && inp.i1;
+          } else {
+            for (let n = 0; n < 8; n++) out[`q${n}`] = inp[`i${n}`];
+          }
+        }
+        dev.state.plcPowered = powered;
+        dev.state.plcInputs = inp;
+        let changed = false;
+        for (let n = 0; n < 8; n++) if (!!prevOut[`q${n}`] !== out[`q${n}`]) changed = true;
+        dev.state.plcOutputs = out;
+        if (changed) {
+          contactsChanged = true;
+          break;
+        }
+      } else if (dev.type === 'industrial_relay_dpdt') {
+        const on = (dev.state.coilType === 'dc24' ? isDcPowered(dev.id, 'a1', 'a2') : isCoilPowered(dev.id, 'a1', 'a2')) || !!dev.state.manualTest;
         if (!!dev.state.coilEnergized !== on) {
           dev.state.coilEnergized = on;
+          contactsChanged = true;
+          break;
+        }
+      } else if (dev.type === 'phase_monitor_relay') {
+        const senseKeys = ['l1', 'l2', 'l3'].map(t => terminalKey(dev.id, t));
+        const present = senseKeys.map(k => nodePotentials[k] === 'live' && !!nodePhases[k]);
+        const phases = senseKeys.map(k => nodePhases[k]);
+        const nominal = Number(dev.state.nominalV) || 440;
+        const band = (Number(dev.state.underOverPct) || 10) / 100;
+        // sense voltages are phase-to-neutral; the relay compares the line-to-line value with its nominal
+        const lineV = Math.max(...senseKeys.map(k => (nodeVoltages[k] || 0) * Math.sqrt(3)));
+        let fault = '';
+        if (!isCoilPowered(dev.id, 'a1', 'a2')) fault = 'NO SUPPLY';
+        else if (present.some(p => !p)) fault = 'LOST PHASE';
+        else if (!CW_SEQUENCES.includes(phases.join(','))) fault = 'WRONG SEQUENCE';
+        else if (lineV < nominal * (1 - band)) fault = 'UNDERVOLTAGE';
+        else if (lineV > nominal * (1 + band)) fault = 'OVERVOLTAGE';
+        const on = fault === '';
+        const presentNow: Record<string, boolean> = { l1: present[0], l2: present[1], l3: present[2] };
+        dev.state.phasePresent = presentNow;
+        dev.state.phaseFault = fault;
+        if (!!dev.state.phaseOk !== on) {
+          dev.state.phaseOk = on;
           contactsChanged = true;
           break;
         }
@@ -646,7 +780,7 @@ export function solveCircuit(
       while (curr && !seen.has(curr)) {
         seen.add(curr);
         const d = deviceById.get(devOfNode(curr));
-        if (d && (d.type === 'contactor_3p' || d.type === 'thermal_overload_relay' || d.type === 'motor_ac_industrial' || d.type === 'motor_6lead_star_delta')) {
+        if (d && (d.type === 'contactor_3p' || d.type === 'thermal_overload_relay' || d.type === 'motor_ac_industrial' || d.type === 'pump_booster_3p' || d.type === 'motor_6lead_star_delta')) {
           arcNode = curr;
           break;
         }
@@ -802,6 +936,17 @@ export function solveCircuit(
       if (isPowered) {
         totalWatts += dev.state.wattage || 65;
       }
+    } else if (dev.type === 'phase_monitor_relay') {
+      deviceEnergized[dev.id] = !!dev.state.phaseOk;
+      if (isCoilPowered(dev.id, 'a1', 'a2')) totalWatts += 3;
+    } else if (dev.type === 'pump_booster_1p') {
+      const lPot = nodePotentials[terminalKey(dev.id, 'line')];
+      const nPot = nodePotentials[terminalKey(dev.id, 'neutral')];
+      const isPowered = lPot === 'live' && nPot === 'neutral';
+      deviceEnergized[dev.id] = isPowered;
+      dev.state.powered = isPowered;
+      dev.state.pumping = isPowered;
+      if (isPowered) totalWatts += (Number(dev.state.kw) || 0.75) * 1000;
     } else if (dev.type === 'appliance_ac') {
       const lPot = nodePotentials[terminalKey(dev.id, 'line')];
       const nPot = nodePotentials[terminalKey(dev.id, 'neutral')];
@@ -811,7 +956,7 @@ export function solveCircuit(
       if (isPowered) {
         totalWatts += dev.state.wattage || 1200;
       }
-    } else if (dev.type === 'motor_ac_industrial') {
+    } else if (dev.type === 'motor_ac_industrial' || dev.type === 'pump_booster_3p') {
       const tk = ['u1', 'v1', 'w1'].map(t => terminalKey(dev.id, t));
       const pots = tk.map(k => nodePotentials[k]);
       const phases = tk.map(k => nodePhases[k]);
@@ -836,6 +981,7 @@ export function solveCircuit(
       deviceEnergized[dev.id] = isRunning;
       dev.state.running = isRunning;
       dev.state.motorRunning = isRunning;
+      if (dev.type === 'pump_booster_3p') dev.state.pumping = isRunning;
       dev.state.motorDirection = direction;
       dev.state.motorFault = fault;
       dev.state.measuredAmps = isRunning
@@ -920,6 +1066,61 @@ export function solveCircuit(
       if (isRunning) {
         totalWatts += activeWatts;
       }
+    } else if (dev.type === 'motor_1p') {
+      const kind = (dev.state.motorKind as string) || 'capacitor_start';
+      const hot = (a: string, b: string) => {
+        const pa = nodePotentials[terminalKey(dev.id, a)];
+        const pb = nodePotentials[terminalKey(dev.id, b)];
+        return { on: (pa === 'live' && pb === 'neutral') || (pb === 'live' && pa === 'neutral'), aLive: pa === 'live' };
+      };
+      const main = hot('u1', 'u2');
+      const aux = hot('z1', 'z2');
+      const speed = Number(dev.state.speedPct) || 0;
+      const switchClosed = kind === 'psc' || speed < CENTRIFUGAL_PCT;
+      const auxActive = aux.on && switchClosed;
+      const startOk = main.on && (auxActive || speed >= CENTRIFUGAL_PCT);
+      // The capacitor in series with the auxiliary winding: its value is checked against what the motor type needs
+      let capUf: number | null = null;
+      for (const w of wires) {
+        const ends: [string, string][] = [[w.fromDeviceId, w.fromTerminalId], [w.toDeviceId, w.toTerminalId]];
+        const mine = ends.find(([d, t]) => d === dev.id && (t === 'z1' || t === 'z2'));
+        const other = ends.find(([d]) => d !== dev.id);
+        const c = mine && other && deviceById.get(other[0]);
+        if (c && c.type === 'capacitor_run') capUf = Number(c.state.uF) || 0;
+      }
+      const needUf = kind === 'capacitor_start' ? 100 : kind === 'psc' ? 12 : null;
+      let fault: string | null = null;
+      let note = '';
+      if (main.on && !startOk) fault = kind === 'split_phase' ? 'no start winding' : 'no start capacitor';
+      if (needUf && capUf !== null && capUf > 0 && Math.abs(capUf - needUf) / needUf > 0.4) {
+        note = `wrong capacitor value: ${capUf} uF, this motor needs about ${needUf} uF`;
+      }
+      let direction: 'CW' | 'CCW' | null = (dev.state.motorDirection as 'CW' | 'CCW' | null) || null;
+      if (aux.on) direction = main.aLive === aux.aLive ? 'CW' : 'CCW';
+      else if (!direction) direction = 'CW';
+      const fla = (Number(dev.state.wattage) || 370) / (gridVoltage * 0.7);
+      const amps = !main.on ? 0 : fault ? fla * 5 : speed < CENTRIFUGAL_PCT ? fla * 3 : fla * (note ? 1.6 : 1);
+      dev.state.mainPowered = main.on;
+      dev.state.startOk = startOk;
+      dev.state.motorRunning = startOk && !fault;
+      dev.state.motorDirection = main.on ? direction : null;
+      dev.state.motorFault = fault;
+      dev.state.motorNote = note;
+      dev.state.measuredAmps = Math.round(amps * 100) / 100;
+      dev.state.auxActive = auxActive;
+      deviceEnergized[dev.id] = main.on;
+      if (main.on) totalWatts += Math.round(amps * gridVoltage * 0.7);
+    } else if (dev.type === 'buzzer_horn' || dev.type === 'beacon') {
+      const on = annunciatorPowered(dev, 'a1', 'a2');
+      dev.state.active = on;
+      deviceEnergized[dev.id] = on;
+      if (on && dev.state.supply !== 'dc24') totalWatts += Number(dev.state.wattage) || 5;
+    } else if (dev.type === 'tower_light') {
+      const seg = { r: annunciatorPowered(dev, 'r', 'com'), a: annunciatorPowered(dev, 'a', 'com'), g: annunciatorPowered(dev, 'g', 'com') };
+      dev.state.segments = seg;
+      dev.state.active = seg.r || seg.a || seg.g;
+      deviceEnergized[dev.id] = !!dev.state.active;
+      if (dev.state.supply !== 'dc24') totalWatts += ((seg.r ? 1 : 0) + (seg.a ? 1 : 0) + (seg.g ? 1 : 0)) * (Number(dev.state.wattage) || 8) / 3;
     } else if (dev.type === 'pilot_light_indicator') {
       const p1 = nodePotentials[terminalKey(dev.id, 'x1')];
       const p2 = nodePotentials[terminalKey(dev.id, 'x2')];
@@ -1064,13 +1265,16 @@ export function solveCircuit(
     } else if (dev.type === 'appliance_fan') {
       const w = dev.state.wattage || 65;
       traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
+    } else if (dev.type === 'pump_booster_1p') {
+      const w = (Number(dev.state.kw) || 0.75) * 1000;
+      traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
     } else if (dev.type === 'appliance_ac') {
       const w = dev.state.wattage || 1200;
       traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
     } else if (dev.type === 'appliance_water_heater') {
       const w = dev.state.wattage || 3500;
       traceLoadCurrent(terminalKey(dev.id, 'line'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
-    } else if (dev.type === 'motor_ac_industrial') {
+    } else if (dev.type === 'motor_ac_industrial' || dev.type === 'pump_booster_3p') {
       const w = dev.state.wattage || 2200;
       const isThreePhase = !!nodePhases[terminalKey(dev.id, 'u1')];
       if (isThreePhase) {
@@ -1141,6 +1345,22 @@ export function solveCircuit(
             wireCurrents[wire.id] = (wireCurrents[wire.id] || 0) + amps;
           }
         }
+      }
+    } else if (dev.type === 'motor_1p' && dev.state.mainPowered) {
+      const amps = Number(dev.state.measuredAmps) || 0;
+      const mainLive = nodePotentials[terminalKey(dev.id, 'u1')] === 'live' ? 'u1' : 'u2';
+      traceLoadCurrent(terminalKey(dev.id, mainLive), terminalKey(dev.id, mainLive === 'u1' ? 'u2' : 'u1'), amps * 0.7);
+      if (dev.state.auxActive) {
+        const auxLive = nodePotentials[terminalKey(dev.id, 'z1')] === 'live' ? 'z1' : 'z2';
+        traceLoadCurrent(terminalKey(dev.id, auxLive), terminalKey(dev.id, auxLive === 'z1' ? 'z2' : 'z1'), amps * 0.5);
+      }
+    } else if ((dev.type === 'buzzer_horn' || dev.type === 'beacon') && dev.state.active && dev.state.supply !== 'dc24') {
+      const liveT = nodePotentials[terminalKey(dev.id, 'a1')] === 'live' ? 'a1' : 'a2';
+      traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, liveT === 'a1' ? 'a2' : 'a1'), (Number(dev.state.wattage) || 5) / gridVoltage);
+    } else if (dev.type === 'tower_light' && dev.state.supply !== 'dc24') {
+      const segs = (dev.state.segments || {}) as Record<string, boolean>;
+      for (const seg of ['r', 'a', 'g']) {
+        if (segs[seg]) traceLoadCurrent(terminalKey(dev.id, seg), terminalKey(dev.id, 'com'), (Number(dev.state.wattage) || 8) / 3 / gridVoltage);
       }
     } else if (dev.type === 'pilot_light_indicator') {
       const p1 = nodePotentials[terminalKey(dev.id, 'x1')];
@@ -1233,7 +1453,7 @@ export function solveCircuit(
 
   const motorInrushByBreaker: Record<string, number> = {};
   for (const dev of devices) {
-    if ((dev.type === 'motor_ac_industrial' || dev.type === 'motor_6lead_star_delta') && deviceEnergized[dev.id]) {
+    if ((dev.type === 'motor_ac_industrial' || dev.type === 'pump_booster_3p' || dev.type === 'motor_6lead_star_delta') && deviceEnergized[dev.id]) {
       const startKey = terminalKey(dev.id, 'u1');
       const runAmps = dev.state.measuredAmps || (dev.state.wattage || 2200) / gridVoltage;
       const inrushMult = hasVfdUpstream(startKey)
@@ -1280,6 +1500,31 @@ export function solveCircuit(
     }
   }
 
+  // 24 V DC devices: energized flags and wiring notes (NPN / PNP mismatch is a visible fault, never silent)
+  for (const dev of devices) {
+    if (dev.type === 'psu_24vdc') {
+      deviceEnergized[dev.id] = !!dev.state.dcOutputOn;
+      if (isCoilPowered(dev.id, 'in_l', 'in_n')) totalWatts += Number(dev.state.wattage) || 12;
+    } else if (dev.type === 'sensor_inductive' || dev.type === 'sensor_capacitive' || dev.type === 'sensor_photoelectric') {
+      deviceEnergized[dev.id] = !!dev.state.sensorPowered;
+      let note = (dev.state.supplyNote as string) || '';
+      for (const w of wires) {
+        const end = w.fromDeviceId === dev.id && w.fromTerminalId === 'black' ? [w.toDeviceId, w.toTerminalId]
+          : w.toDeviceId === dev.id && w.toTerminalId === 'black' ? [w.fromDeviceId, w.fromTerminalId] : null;
+        const other = end && deviceById.get(end[0]);
+        if (other && other.type === 'plc_24vdc_16io' && /^i\d$/.test(end![1])) {
+          const sinking = other.state.inputMode !== 'sourcing';
+          const mismatch = (dev.state.output === 'NPN') === sinking;
+          other.state.dcNote = mismatch ? `${dev.state.output} sensor on a ${sinking ? 'SINKING (PNP)' : 'SOURCING (NPN)'} input: it can never switch ${end![1].toUpperCase()}` : '';
+          if (mismatch) note = `${dev.state.output} OUTPUT INTO ${sinking ? 'PNP (SINKING)' : 'NPN (SOURCING)'} INPUT`;
+        }
+      }
+      dev.state.wiringNote = note;
+    } else if (dev.type === 'plc_24vdc_16io') {
+      deviceEnergized[dev.id] = !!dev.state.plcPowered;
+    }
+  }
+
   // 7. Motor Overload Relays: bimetal trips when motor current exceeds the dial setting
   for (const dev of devices) {
     if (dev.type !== 'thermal_overload_relay' || dev.state.tripped) continue;
@@ -1295,6 +1540,7 @@ export function solveCircuit(
     nodeVoltages,
     nodePotentials,
     nodePhases,
+    dcPotentials: dc.potentials,
     deviceEnergized,
     wireCurrents,
     wireFlowDirections,
