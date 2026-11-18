@@ -7,15 +7,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff.svg)](https://vitejs.dev/)
-27. **Automatic Pump Control with HOA: Float Switch, Overload, Run Lamp** — the pump fills a tank, the float switch starts and stops it with hysteresis, HAND overrides it.
-28. **DOL Starter Protected by a Phase Monitor** — swap two phases and the starter refuses to run.
-29. **Conveyor Stop: Inductive Sensor into a PLC Input, Relay Output to a Contactor** — 24 V DC supply, three-wire sensor, PLC and interface relay switching an AC contactor.
-30. **Overload Alarm: Thermal Overload Contact Drives a Beacon and Horn** — the overload relay 97-98 contact starts a flashing beacon and a horn.
-31. **Capacitor-Start Motor: Wiring the Starting Capacitor and Reversing Rotation** — start winding, 100 µF capacitor and centrifugal switch on a 0.37 kW single-phase motor.
-32. **Dead-Testing a 3-Phase Motor Circuit Before Energizing** — continuity, insulation (a damaged motor winding), earth electrode and phase rotation tests.
-33. **Motor Feeder: Adjustable MCCB, Earth-Leakage Relay with Shunt Trip, CT Ammeter and Voltmeter** — core-balance CT, KE1 relay driving the MCCB shunt coil, measuring CT and a selector voltmeter.
-34. **AFDD and GFCI: Loose Terminal Arcing and Ground-Fault Protection Downstream** — arc detection, GFCI face and LOAD terminals.
-35. **DOL Starter with a Lockable Isolator, an MPCB and a PTC Thermistor Relay** — no overload relay: MPCB class 10 element and winding-temperature protection.
 
 ---
 
@@ -56,7 +47,16 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **24 V DC control domain**: DIN-rail 24 V supply with current-limit shutdown and automatic restart, three-wire inductive, capacitive and photoelectric sensors (PNP / NPN, NO / NC, click the sensing face to place a target), a 24 V DC PLC (8 inputs, 8 sourcing outputs, RUN / STOP, passthrough or start / stop demo program) and a 24 V DC coil option on the control relay. The DC side is solved separately from AC: wiring a 24 V net to an AC line or neutral shuts the supply down and is reported as an error; NPN sensors on PNP inputs and reversed sensor supplies show a visible fault note.
 - **Annunciation**: panel buzzer / horn (audible, mutable), signal beacon (steady or flashing, selectable colour) and a three-segment red / amber / green tower light; each runs from 24 V DC or 230 V AC.
 - **Single-phase motors**: one motor with split-phase, capacitor-start and PSC variants (main U1-U2 and start winding Z1-Z2, visible centrifugal switch that opens at 75 % speed, reversal by swapping the start winding leads) and a separate motor capacitor wired in series with the start winding. A missing or open capacitor leaves the motor humming (no start capacitor), a wrong value is flagged with a high running current.
+- **Sources & power systems (batch 3.2)**: manual transfer switch (I-0-II, break-before-make), UPS with battery and charger (state of charge, autonomy, static transfer), PV string + DC isolator + grid-tie inverter (anti-islanding, 5 s reconnect) + net meter (import / export kWh), 1-phase pole and 3-phase delta-wye distribution transformers (turns ratio, vector group label, loaded and unloaded voltage), capacitor bank (4 steps, capacitor-duty contactors built in, 3 s discharge lock) with a power factor controller, shore connection box with phase-sequence lamps, ground detection lamps for an isolated (IT) 440 V feeder, synchroscope with sync lamps, reverse-power relay and preferential trip relay.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
+
+#### Sources and power systems: what is simplified
+- **PV / net meter**: the solver follows power from the grid to the loads only. The inverter never drives the AC net: it exports while it sees the grid, and the net meter works out import and export from the site load minus the inverter output. A grid loss therefore leaves the site dead (anti-islanding).
+- **Transformers**: the secondary voltage is the primary voltage divided by the turns ratio. The 30° phase shift of the vector group is a label only, and motor current still uses the feeder line voltage.
+- **Power factor**: kvar comes from the energized inductive loads (typical or set power factor) and the capacitor steps in service; there is no harmonic or voltage-rise model. The capacitor-duty contactors are built into the bank.
+- **IT system**: a first earth fault on one line is tolerated when the feeder is set to Isolated; earth faults on two lines are a short circuit. Insulation monitoring is shown as lamps only.
+- **Paralleling**: the phase difference between two sets slips at 360° × frequency difference, slowed 4×. The synchroscope gives a permissive contact; closing out of sync is not simulated as a clash. Reverse power is raised by the generator's Motoring switch.
+- **UPS / meters / fuses**: simulated time runs 60× faster than real time for the battery and the net meter register.
 
 #### Test instruments
 Click **DMM** in the toolbar and pick an instrument in its panel: **DMM / clamp** (volts between two terminals, amps on a wire), **Megger** (insulation resistance at 250 / 500 / 1000 V between two terminals or a terminal and PE; refuses on an energized circuit; reads the `insulation` condition set on a motor in the inspector), **Earth** (electrode resistance of a ground pit), **Rotation** (click the three phases in turn: CW or CCW) and **Continuity** (de-energized only; beeps on a closed path, contacts shown at rest).
@@ -136,6 +136,25 @@ Open **Examples** in the ribbon. WireWise starts on a blank canvas; each lab loa
 24. **Fuse Blown on One Phase of a DOL Starter (Single-Phasing)** — fuse switch disconnector with a blown L3 link leaves the motor on two phases.
 25. **Two Sockets on Separate RCBOs** — an earth fault on one socket trips only its own RCBO.
 26. **Standby Generator and ATS: Simulate a Utility Outage** — loss-of-mains relay starts the generator, the ATS transfers after its delay and returns when the grid is back.
+
+### Process control, protection relays, 24 V DC, motors and instruments
+27. **Automatic Pump Control with HOA: Float Switch, Overload, Run Lamp** — the pump fills a tank, the float switch starts and stops it with hysteresis, HAND overrides it.
+28. **DOL Starter Protected by a Phase Monitor** — swap two phases and the starter refuses to run.
+29. **Conveyor Stop: Inductive Sensor into a PLC Input, Relay Output to a Contactor** — 24 V DC supply, three-wire sensor, PLC and interface relay switching an AC contactor.
+30. **Overload Alarm: Thermal Overload Contact Drives a Beacon and Horn** — the overload relay 97-98 contact starts a flashing beacon and a horn.
+31. **Capacitor-Start Motor: Wiring the Starting Capacitor and Reversing Rotation** — start winding, 100 µF capacitor and centrifugal switch on a 0.37 kW single-phase motor.
+32. **Dead-Testing a 3-Phase Motor Circuit Before Energizing** — continuity, insulation (a damaged motor winding), earth electrode and phase rotation tests.
+33. **Motor Feeder: Adjustable MCCB, Earth-Leakage Relay with Shunt Trip, CT Ammeter and Voltmeter** — core-balance CT, KE1 relay driving the MCCB shunt coil, measuring CT and a selector voltmeter.
+34. **AFDD and GFCI: Loose Terminal Arcing and Ground-Fault Protection Downstream** — arc detection, GFCI face and LOAD terminals.
+35. **DOL Starter with a Lockable Isolator, an MPCB and a PTC Thermistor Relay** — no overload relay: MPCB class 10 element and winding-temperature protection.
+
+### Sources and power systems
+36. **Standby Supply Chain: Manual Transfer Switch, Generator and UPS** — utility outage ridden through on the UPS battery, handle I → 0 → II onto the generator (break-before-make).
+37. **Grid-Tied PV with Net Metering and Anti-Islanding** — PV string, DC isolator, grid-tie inverter and net meter; lose the grid and the inverter shuts down in full sun.
+38. **Power Factor Correction: Controller, Capacitor Bank and Step Switching** — the controller switches capacitor steps to the target power factor and backs out when over-corrected.
+39. **Marine Switchboard: Shore Connection, Ground Detection and a Delta-Wye Transformer** — ungrounded (IT) 440 V: the first earth fault shows on the lamps and nothing trips.
+40. **Generator Paralleling: Synchroscope, Sync Permissive and Reverse Power** — trim the incoming set, close on sync, reverse-power relay trips a motoring set.
+41. **Generator Overload: Preferential Trip Sheds the Non-Essential Feeder** — the relay opens the galley feeder through its shunt trip before the set trips.
 
 ---
 
