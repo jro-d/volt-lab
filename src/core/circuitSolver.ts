@@ -530,6 +530,14 @@ export function solveCircuit(
   const isDcPowered = (devId: string, tPos: string, tNeg: string) =>
     dc.potentials[terminalKey(devId, tPos)] === 'dc_pos' && dc.potentials[terminalKey(devId, tNeg)] === 'dc_neg';
 
+  /** Annunciator supply: 24 V DC (+ on the segment / A1, 0 V on COM / A2) or 230 V AC (line / neutral either way round) */
+  const annunciatorPowered = (dev: ElectricalDevice, hot: string, ret: string) => {
+    if (dev.state.supply === 'dc24') return isDcPowered(dev.id, hot, ret);
+    const a = nodePotentials[terminalKey(dev.id, hot)];
+    const b = nodePotentials[terminalKey(dev.id, ret)];
+    return (a === 'live' && b === 'neutral') || (b === 'live' && a === 'neutral');
+  };
+
   /** Total nominal load (A) on each 24 V supply, from the DC devices that are powered */
   const dcLoadsBySupply = () => {
     const loads: Record<string, number> = {};
@@ -542,6 +550,8 @@ export function solveCircuit(
         if (isDcPowered(d.id, 'brown', 'blue')) add(terminalKey(d.id, 'brown'), dcLoadAmps(d));
       } else if (d.type === 'plc_24vdc_16io') {
         if (isDcPowered(d.id, 'l_pos', 'm_neg')) add(terminalKey(d.id, 'l_pos'), dcLoadAmps(d));
+      } else if (d.type === 'tower_light' && d.state.supply === 'dc24') {
+        for (const seg of ['r', 'a', 'g']) if (isDcPowered(d.id, seg, 'com')) add(terminalKey(d.id, seg), dcLoadAmps(d));
       } else if (isDcCoilDevice(d) && isDcPowered(d.id, 'a1', 'a2')) {
         add(terminalKey(d.id, 'a1'), dcLoadAmps(d));
       }
@@ -1044,6 +1054,17 @@ export function solveCircuit(
       if (isRunning) {
         totalWatts += activeWatts;
       }
+    } else if (dev.type === 'buzzer_horn' || dev.type === 'beacon') {
+      const on = annunciatorPowered(dev, 'a1', 'a2');
+      dev.state.active = on;
+      deviceEnergized[dev.id] = on;
+      if (on && dev.state.supply !== 'dc24') totalWatts += Number(dev.state.wattage) || 5;
+    } else if (dev.type === 'tower_light') {
+      const seg = { r: annunciatorPowered(dev, 'r', 'com'), a: annunciatorPowered(dev, 'a', 'com'), g: annunciatorPowered(dev, 'g', 'com') };
+      dev.state.segments = seg;
+      dev.state.active = seg.r || seg.a || seg.g;
+      deviceEnergized[dev.id] = !!dev.state.active;
+      if (dev.state.supply !== 'dc24') totalWatts += ((seg.r ? 1 : 0) + (seg.a ? 1 : 0) + (seg.g ? 1 : 0)) * (Number(dev.state.wattage) || 8) / 3;
     } else if (dev.type === 'pilot_light_indicator') {
       const p1 = nodePotentials[terminalKey(dev.id, 'x1')];
       const p2 = nodePotentials[terminalKey(dev.id, 'x2')];
@@ -1268,6 +1289,14 @@ export function solveCircuit(
             wireCurrents[wire.id] = (wireCurrents[wire.id] || 0) + amps;
           }
         }
+      }
+    } else if ((dev.type === 'buzzer_horn' || dev.type === 'beacon') && dev.state.active && dev.state.supply !== 'dc24') {
+      const liveT = nodePotentials[terminalKey(dev.id, 'a1')] === 'live' ? 'a1' : 'a2';
+      traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, liveT === 'a1' ? 'a2' : 'a1'), (Number(dev.state.wattage) || 5) / gridVoltage);
+    } else if (dev.type === 'tower_light' && dev.state.supply !== 'dc24') {
+      const segs = (dev.state.segments || {}) as Record<string, boolean>;
+      for (const seg of ['r', 'a', 'g']) {
+        if (segs[seg]) traceLoadCurrent(terminalKey(dev.id, seg), terminalKey(dev.id, 'com'), (Number(dev.state.wattage) || 8) / 3 / gridVoltage);
       }
     } else if (dev.type === 'pilot_light_indicator') {
       const p1 = nodePotentials[terminalKey(dev.id, 'x1')];

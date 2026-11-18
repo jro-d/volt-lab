@@ -10,6 +10,7 @@
 27. **Automatic Pump Control with HOA: Float Switch, Overload, Run Lamp** — the pump fills a tank, the float switch starts and stops it with hysteresis, HAND overrides it.
 28. **DOL Starter Protected by a Phase Monitor** — swap two phases and the starter refuses to run.
 29. **Conveyor Stop: Inductive Sensor into a PLC Input, Relay Output to a Contactor** — 24 V DC supply, three-wire sensor, PLC and interface relay switching an AC contactor.
+30. **Overload Alarm: Thermal Overload Contact Drives a Beacon and Horn** — the overload relay 97-98 contact starts a flashing beacon and a horn.
 
 ---
 
@@ -47,6 +48,7 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Process control**: float switch (high / low trip with hysteresis, NO / NC on rise), pressure switch (cut-in / cut-out), and 1-phase / 3-phase booster pumps that raise a shared tank level or line pressure (a small documented process model, not a fluid simulator).
 - **Phase monitoring**: phase failure / phase sequence relay (lost phase, swapped phases, under / overvoltage release the 15-18 output).
 - **24 V DC control domain**: DIN-rail 24 V supply with current-limit shutdown and automatic restart, three-wire inductive, capacitive and photoelectric sensors (PNP / NPN, NO / NC, click the sensing face to place a target), a 24 V DC PLC (8 inputs, 8 sourcing outputs, RUN / STOP, passthrough or start / stop demo program) and a 24 V DC coil option on the control relay. The DC side is solved separately from AC: wiring a 24 V net to an AC line or neutral shuts the supply down and is reported as an error; NPN sensors on PNP inputs and reversed sensor supplies show a visible fault note.
+- **Annunciation**: panel buzzer / horn (audible, mutable), signal beacon (steady or flashing, selectable colour) and a three-segment red / amber / green tower light; each runs from 24 V DC or 230 V AC.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
 ### 4. Marine & industrial motor control trainer

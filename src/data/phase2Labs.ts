@@ -150,6 +150,27 @@ const cvWires: ElectricalWire[] = [
 const cvRung = () => ladderSeries(ladderEl('NO', 'K1', '11-14', 'k1', 'no_1'), ladderEl('NC', 'OLR', '95-96', 'f2', 'trip_nc'));
 const cvTarget: LadderRung[] = [{ id: 'tgt_cv_1', blocks: cvRung(), output: ladderEl('COIL', 'KM1', 'A1-A2', 'km1', 'coil') }];
 
+// ── 4 · Overload alarm: thermal overload contact drives a beacon and a horn ───────────────────
+const alDevices: ElectricalDevice[] = [
+  ...clone(dolDevices),
+  dev('beacon', 330, 560, 'mdol_hl1', { name: 'HL1 Overload Beacon', state: { tag: 'HL1', supply: 'ac230', mode: 'flashing', color: 'red' } }),
+  dev('buzzer_horn', 420, 560, 'mdol_ha1', { name: 'HA1 Overload Horn', state: { tag: 'HA1', supply: 'ac230' } }),
+];
+const alWires: ElectricalWire[] = [
+  ...clone(dolWires),
+  // the TOR 97-98 NO contact closes on overload: X1 -> 97-98 -> beacon and horn -> X2
+  wr('mdol_tc1', 'x1', 'mdol_f2', 'no_97', ORANGE),
+  wr('mdol_f2', 'no_98', 'mdol_hl1', 'a1', ORANGE),
+  wr('mdol_f2', 'no_98', 'mdol_ha1', 'a1', ORANGE),
+  wr('mdol_hl1', 'a2', 'mdol_tc1', 'x2', BLUE),
+  wr('mdol_ha1', 'a2', 'mdol_tc1', 'x2', BLUE),
+];
+const alRung = () => ladderSeries(ladderEl('NO', 'OLR', '97-98', 'mdol_f2', 'alarm_no'));
+const alTarget: LadderRung[] = [
+  { id: 'tgt_al_1', blocks: alRung(), output: ladderEl('LAMP', 'HL1', 'BEACON', 'mdol_hl1', 'lamp') },
+  { id: 'tgt_al_2', blocks: alRung(), output: ladderEl('LAMP', 'HA1', 'HORN', 'mdol_ha1', 'lamp') },
+];
+
 export const PHASE2_LABS: LabLesson[] = [
   {
     id: 'lab-pump-hoa-float',
@@ -210,6 +231,26 @@ export const PHASE2_LABS: LabLesson[] = [
     project: {
       ...labProject('proj_conveyor_stop_dc', 'Conveyor Stop (Sensor, PLC, Relay, Contactor)', 'Inductive sensor to PLC input, relay output to a contactor.', cvDevices, cvWires, 440),
       targetLadder: cvTarget,
+    },
+  },
+  {
+    id: 'lab-overload-alarm',
+    title: 'Overload Alarm: Thermal Overload Contact Drives a Beacon and Horn',
+    subtitle: 'Annunciation: flashing beacon and buzzer on the overload relay 97-98 contact',
+    category: 'industrial',
+    badge: '🚨 Alarm',
+    difficulty: 'Intermediate',
+    description:
+      'A DOL starter whose thermal overload relay has an NC contact (95-96) in the control rung and an NO contact (97-98) wired to an alarm: a flashing red beacon and a horn on the 220 V control supply. While the motor is healthy the alarm is silent; when the overload relay trips, 95-96 opens (the motor stops) and 97-98 closes (the alarm starts).',
+    objectives: [
+      'Press ▶ Simulate, then START: the motor runs and the beacon and horn are silent.',
+      'Press TEST on the overload relay: it trips, the motor stops, the beacon flashes and the horn sounds.',
+      'Click the horn to mute it (the beacon keeps flashing), then RESET the overload relay to clear the alarm.',
+      'Select the beacon and change its colour and mode. Compare your wiring with the Lab Target ladder.',
+    ],
+    project: {
+      ...labProject('proj_overload_alarm', 'Overload Alarm (Beacon + Horn)', 'Thermal overload 97-98 contact drives a beacon and a horn.', alDevices, alWires, 440),
+      targetLadder: alTarget,
     },
   },
 ];

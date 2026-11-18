@@ -1345,6 +1345,50 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
+      {/* --- ANNUNCIATORS: buzzer, beacon, tower light --- */}
+      {device && (device.type === 'buzzer_horn' || device.type === 'beacon' || device.type === 'tower_light') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | boolean; label: string }[], fallback: string | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Annunciator</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.active ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {device.state.active ? (device.type === 'buzzer_horn' ? '● SOUNDING' : '● LIT') : '○ OFF'}
+              </span>
+            </div>
+            {choice('Supply', 'supply', [{ v: 'ac230', label: '230 V AC' }, { v: 'dc24', label: '24 V DC' }], 'ac230')}
+            {device.type === 'beacon' && (
+              <>
+                {choice('Mode', 'mode', [{ v: 'steady', label: 'Steady' }, { v: 'flashing', label: 'Flashing' }], 'steady')}
+                {choice('Colour', 'color', [{ v: 'red', label: 'Red' }, { v: 'amber', label: 'Amber' }, { v: 'green', label: 'Green' }, { v: 'blue', label: 'Blue' }], 'red')}
+              </>
+            )}
+            {device.type === 'buzzer_horn' && choice('Sound', 'muted', [{ v: false, label: 'On' }, { v: true, label: 'Muted' }], false)}
+          </div>
+        );
+      })()}
+
       {/* --- 24 V DC DOMAIN: supply, sensors, PLC --- */}
       {device && (device.type === 'psu_24vdc' || device.type === 'sensor_inductive' || device.type === 'sensor_capacitive' || device.type === 'sensor_photoelectric' || device.type === 'plc_24vdc_16io') && (() => {
         const apply = (patch: Record<string, any>) => {

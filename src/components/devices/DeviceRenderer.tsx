@@ -7,6 +7,7 @@ import { FuseDevice } from './FuseDevice';
 import { GeneratorDevice } from './GeneratorDevice';
 import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
 import { PhaseMonitorDevice } from './PhaseMonitorDevice';
+import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
 import { PsuDevice, SensorDevice, Plc24Device } from './DcDevices';
 import { RcdDevice } from './RcdDevice';
 import { SpdDevice } from './SpdDevice';
@@ -105,6 +106,12 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'mcb_2p':
       case 'mcb_3p':
         return <McbDevice {...commonProps} />;
+      case 'buzzer_horn':
+        return <BuzzerDevice {...commonProps} />;
+      case 'beacon':
+        return <BeaconDevice {...commonProps} />;
+      case 'tower_light':
+        return <TowerLightDevice {...commonProps} />;
       case 'psu_24vdc':
         return <PsuDevice {...commonProps} />;
       case 'sensor_inductive':

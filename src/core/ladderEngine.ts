@@ -136,6 +136,12 @@ export function getControlElements(dev: ElectricalDevice): PhysicalElement[] {
       add('coil', 'COIL', `${tag} (${s.delaySec ?? 5}s)`, 'A1-A2', 'a1', 'a2', !!s.energized);
       break;
     }
+    case 'buzzer_horn':
+      add('lamp', 'LAMP', s.tag || 'HA', 'HORN', 'a1', 'a2', !!s.active);
+      break;
+    case 'beacon':
+      add('lamp', 'LAMP', s.tag || 'HL', 'BEACON', 'a1', 'a2', !!s.active);
+      break;
     case 'pilot_light_indicator': {
       const colour = (s.pilotColor || 'green').toUpperCase();
       add('lamp', 'LAMP', s.tag || `PL_${colour === 'RED' ? 'FAULT' : colour === 'GREEN' ? 'RUN' : colour}`, colour, 'x1', 'x2', !!s.lit);

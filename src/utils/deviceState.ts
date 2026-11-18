@@ -45,6 +45,10 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.supplyNote = '';
   }
   if (device.type === 'plc_24vdc_16io') state.dcNote = '';
+  if (device.type === 'buzzer_horn' || device.type === 'beacon' || device.type === 'tower_light') {
+    state.active = false;
+    if ('segments' in state) state.segments = {};
+  }
   if (device.type === 'industrial_relay_dpdt' && state.coilType === 'dc24') state.coilEnergized = false;
   if (device.type === 'float_switch' || device.type === 'pressure_switch') state.contactClosed = false;
   if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') {

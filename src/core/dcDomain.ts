@@ -15,15 +15,17 @@ export const DC_SENSOR_TYPES = ['sensor_inductive', 'sensor_capacitive', 'sensor
 export const isDcSensor = (type: string) => (DC_SENSOR_TYPES as readonly string[]).includes(type);
 
 /** True when the relay is the 24 V DC variant (its A1 is +, A2 is 0 V). */
+export const isAnnunciator = (type: string) => type === 'buzzer_horn' || type === 'beacon' || type === 'tower_light';
+
 export const isDcCoilDevice = (dev: ElectricalDevice) =>
-  dev.type === 'industrial_relay_dpdt' && dev.state.coilType === 'dc24';
+  (dev.type === 'industrial_relay_dpdt' && dev.state.coilType === 'dc24') || (isAnnunciator(dev.type) && dev.state.supply === 'dc24');
 
 /** Terminals that belong to the DC domain (used by the static cross-connection check). */
 export function isDcTerminal(dev: ElectricalDevice, terminalId: string): boolean {
   if (dev.type === 'psu_24vdc') return terminalId === 'v_pos' || terminalId === 'v_neg';
   if (isDcSensor(dev.type)) return true;
   if (dev.type === 'plc_24vdc_16io') return terminalId !== 'pe';
-  if (isDcCoilDevice(dev)) return terminalId === 'a1' || terminalId === 'a2';
+  if (isDcCoilDevice(dev)) return dev.type !== 'industrial_relay_dpdt' || terminalId === 'a1' || terminalId === 'a2';
   return false;
 }
 
@@ -142,6 +144,12 @@ export function dcLoadAmps(dev: ElectricalDevice): number {
     case 'plc_24vdc_16io':
       return 0.25;
     case 'industrial_relay_dpdt':
+      return 0.04;
+    case 'buzzer_horn':
+      return 0.05;
+    case 'beacon':
+      return 0.08;
+    case 'tower_light':
       return 0.04;
     default:
       return 0;

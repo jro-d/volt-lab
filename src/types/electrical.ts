@@ -113,7 +113,10 @@ export type DeviceType =
   | 'sensor_inductive'
   | 'sensor_capacitive'
   | 'sensor_photoelectric'
-  | 'plc_24vdc_16io';
+  | 'plc_24vdc_16io'
+  | 'buzzer_horn'
+  | 'beacon'
+  | 'tower_light';
 
 export interface ElectricalDevice {
   id: string;

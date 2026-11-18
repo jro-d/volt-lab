@@ -520,6 +520,56 @@ export const COMPONENT_CATALOG: ComponentDefinition[] = [
     ]
   },
   {
+    type: 'buzzer_horn',
+    category: 'industrial',
+    name: 'Panel Buzzer / Horn',
+    defaultLabel: 'HA1',
+    width: 60,
+    height: 80,
+    productStandard: 'IEC 60947-5-5 / IEC 60073',
+    modelNumber: '22 mm Panel Buzzer',
+    description: 'Audible alarm. Sounds while powered; supply is 24 V DC (A1 = +, A2 = 0 V) or 230 V AC (A1 = L, A2 = N). The sound can be muted in the inspector.',
+    defaultProperties: { supply: 'ac230', active: false, muted: false, wattage: 3, tag: 'HA1' },
+    terminals: [
+      { id: 'a1', name: 'Supply A1 (+24 V / L)', type: 'phase', relX: 0.30, relY: 0.88, label: 'A1', phaseLabel: 'A1' },
+      { id: 'a2', name: 'Supply A2 (0 V / N)', type: 'neutral', relX: 0.70, relY: 0.88, label: 'A2', phaseLabel: 'A2' },
+    ]
+  },
+  {
+    type: 'beacon',
+    category: 'industrial',
+    name: 'Signal Beacon (Steady / Flashing)',
+    defaultLabel: 'HL1',
+    width: 60,
+    height: 92,
+    productStandard: 'IEC 60073 / IEC 60947-5-1',
+    modelNumber: 'LED Signal Beacon',
+    description: 'Warning beacon with a steady or flashing LED, in a selectable colour. Supply is 24 V DC (A1 = +, A2 = 0 V) or 230 V AC (A1 = L, A2 = N).',
+    defaultProperties: { supply: 'ac230', mode: 'steady', color: 'red', active: false, wattage: 5, tag: 'HL1' },
+    terminals: [
+      { id: 'a1', name: 'Supply A1 (+24 V / L)', type: 'phase', relX: 0.30, relY: 0.90, label: 'A1', phaseLabel: 'A1' },
+      { id: 'a2', name: 'Supply A2 (0 V / N)', type: 'neutral', relX: 0.70, relY: 0.90, label: 'A2', phaseLabel: 'A2' },
+    ]
+  },
+  {
+    type: 'tower_light',
+    category: 'industrial',
+    name: 'Stack Tower Light (Red / Amber / Green)',
+    defaultLabel: 'HL2',
+    width: 64,
+    height: 140,
+    productStandard: 'IEC 60073 / IEC 60204-1',
+    modelNumber: '3-Segment Stack Light',
+    description: 'Machine status stack light. Each segment (red, amber, green) has its own terminal and lights when that terminal is powered against the common. Supply is 24 V DC (segments +, COM 0 V) or 230 V AC (segments L, COM N).',
+    defaultProperties: { supply: 'ac230', segments: {}, active: false, wattage: 8, tag: 'HL2' },
+    terminals: [
+      { id: 'r', name: 'Red segment', type: 'phase', relX: 0.20, relY: 0.93, label: 'R', phaseLabel: 'L' },
+      { id: 'a', name: 'Amber segment', type: 'phase', relX: 0.40, relY: 0.93, label: 'A', phaseLabel: 'L' },
+      { id: 'g', name: 'Green segment', type: 'phase', relX: 0.60, relY: 0.93, label: 'G', phaseLabel: 'L' },
+      { id: 'com', name: 'Common (0 V / N)', type: 'neutral', relX: 0.80, relY: 0.93, label: 'COM', phaseLabel: 'N' },
+    ]
+  },
+  {
     type: 'rcd_2p',
     category: 'protection',
     name: 'Residual Current Device (RCD / ELCB)',

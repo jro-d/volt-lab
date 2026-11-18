@@ -130,3 +130,26 @@ class SoundEngine {
 }
 
 export const sound = new SoundEngine();
+
+/** One short alarm beep (a square wave at 2.4 kHz); the buzzer device repeats it while it is powered and not muted. */
+export function playBuzzerBeep() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    buzzerCtx = buzzerCtx || new AudioCtx();
+    if (buzzerCtx.state === 'suspended') buzzerCtx.resume();
+    const osc = buzzerCtx.createOscillator();
+    const gain = buzzerCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 2400;
+    gain.gain.setValueAtTime(0.06, buzzerCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, buzzerCtx.currentTime + 0.3);
+    osc.connect(gain);
+    gain.connect(buzzerCtx.destination);
+    osc.start();
+    osc.stop(buzzerCtx.currentTime + 0.32);
+  } catch {
+    // audio unavailable or blocked until the first click
+  }
+}
+let buzzerCtx: AudioContext | null = null;
