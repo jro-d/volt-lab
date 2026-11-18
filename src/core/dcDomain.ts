@@ -12,6 +12,7 @@ import type { ElectricalDevice, ElectricalWire } from '../types/electrical';
 export type DcPotential = 'dc_pos' | 'dc_neg';
 
 export const DC_SENSOR_TYPES = ['sensor_inductive', 'sensor_capacitive', 'sensor_photoelectric'] as const;
+export const isPvDcDevice = (type: string) => type === 'pv_string' || type === 'dc_isolator';
 export const isDcSensor = (type: string) => (DC_SENSOR_TYPES as readonly string[]).includes(type);
 
 /** True when the relay is the 24 V DC variant (its A1 is +, A2 is 0 V). */
@@ -23,6 +24,8 @@ export const isDcCoilDevice = (dev: ElectricalDevice) =>
 /** Terminals that belong to the DC domain (used by the static cross-connection check). */
 export function isDcTerminal(dev: ElectricalDevice, terminalId: string): boolean {
   if (dev.type === 'psu_24vdc') return terminalId === 'v_pos' || terminalId === 'v_neg';
+  if (isPvDcDevice(dev.type)) return true;
+  if (dev.type === 'inverter_gridtie') return terminalId === 'pv_pos' || terminalId === 'pv_neg';
   if (isDcSensor(dev.type)) return true;
   if (dev.type === 'plc_24vdc_16io') return terminalId !== 'pe';
   if (isDcCoilDevice(dev)) return dev.type !== 'industrial_relay_dpdt' || terminalId === 'a1' || terminalId === 'a2';
@@ -123,13 +126,16 @@ export function floodDc(
     }
   };
 
+  // 24 V supplies and PV strings seed their own nets (a PV string is DC only: its pos / neg terminals)
+  const dcSeeds = (dev: ElectricalDevice) =>
+    dev.type === 'psu_24vdc' ? ([`${dev.id}:v_pos`, `${dev.id}:v_neg`] as const) : dev.type === 'pv_string' ? ([`${dev.id}:pos`, `${dev.id}:neg`] as const) : null;
   for (const dev of devices) {
-    if (dev.type !== 'psu_24vdc' || !dev.state.dcOutputOn) continue;
-    flood(`${dev.id}:v_pos`, 'dc_pos', dev.id);
+    const seeds = dcSeeds(dev);
+    if (seeds && dev.state.dcOutputOn) flood(seeds[0], 'dc_pos', dev.id);
   }
   for (const dev of devices) {
-    if (dev.type !== 'psu_24vdc' || !dev.state.dcOutputOn) continue;
-    flood(`${dev.id}:v_neg`, 'dc_neg', dev.id);
+    const seeds = dcSeeds(dev);
+    if (seeds && dev.state.dcOutputOn) flood(seeds[1], 'dc_neg', dev.id);
   }
   return { potentials, sourceOf, mixNodes: [...mix], mixedPsus: [...mixedPsus], shorted: [...shorted] };
 }

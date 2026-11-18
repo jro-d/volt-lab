@@ -56,7 +56,7 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     else if (d.type === 'panel_ammeter' || d.type === 'voltmeter_selector') symbol = 'meter';
     else if (d.type === 'terminal_block' || d.type === 'distribution_block') symbol = 'busbar';
     else if (d.type === 'gfci_receptacle') symbol = 'rcd';
-    else if (d.type === 'control_transformer') symbol = 'transformer';
+    else if (d.type === 'control_transformer' || d.type.startsWith('transformer')) symbol = 'transformer';
     else if (d.type === 'source_3phase_440v') symbol = 'source3p';
     else if (d.type === 'push_button_fwd_rev') symbol = 'pushbutton3';
     else if (d.type.includes('meter')) symbol = 'meter';

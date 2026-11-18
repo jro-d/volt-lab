@@ -16,6 +16,8 @@ export interface TickContext {
   /** The latest solved circuit (potentials, wire currents ...) */
   solved: SolvedCircuit;
   wires: ElectricalWire[];
+  /** Every device in the project (read-only: for behaviours that look at other devices) */
+  devices: ElectricalDevice[];
   /** Project grid frequency, Hz */
   gridFrequency: number;
   /** Shared tank / line-pressure state (pumps, float and pressure switches) */

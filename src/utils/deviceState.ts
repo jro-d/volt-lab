@@ -31,6 +31,35 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
   if (device.type === 'pump_booster_1p' || device.type === 'pump_booster_3p') state.pumping = false;
+  // Batch 3.2: live readouts clear; stored energy (UPS charge, meter registers) and handle positions stay
+  if (device.type === 'ups_battery') {
+    state.onBattery = false;
+    state.loadW = 0;
+  }
+  if (device.type === 'inverter_gridtie') {
+    state.acPowerW = 0;
+    state.reconnectSec = 0;
+    state.status = 'NO DC INPUT';
+  }
+  if (device.type === 'pv_string') {
+    state.dcOutputOn = false;
+    state.powerW = 0;
+  }
+  if (device.type === 'capacitor_bank_3p') {
+    for (let i = 1; i <= 4; i++) {
+      state[`on${i}`] = false;
+      state[`lock${i}`] = 0;
+    }
+    state.stepsOn = 0;
+    state.kvarOn = 0;
+  }
+  if (device.type === 'pf_controller') state.stepsCmd = 0;
+  if (device.type === 'preferential_trip_relay' || device.type === 'reverse_power_relay') {
+    state.tripped = false;
+    state.timerSec = 0;
+  }
+  if (device.type === 'synchroscope') state.inSync = false;
+  if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') state.phaseAngleDeg = 0;
   if (device.type === 'motor_ac_industrial' || device.type === 'pump_booster_3p' || device.type === 'motor_6lead_star_delta') state.windingC = 40;
   if (device.type === 'mccb_3p' || device.type === 'mpcb_3p') state.heat = 0;
   if (device.type === 'mccb_3p') state.uvPowered = false;

@@ -1,6 +1,6 @@
 import type { ElectricalDevice, ElectricalWire } from '../../types/electrical';
 
-/** Largest current (A) on any wire attached to a terminal. Wires back to the same device are ignored. */
+/** Current (A) through a terminal: the sum over the wires attached to it (each branch carries its own share). Wires back to the same device are ignored. */
 export function terminalCurrent(
   dev: ElectricalDevice,
   terminalId: string,
@@ -12,7 +12,7 @@ export function terminalCurrent(
     const here =
       (w.fromDeviceId === dev.id && w.fromTerminalId === terminalId) ||
       (w.toDeviceId === dev.id && w.toTerminalId === terminalId);
-    if (here && w.fromDeviceId !== w.toDeviceId) amps = Math.max(amps, wireCurrents[w.id] || 0);
+    if (here && w.fromDeviceId !== w.toDeviceId) amps += wireCurrents[w.id] || 0;
   }
   return amps;
 }

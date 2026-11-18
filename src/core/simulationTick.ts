@@ -27,7 +27,7 @@ export function tickSimulation(
   const next = devices.map((dev) => {
     const tick = behaviorFor(dev.type)?.tick;
     if (!tick) return dev;
-    const updated = tick(dev, { solved, wires, gridFrequency, process }, dtSec);
+    const updated = tick(dev, { solved, wires, gridFrequency, process, devices }, dtSec);
     if (updated !== dev) changed = true;
     return updated;
   });
