@@ -40,6 +40,7 @@ import { computeFaultLevels, checkInterruptingRatings, DEFAULT_SHORT_CIRCUIT } f
 import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
+import { useBreakpoint } from './hooks/useBreakpoint';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
@@ -80,6 +81,9 @@ export const App: React.FC = () => {
 
   // Edit Mode (de-energized, safe wiring) vs Simulation Mode (grid energized)
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const breakpoint = useBreakpoint();
+  const isViewOnly = breakpoint === 'phone';
+  const [reportsInitialTab, setReportsInitialTab] = useState<string | undefined>(undefined);
   const [dmmMode, setDmmMode] = useState<boolean>(false);
   const [rewiringTarget, setRewiringTarget] = useState<{ wireId: string; moveEnd: 'from' | 'to' } | null>(null);
   const [dmmProbeA, setDmmProbeA] = useState<{ deviceId: string; terminalId: string } | null>(null);
@@ -195,8 +199,12 @@ export const App: React.FC = () => {
   // Clipboard for Copy & Paste
   const [clipboardDevice, setClipboardDevice] = useState<ElectricalDevice | null>(null);
 
-  // Returns true (and toasts) when the action must be blocked because the grid is energized
+  // Returns true (and toasts) when the action must be blocked because the grid is energized or in phone view-only mode
   const isEditBlocked = (): boolean => {
+    if (isViewOnly) {
+      showNotice('View-only on phone screens — use a tablet or desktop to edit');
+      return true;
+    }
     if (!isSimulating) return false;
     showNotice(LOCKED_MESSAGE);
     return true;
@@ -673,7 +681,7 @@ export const App: React.FC = () => {
 
   // Move device (drag) — locked while energized or when the device position is locked
   const handleUpdateDevicePosition = (id: string, x: number, y: number) => {
-    if (isSimulating) return;
+    if (isSimulating || isViewOnly) return;
     const dev = project.devices.find(d => d.id === id);
     if (!dev || dev.state.locked) return;
     if (x === dev.x && y === dev.y) return;
@@ -682,7 +690,7 @@ export const App: React.FC = () => {
 
   // Move multiple selected devices together (wires follow automatically)
   const handleUpdateMultipleDevicePositions = (updates: { id: string; x: number; y: number }[]) => {
-    if (isSimulating || updates.length === 0) return;
+    if (isSimulating || isViewOnly || updates.length === 0) return;
     const filtered = updates.filter((u) => {
       const dev = project.devices.find((d) => d.id === u.id);
       return dev && !dev.state.locked && (dev.x !== u.x || dev.y !== u.y);
@@ -741,6 +749,7 @@ export const App: React.FC = () => {
   // Update specific property on a device (e.g. ratedAmps, tripCurve, wattage)
   const DEVICE_SPEC_KEYS = ['productStandard', 'modelNumber', 'kaRating', 'mountingType', 'pecReference'];
   const handleUpdateDeviceProperty = (deviceId: string, key: string, value: any) => {
+    if (isViewOnly) return;
     pushUndoSnapshot();
     sound.playSwitchClick();
     setProject(prev => ({
@@ -826,7 +835,7 @@ export const App: React.FC = () => {
 
   // Update wire path waypoints from interactive segment dragging
   const handleUpdateWireWaypoints = (wireId: string, waypoints: { x: number; y: number }[]) => {
-    if (isSimulating) return;
+    if (isSimulating || isViewOnly) return;
     setProject(prev => ({
       ...prev,
       wires: prev.wires.map(w => w.id === wireId ? { ...w, waypoints } : w)
@@ -844,8 +853,9 @@ export const App: React.FC = () => {
 
   // Student rung-builder ladder lives on the project (exported / imported with it)
   const handleUpdateLadder = useCallback((rungs: LadderRung[]) => {
+    if (isViewOnly) return;
     setProject(prev => ({ ...prev, ladder: rungs }));
-  }, []);
+  }, [isViewOnly]);
 
   // Toggle breaker or switch state
   const handleToggleDeviceState = (device: ElectricalDevice) => {
@@ -1260,25 +1270,51 @@ export const App: React.FC = () => {
         canAlign={selectedGroupIds.length >= 2}
         onAlignHorizontal={() => handleAlign('horizontal')}
         onAlignVertical={() => handleAlign('vertical')}
+        isViewOnly={isViewOnly}
+        troubleshootMode={troubleshoot}
+        onToggleTroubleshoot={() => setTroubleshoot((v) => !v)}
+        recorderOpen={recorderOpen}
+        onToggleRecorder={() => setRecorderOpen((v) => !v)}
+        curvesOpen={curvesOpen}
+        onToggleCurves={() => setCurvesOpen((v) => !v)}
+        faultLevelsOn={!!project.shortCircuit?.enabled}
+        onToggleFaultLevels={() =>
+          setProject((prev) => ({
+            ...prev,
+            shortCircuit: prev.shortCircuit
+              ? { ...prev.shortCircuit, enabled: !prev.shortCircuit.enabled }
+              : { ...DEFAULT_SHORT_CIRCUIT },
+          }))
+        }
+        onOpenReports={() => {
+          setReportsInitialTab(undefined);
+          setReportsOpen(true);
+        }}
+        onOpenSafeIsolation={() => {
+          setReportsInitialTab('isolation');
+          setReportsOpen(true);
+        }}
       />
 
-      {/* Conductor & Cable Tool Ribbon Dock */}
-      <ConductorToolDock
-        standard={standard}
-        activeWireColor={activeWireColor}
-        activeWireGauge={activeWireGauge}
-        activeWireLength={activeWireLength}
-        onSelectWireColor={setActiveWireColor}
-        onSelectWireGauge={setActiveWireGauge}
-        onSelectWireLength={setActiveWireLength}
-        isLocked={isLocked}
-      />
+      {/* Conductor & Cable Tool Ribbon Dock (hidden in phone view-only mode) */}
+      {!isViewOnly && (
+        <ConductorToolDock
+          standard={standard}
+          activeWireColor={activeWireColor}
+          activeWireGauge={activeWireGauge}
+          activeWireLength={activeWireLength}
+          onSelectWireColor={setActiveWireColor}
+          onSelectWireGauge={setActiveWireGauge}
+          onSelectWireLength={setActiveWireLength}
+          isLocked={isLocked}
+        />
+      )}
 
       {/* Main Workspace Body */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Floating Hierarchical Component Library */}
         <ComponentDrawer
-          isOpen={isLibraryOpen}
+          isOpen={isLibraryOpen && !isViewOnly}
           onClose={() => setIsLibraryOpen(false)}
           onAddComponent={handleAddComponent}
           isLocked={isLocked}
@@ -1288,8 +1324,8 @@ export const App: React.FC = () => {
         <main className="flex-1 flex overflow-hidden relative">
           {/* Interactive Device & Conductor Inspector Panel */}
           <DevicePropertiesPanel
-        process={project.process}
-        onUpdateProcess={(patch) => setProject((prev) => ({ ...prev, process: { ...(prev.process || DEFAULT_PROCESS), ...patch } }))}
+            process={project.process}
+            onUpdateProcess={(patch) => setProject((prev) => ({ ...prev, process: { ...(prev.process || DEFAULT_PROCESS), ...patch } }))}
             device={inspectorOpen && multiWires.length === 0 ? selectedDevice : null}
             wire={inspectorOpen && multiWires.length === 0 ? project.wires.find(w => w.id === selectedWireId) || null : null}
             wires={inspectorOpen ? multiWires : []}
@@ -1310,8 +1346,9 @@ export const App: React.FC = () => {
             onClose={() => {
               setInspectorOpen(false);
             }}
-            isLibraryOpen={isLibraryOpen}
+            isLibraryOpen={isLibraryOpen && !isViewOnly}
             faultKa={faultLevels && selectedDevice ? (faultLevels.byDevice[selectedDevice.id]?.ik ?? null) : null}
+            readOnly={isViewOnly}
           />
 
           {viewMode === 'realistic' && (
@@ -1328,6 +1365,7 @@ export const App: React.FC = () => {
               onMarqueeSelect={handleMarqueeSelect}
               onOpenInspector={() => setInspectorOpen(true)}
               isSimulating={isSimulating}
+              isViewOnly={isViewOnly}
               snapSize={snapSize}
               onBlockedEdit={handleBlockedEdit}
               onSelectDevice={handleSelectDevice}
@@ -1356,7 +1394,7 @@ export const App: React.FC = () => {
               onDuplicateDevice={handleDuplicateDevice}
               onDeleteDevice={handleDeleteSelected}
               fitKey={`${project.id}-realistic`}
-              insetLeft={isLibraryOpen ? 336 : 0}
+              insetLeft={isLibraryOpen && !isViewOnly ? 336 : 0}
               deviceBadges={faultBadges}
             />
           )}
@@ -1370,7 +1408,7 @@ export const App: React.FC = () => {
           )}
 
           {viewMode === 'plan' && (
-            <PlanView project={project} onChange={(fn) => setProject(fn)} />
+            <PlanView project={project} onChange={(fn) => { if (!isViewOnly) setProject(fn); }} />
           )}
 
           {viewMode === 'plc' && (
@@ -1414,20 +1452,21 @@ export const App: React.FC = () => {
                   onMarqueeSelect={handleMarqueeSelect}
                   onOpenInspector={() => setInspectorOpen(true)}
                   isSimulating={isSimulating}
+                  isViewOnly={isViewOnly}
                   snapSize={snapSize}
                   onBlockedEdit={handleBlockedEdit}
                   onSelectDevice={handleSelectDevice}
                   onSelectWire={handleSelectWire}
                   onUpdateDevicePosition={handleUpdateDevicePosition}
-              onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
-              dmmMode={dmmMode}
-              dmmReadout={dmmReadout}
-              instrument={instrument}
-              onSelectInstrument={handleSelectInstrument}
-              meggerVolts={meggerVolts}
-              onMeggerVolts={setMeggerVolts}
-              onDmmClampWire={handleDmmClampWire}
-              onDmmProbeTerminal={handleDmmProbeTerminal}
+                  onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
+                  dmmMode={dmmMode}
+                  dmmReadout={dmmReadout}
+                  instrument={instrument}
+                  onSelectInstrument={handleSelectInstrument}
+                  meggerVolts={meggerVolts}
+                  onMeggerVolts={setMeggerVolts}
+                  onDmmClampWire={handleDmmClampWire}
+                  onDmmProbeTerminal={handleDmmProbeTerminal}
                   onConnectWire={handleConnectWire}
                   rewiringTarget={rewiringTarget}
                   onSetRewiringTarget={setRewiringTarget}
@@ -1442,8 +1481,8 @@ export const App: React.FC = () => {
                   onDuplicateDevice={handleDuplicateDevice}
                   onDeleteDevice={handleDeleteSelected}
                   fitKey={`${project.id}-split`}
-                  insetLeft={isLibraryOpen ? 336 : 0}
-              deviceBadges={faultBadges}
+                  insetLeft={isLibraryOpen && !isViewOnly ? 336 : 0}
+                  deviceBadges={faultBadges}
                 />
               </div>
               <div className="w-full h-full relative flex flex-col">
@@ -1550,7 +1589,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {reportsOpen && <ReportsPanel project={project} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} energy={{ ledger: energyRef.current, version: energyVersion, reset: () => { energyRef.current = emptyLedger(); setEnergyVersion((v) => v + 1); } }} isSimulating={isSimulating} inspectorErrors={report.violations.filter((v) => v.severity === 'error').length} />}
+      {reportsOpen && <ReportsPanel project={project} initialTab={reportsInitialTab} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} energy={{ ledger: energyRef.current, version: energyVersion, reset: () => { energyRef.current = emptyLedger(); setEnergyVersion((v) => v + 1); } }} isSimulating={isSimulating} inspectorErrors={report.violations.filter((v) => v.severity === 'error').length} />}
 
       {curvesOpen && (
         <CurvesPanel

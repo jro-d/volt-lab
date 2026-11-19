@@ -72,6 +72,8 @@ interface WiringCanvasProps {
     probeA?: { deviceId: string; terminalId: string };
     probeB?: { deviceId: string; terminalId: string };
   } | null;
+  /** View-only phone mode: allows pan/zoom and simulation/probing, blocks all edits */
+  isViewOnly?: boolean;
 }
 
 export const WiringCanvas: React.FC<WiringCanvasProps> = ({
@@ -117,6 +119,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   onSelectInstrument,
   meggerVolts = 500,
   onMeggerVolts,
+  isViewOnly = false,
 }) => {
   const containerRef = useRef<SVGSVGElement | null>(null);
 
@@ -126,12 +129,14 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   // HTML5 Drag and Drop from Component Library
   const handleDragOver = (e: React.DragEvent) => {
+    if (isViewOnly) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    if (isViewOnly) return;
     const type = e.dataTransfer.getData('application/wirewise-device') as DeviceType;
     if (type && onDropDevice && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -179,6 +184,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const touchPanRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   // Keyboard shortcut listener (ESC to cancel wiring / rewire / deselect, Space for panning)
   React.useEffect(() => {
@@ -316,6 +322,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     }
     onSelectWire(null);
 
+    if (isViewOnly) return;
+
     const coords = getSvgCoordinates(e);
 
     // Dragging is locked while energized or when the device position is locked.
@@ -358,6 +366,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       onDmmProbeTerminal?.(device.id, terminal.id);
       return;
     }
+    if (isViewOnly) return;
     if (isSimulating) {
       // Wire creation/rewiring is locked while the grid is energized
       onBlockedEdit?.('simulating');
@@ -575,6 +584,14 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         if (rewiringTarget) onSetRewiringTarget?.(null);
         return;
       }
+      if (isViewOnly) {
+        setIsPanning(true);
+        setPanStart({
+          x: e.clientX - pan.x,
+          y: e.clientY - pan.y,
+        });
+        return;
+      }
       if (dmmMode) return;
       // Otherwise begin a rubber-band selection
       const c = getSvgCoordinates(e);
@@ -639,7 +656,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   }
 
   const handleOpenPortMenu = React.useCallback((deviceId: string, terminalId: string, clientX: number, clientY: number) => {
-    if (!containerRef.current) return;
+    if (isViewOnly || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     setPortMenu({
       deviceId,
@@ -647,7 +664,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       x: Math.min(rect.width - 250, Math.max(12, clientX - rect.left + 8)),
       y: Math.min(rect.height - 160, Math.max(12, clientY - rect.top + 8)),
     });
-  }, []);
+  }, [isViewOnly]);
 
   const terminalHighlightValue = useMemo(() => {
     const connectedTerminalKeys = new Set<string>();
@@ -778,6 +795,25 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseDown={handleCanvasMouseDown}
         onWheel={handleWheel}
+        onTouchStart={(e) => {
+          if (!isViewOnly || e.touches.length !== 1) return;
+          const t = e.touches[0];
+          touchPanRef.current = { x: t.clientX, y: t.clientY, panX: pan.x, panY: pan.y };
+        }}
+        onTouchMove={(e) => {
+          if (!isViewOnly || !touchPanRef.current || e.touches.length !== 1) return;
+          const t = e.touches[0];
+          setPan({
+            x: touchPanRef.current.panX + (t.clientX - touchPanRef.current.x),
+            y: touchPanRef.current.panY + (t.clientY - touchPanRef.current.y),
+          });
+        }}
+        onTouchEnd={() => {
+          touchPanRef.current = null;
+        }}
+        onTouchCancel={() => {
+          touchPanRef.current = null;
+        }}
         onContextMenu={(e) => e.preventDefault()}
       >
         <defs>
@@ -818,6 +854,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                 }}
                 onOpenInspector={onOpenInspector}
                 onStartSegmentDrag={(wireId, segIdx, isHoriz, _pt, waypoints, e) => {
+                  if (isViewOnly) return;
                   if (isSimulating) {
                     onBlockedEdit?.('simulating');
                     return;
@@ -874,9 +911,9 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                   onToggleState={onToggleDeviceState}
                   onPatchState={onPatchDeviceState}
                   isHighlighted={highlightDeviceIds.includes(device.id)}
-                  onRotate={onRotateDevice}
-                  onDuplicate={onDuplicateDevice}
-                  onDelete={onDeleteDevice}
+                  onRotate={isViewOnly ? undefined : onRotateDevice}
+                  onDuplicate={isViewOnly ? undefined : onDuplicateDevice}
+                  onDelete={isViewOnly ? undefined : onDeleteDevice}
                 />
               ))}
             </g>
@@ -997,7 +1034,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       )}
 
       {/* Quick Rewire / Disconnect Handles for Selected Wire (rendered only when a wire is selected in Edit Mode) */}
-      {selectedWireId && selectedWireIds.length <= 1 && !isSimulating && !rewiringTarget && (() => {
+      {!isViewOnly && selectedWireId && selectedWireIds.length <= 1 && !isSimulating && !rewiringTarget && (() => {
         const w = wires.find((item) => item.id === selectedWireId);
         if (!w) return null;
         const fromDev = devices.find((d) => d.id === w.fromDeviceId);

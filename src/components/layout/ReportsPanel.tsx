@@ -517,11 +517,15 @@ export const ReportsPanel: React.FC<{
   onChange: (updater: (p: ElectricalProject) => ElectricalProject) => void;
   onClose: () => void;
   tabs?: ReportTab[];
+  initialTab?: string;
   energy?: ReportContext['energy'];
   isSimulating?: boolean;
   inspectorErrors?: number;
-}> = ({ project, onChange, onClose, tabs = BASE_TABS, energy, isSimulating, inspectorErrors }) => {
-  const [active, setActive] = React.useState(tabs[0].id);
+}> = ({ project, onChange, onClose, tabs = BASE_TABS, initialTab, energy, isSimulating, inspectorErrors }) => {
+  const [active, setActive] = React.useState(initialTab || tabs[0].id);
+  React.useEffect(() => {
+    if (initialTab) setActive(initialTab);
+  }, [initialTab]);
   const tab = tabs.find((t) => t.id === active) || tabs[0];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:static print:bg-transparent print:p-0" role="dialog" aria-label="Reports">

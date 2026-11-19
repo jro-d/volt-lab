@@ -43,6 +43,8 @@ interface DevicePropertiesPanelProps {
   onDisconnectWire?: (wireId: string) => void;
   /** Available fault current at this device's input, A (null when the short-circuit check is off or the device is not reached) */
   faultKa?: number | null;
+  /** Read-only inspector mode (phone view-only breakpoint) */
+  readOnly?: boolean;
 }
 
 /** Hold-to-press helper for momentary push buttons in the inspector */
@@ -80,6 +82,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   onRequestRewire,
   onDisconnectWire,
   faultKa,
+  readOnly = false,
 }) => {
   const patchState = (key: string, value: any) =>
     device && (onPatchDeviceState ? onPatchDeviceState(device.id, { [key]: value }) : onUpdateDeviceProperty(device.id, key, value));
@@ -108,13 +111,23 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             </div>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 text-ink hover:text-ink hover:bg-surface-hover rounded-lg transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {readOnly && (
+            <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-surface-sunken border border-border text-ink-muted">
+              View only
+            </span>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1 text-ink hover:text-ink hover:bg-surface-hover rounded-lg transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      <div className={readOnly ? 'pointer-events-none opacity-85' : ''}>
+      <fieldset disabled={readOnly} className="border-0 p-0 m-0 min-w-0">
 
       {/* ── STANDARD DATASHEET CARD (brand-neutral) ── */}
       {device && (
@@ -2344,7 +2357,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           )}
 
           {/* Move Endpoint / Disconnect Connected Ports */}
-          {(() => {
+          {!readOnly && (() => {
             const fromDev = devices.find((d) => d.id === wire.fromDeviceId);
             const toDev = devices.find((d) => d.id === wire.toDeviceId);
             const fromTerm = fromDev?.terminals.find((t) => t.id === wire.fromTerminalId);
@@ -2398,7 +2411,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
+      </fieldset>
+      </div>
+
       {/* Footer Action Buttons (Rotate, Duplicate, Delete) */}
+      {!readOnly && (
       <div className="pt-3 mt-3 border-t border-border/80 flex items-center justify-between gap-2">
         {device && (
           <div className="flex items-center gap-1.5">
@@ -2430,6 +2447,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           <span>Delete</span>
         </button>
       </div>
+      )}
     </div>
   );
 };

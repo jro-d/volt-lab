@@ -386,7 +386,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       </g>
 
       {/* Floating Action Bar on Selected Device (Rotate, Duplicate, Delete) */}
-      {isSelected && (
+      {isSelected && (onRotate || onDuplicate || onDelete) && (
         <g
           transform={`translate(${cx}, ${floatingBarY})`}
           className="select-none"
