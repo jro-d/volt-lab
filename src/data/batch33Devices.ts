@@ -9,13 +9,13 @@ import type { ComponentDefinition } from './defaultComponents';
 type TT = DeviceTerminal['type'];
 type PL = NonNullable<DeviceTerminal['phaseLabel']>;
 const PHASE_LABEL: Partial<Record<TT, PL>> = { no: 'NO', nc: 'NC', common: 'COM', phase: 'L', neutral: 'N', input: 'IN', output: 'OUT', load: 'SW', coil: 'A1' };
-const t = (id: string, label: string, type: TT, relX: number, relY: number, name?: string): DeviceTerminal => ({
+export const t = (id: string, label: string, type: TT, relX: number, relY: number, name?: string): DeviceTerminal => ({
   id, name: name || label, type, relX, relY, label,
   phaseLabel: id === 'a2' || id === 'x2' || id === 'c2' || id === 'r2' ? (id === 'x2' ? 'X2' : 'A2') : id === 'x1' ? 'X1' : PHASE_LABEL[type],
 });
-const TOP = 0.08;
-const BOT = 0.92;
-const spread = (n: number) => Array.from({ length: n }, (_, i) => (i + 0.5) / n);
+export const TOP = 0.08;
+export const BOT = 0.92;
+export const spread = (n: number) => Array.from({ length: n }, (_, i) => (i + 0.5) / n);
 
 export const BATCH33_DEVICES: ComponentDefinition[] = [
   {

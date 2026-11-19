@@ -103,6 +103,121 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.armed = false;
     state.needRelease = false;
   }
+  // Batch 3.4: outputs and measured values clear; set points, targets and positions stay
+  if (device.type === 'electrode_level_relay') {
+    state.out = false;
+    state.powered = false;
+  }
+  if (device.type === 'thermostat') {
+    state.out = false;
+    state.tempC = Number(state.ambientC) || 15;
+  }
+  if (device.type === 'thermocouple_k') state.tempC = Number(state.ambientC) || 20;
+  if (device.type === 'temp_controller') {
+    state.out = false;
+    state.pv = 0;
+    state.fault = '';
+  }
+  if (device.type === 'photocell_switch') state.on = false;
+  if (device.type === 'pir_sensor') {
+    state.on = false;
+    state.remainingSec = 0;
+  }
+  if (device.type === 'flow_switch') {
+    state.flowing = false;
+    state.lpm = 0;
+  }
+  if (device.type === 'zero_speed_switch') {
+    state.speedPct = 0;
+    state.zero = false;
+  }
+  if (device.type === 'solenoid_valve') state.open = false;
+  // Batch 3.5: speeds, ramps and positions return to standstill; set points stay
+  if (['soft_starter', 'starter_reduced_voltage'].includes(device.type)) {
+    state.on = false;
+    state.phase = 'idle';
+    state.elapsedSec = 0;
+    state.rampPct = 0;
+  }
+  if (['motor_dahlander', 'motor_wound_rotor', 'motor_dc_shunt', 'motor_brake'].includes(device.type)) {
+    state.speedPct = 0;
+    state.running = false;
+  }
+  if (device.type === 'motor_dahlander') state.speedSet = 'off';
+  if (device.type === 'motor_wound_rotor') state.stages = -1;
+  if (device.type === 'rotor_resistor_bank') state.stages = 0;
+  if (device.type === 'motor_dc_shunt') {
+    state.elapsedSec = 0;
+    state.starterStep = 0;
+    state.armPowered = false;
+    state.fieldPowered = false;
+    state.overspeed = false;
+  }
+  if (device.type === 'motor_brake') {
+    state.brakeReleased = false;
+    state.locked = false;
+  }
+  if (device.type === 'dc_injection_brake') {
+    state.remainingSec = 0;
+    state.braking = false;
+    state.runPrev = false;
+  }
+  if (device.type === 'pump_submersible_3p' || device.type === 'air_compressor_3p') {
+    state.running = false;
+    state.pumping = false;
+  }
+  if (device.type === 'hoist_conveyor') {
+    state.running = false;
+    state.moving = false;
+    state.stalled = false;
+    state.stallSec = 0;
+  }
+  // Batch 3.6: cycles restart, batteries and heat keep their value except the live flags
+  if (device.type === 'appliance_generic') {
+    state.elapsedSec = 0;
+    state.wattsNow = 0;
+    state.phase = 'off';
+    state.timerSec = 0;
+  }
+  if (device.type === 'emergency_light') {
+    state.mains = false;
+    state.lit = false;
+    state.onBattery = false;
+  }
+  if (device.type === 'doorbell_set') {
+    state.ringing = false;
+    state.secondaryV = 0;
+    state.pressedSense = false;
+  }
+  if (device.type === 'power_strip') {
+    state.loadAmps = 0;
+    state.overload = false;
+  }
+  // Batch 3.7: the valve spool and cylinder go back to retracted, the displays clear
+  if (device.type === 'valve_52') {
+    state.spool = 'none';
+    state.y1 = false;
+    state.y2 = false;
+  }
+  if (device.type === 'cylinder_da') {
+    state.position = 0;
+    state.atExtended = false;
+    state.atRetracted = true;
+    state.moving = false;
+  }
+  if (device.type === 'analog_io_module') state.powered = false;
+  if (device.type === 'hmi_panel') {
+    state.powered = false;
+    state.linked = false;
+    for (let i = 1; i <= 4; i++) state[`lamp${i}`] = false;
+  }
+  if (device.type === 'fire_alarm_panel') {
+    state.powered = false;
+    state.alarm = false;
+    state.silenced = false;
+    state.loopTripped = false;
+    state.resetRequested = false;
+  }
   if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') state.phaseAngleDeg = 0;
   if (device.type === 'motor_ac_industrial' || device.type === 'pump_booster_3p' || device.type === 'motor_6lead_star_delta') state.windingC = 40;
   if (device.type === 'mccb_3p' || device.type === 'mpcb_3p') state.heat = 0;

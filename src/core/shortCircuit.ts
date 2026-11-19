@@ -24,7 +24,7 @@ export const DEFAULT_SHORT_CIRCUIT: ShortCircuitSettings = { v: 1, enabled: true
 export const R75_TO_R20 = 1 / (1 + 0.00393 * 55);
 
 /** A device whose interrupting rating is checked against the fault level at its input */
-const INTERRUPTING_TYPES = new Set([
+export const INTERRUPTING_TYPES = new Set([
   'mcb_1p', 'mcb_2p', 'mcb_3p', 'service_disconnect_2p', 'safety_breaker_2p', 'fuse_holder_1p',
   'fuse_switch_disconnector_3p', 'rcbo_1pn', 'afdd_1pn', 'mccb_3p', 'mpcb_3p',
 ]);
@@ -41,7 +41,7 @@ const METER_TYPES = new Set(['kwh_meter_1p', 'kwh_meter_3p']);
 const key = (d: string, t: string) => `${d}:${t}`;
 
 /** Pairs of terminals of a series device that carry the same conductor through it. */
-function seriesLinks(dev: ElectricalDevice): [string, string][] {
+export function seriesLinks(dev: ElectricalDevice): [string, string][] {
   const ids = new Set(dev.terminals.map((t) => t.id));
   if (dev.category === 'busbar' || dev.type === 'terminal_block' || dev.type === 'distribution_block') {
     const out: [string, string][] = [];

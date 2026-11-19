@@ -9,6 +9,10 @@ import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
 import { PhaseMonitorDevice } from './PhaseMonitorDevice';
 import { PowerSystemsDevice } from './PowerSystemsDevice';
 import { ControlModuleDevice } from './ControlModuleDevice';
+import { FieldModuleDevice } from './FieldModuleDevice';
+import { DriveModuleDevice } from './DriveModuleDevice';
+import { HomeModuleDevice } from './HomeModuleDevice';
+import { AutomationModuleDevice } from './AutomationModuleDevice';
 import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
 import { ProtectionModuleDevice, GfciDevice, MonitoringRelayDevice, CtDevice, AmmeterDevice, VoltmeterSelectorDevice, TerminalBlockDevice } from './ProtectionDevices';
 import { Motor1pDevice, CapacitorDevice } from './SinglePhaseMotor';
@@ -181,6 +185,46 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'door_interlock_switch':
       case 'pull_cord_switch':
         return <ControlModuleDevice {...commonProps} />;
+      case 'electrode_level_relay':
+      case 'thermostat':
+      case 'thermocouple_k':
+      case 'temp_controller':
+      case 'reed_switch':
+      case 'photocell_switch':
+      case 'pir_sensor':
+      case 'flow_switch':
+      case 'zero_speed_switch':
+      case 'solenoid_valve':
+      case 'smoke_detector':
+      case 'manual_call_point':
+      case 'fire_alarm_panel':
+        return <FieldModuleDevice {...commonProps} />;
+      case 'soft_starter':
+      case 'starter_reduced_voltage':
+      case 'motor_dahlander':
+      case 'motor_wound_rotor':
+      case 'rotor_resistor_bank':
+      case 'motor_dc_shunt':
+      case 'motor_brake':
+      case 'dc_injection_brake':
+      case 'speed_potentiometer':
+      case 'braking_resistor':
+      case 'line_reactor':
+      case 'pump_submersible_3p':
+      case 'air_compressor_3p':
+      case 'hoist_conveyor':
+        return <DriveModuleDevice {...commonProps} />;
+      case 'appliance_generic':
+      case 'emergency_light':
+      case 'fan_regulator':
+      case 'doorbell_set':
+      case 'power_strip':
+        return <HomeModuleDevice {...commonProps} />;
+      case 'valve_52':
+      case 'cylinder_da':
+      case 'analog_io_module':
+      case 'hmi_panel':
+        return <AutomationModuleDevice {...commonProps} />;
       case 'phase_monitor_relay':
         return <PhaseMonitorDevice {...commonProps} />;
       case 'float_switch':

@@ -14,6 +14,10 @@ import { psuBehavior, dcSensorBehavior, plc24Behavior } from './dcDevices';
 import * as pwr from './powerSystems';
 import { plcProgramBehavior } from './plcProgram';
 import * as ctl from './controlModules';
+import * as fld from './fieldDevices';
+import * as drv from './drives';
+import * as home from './homeLoads';
+import * as auto from './automation';
 
 const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1pBehavior, fuse3pBehavior, rcboBehavior, generatorBehavior, atsTransferBehavior, floatSwitchBehavior, pressureSwitchBehavior, phaseMonitorBehavior, psuBehavior, dcSensorBehavior, plc24Behavior, motor1pBehavior, capacitorBehavior,
   prot.rcd4pBehavior, prot.gfciBehavior, prot.afddBehavior, prot.mccbBehavior, prot.mpcbBehavior, prot.isolatorBehavior,
@@ -25,7 +29,15 @@ const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1p
   plcProgramBehavior,
   ctl.starDeltaTimerBehavior, ctl.counterRelayBehavior, ctl.impulseRelayBehavior, ctl.staircaseTimerBehavior, ctl.timeSwitchBehavior,
   ctl.alternatingRelayBehavior, ctl.ssrBehavior, ctl.operatorBehavior, ctl.auxBlockBehavior, ctl.interlockBehavior,
-  ctl.safetyRelayBehavior, ctl.twoHandBehavior, ctl.doorInterlockBehavior, ctl.pullCordBehavior];
+  ctl.safetyRelayBehavior, ctl.twoHandBehavior, ctl.doorInterlockBehavior, ctl.pullCordBehavior,
+  fld.electrodeLevelBehavior, fld.thermostatBehavior, fld.thermocoupleBehavior, fld.tempControllerBehavior, fld.reedSwitchBehavior,
+  fld.photocellBehavior, fld.pirBehavior, fld.flowSwitchBehavior, fld.zeroSpeedBehavior, fld.solenoidValveBehavior,
+  fld.smokeDetectorBehavior, fld.callPointBehavior, fld.fireAlarmPanelBehavior,
+  drv.softStarterBehavior, drv.reducedVoltageBehavior, drv.dahlanderBehavior, drv.rotorBankBehavior, drv.woundRotorBehavior,
+  drv.dcShuntBehavior, drv.brakeMotorBehavior, drv.dcInjectionBehavior, drv.vfdLinkBehavior, drv.lineReactorBehavior,
+  drv.submersiblePumpBehavior, drv.compressorBehavior, drv.hoistConveyorBehavior,
+  home.applianceBehavior, home.emergencyLightBehavior, home.fanRegulatorBehavior, home.fanSpeedBehavior, home.doorbellBehavior, home.powerStripBehavior,
+  auto.valve52Behavior, auto.cylinderBehavior, auto.reedSwitchLinkedBehavior, auto.analogModuleBehavior, auto.hmiBehavior];
 
 const byType = new Map<DeviceType, DeviceBehavior>();
 for (const b of BEHAVIORS) for (const t of b.types) byType.set(t, b);

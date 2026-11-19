@@ -124,6 +124,46 @@ export type DeviceType =
   | 'two_hand_station'
   | 'door_interlock_switch'
   | 'pull_cord_switch'
+  // Batch 3.4: sensors and field devices
+  | 'electrode_level_relay'
+  | 'thermostat'
+  | 'thermocouple_k'
+  | 'temp_controller'
+  | 'reed_switch'
+  | 'photocell_switch'
+  | 'pir_sensor'
+  | 'flow_switch'
+  | 'zero_speed_switch'
+  | 'solenoid_valve'
+  | 'smoke_detector'
+  | 'manual_call_point'
+  | 'fire_alarm_panel'
+  // Batch 3.5: motors, starters and drives
+  | 'soft_starter'
+  | 'starter_reduced_voltage'
+  | 'motor_dahlander'
+  | 'motor_wound_rotor'
+  | 'rotor_resistor_bank'
+  | 'motor_dc_shunt'
+  | 'motor_brake'
+  | 'dc_injection_brake'
+  | 'speed_potentiometer'
+  | 'braking_resistor'
+  | 'line_reactor'
+  | 'pump_submersible_3p'
+  | 'air_compressor_3p'
+  | 'hoist_conveyor'
+  // Batch 3.6: residential and commercial loads
+  | 'appliance_generic'
+  | 'emergency_light'
+  | 'fan_regulator'
+  | 'doorbell_set'
+  | 'power_strip'
+  // Batch 3.7: automation
+  | 'valve_52'
+  | 'cylinder_da'
+  | 'analog_io_module'
+  | 'hmi_panel'
   // Batch 3.2: sources and power systems
   | 'transfer_switch_manual'
   | 'ups_battery'
@@ -294,6 +334,76 @@ export interface ElectricalProject {
   curves?: { v: 1; chain: string[]; wireId?: string; motorId?: string };
   /** Short-circuit check (off until enabled): source level and optional transformer, see core/shortCircuit.ts */
   shortCircuit?: ShortCircuitSettings;
+  /** Load schedule: demand factors typed in by the user, by load type (none is built in) */
+  loadSchedule?: { v: 1; demandFactors: Record<string, number> };
+  /** Bill of materials: unit prices typed in by the user and the allowances (no prices are bundled) */
+  bom?: BomSettings;
+  /** Wire numbering scheme and the title block of the terminal-strip drawings */
+  wireNumbering?: WireNumberingSettings;
+  /** Energy and billing: time scale and tariff (the tariff rate is typed in by the user) */
+  energy?: EnergySettings;
+  /** Graded lab: what the finished work must contain (set when an exercise is started) */
+  target?: LabTarget;
+  /** Safe isolation workflow (Off by default) */
+  safeIsolation?: SafeIsolationState;
+}
+
+/** Safe isolation (dead test and lock-out / tag-out) workflow state. */
+export interface SafeIsolationState {
+  v: 1;
+  mode: 'off' | 'prompt' | 'required';
+  /** Step ids done, in order */
+  done: string[];
+  /** Prompt mode: the one-time warning has been shown */
+  warned: boolean;
+  log: { step: string; at: number }[];
+}
+
+/** Graded lab target: required devices, connections, ladder and Code Inspector result. */
+export interface LabTarget {
+  v: 1;
+  labId: string;
+  title: string;
+  devices: { type: string; count: number }[];
+  /** Required connections as device:terminal pairs (order independent, same net counts) */
+  connections: [string, string][];
+  needsLadder: boolean;
+  noErrors: boolean;
+  /** Show which devices and connections are missing (off by default) */
+  showSolution: boolean;
+}
+
+/** Energy and billing settings stored with the project. */
+export interface EnergySettings {
+  v: 1;
+  /** Accumulate energy while simulating */
+  enabled: boolean;
+  /** Simulated seconds per real second: 1, 60 or 3600 */
+  timeScale: 1 | 60 | 3600;
+  tariff: { currency: string; perKwh: number; tiers?: { upToKwh: number | null; perKwh: number }[] };
+}
+
+/** Wire numbering settings stored with the project. */
+export interface WireNumberingSettings {
+  v: 1;
+  scheme: 'sequential' | 'from-to' | 'per-circuit';
+  prefix: string;
+  titleBlock: { project: string; drawnBy: string; checkedBy: string; date: string; sheet: string };
+}
+
+/** Bill-of-materials settings stored with the project. */
+export interface BomSettings {
+  v: 1;
+  /** Unit price by line key (see core/bom.ts) */
+  prices: Record<string, number>;
+  /** Extra conductor length added for waste, percent */
+  wastePct: number;
+  contingencyPct: number;
+  vatPct: number;
+  /** Conduit allowance, metres, and box allowance, pieces */
+  conduitM: number;
+  boxCount: number;
+  currency: string;
 }
 
 /** Settings of the ohmic short-circuit check. */

@@ -55,6 +55,14 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     if (d.type.startsWith('fuse')) symbol = 'fuse';
     else if (['star_delta_timer', 'counter_relay', 'impulse_relay', 'staircase_timer', 'time_switch_24h', 'alternating_relay', 'ssr_1p', 'safety_relay', 'aux_contact_block'].includes(d.type)) symbol = 'relay';
     else if (['operator_pilot', 'two_hand_station', 'door_interlock_switch', 'pull_cord_switch', 'mechanical_interlock'].includes(d.type)) symbol = 'switch';
+    else if (['electrode_level_relay', 'thermostat', 'temp_controller', 'photocell_switch', 'pir_sensor', 'fire_alarm_panel', 'solenoid_valve'].includes(d.type)) symbol = 'relay';
+    else if (['reed_switch', 'flow_switch', 'zero_speed_switch', 'smoke_detector', 'manual_call_point'].includes(d.type)) symbol = 'switch';
+    else if (['soft_starter', 'starter_reduced_voltage', 'line_reactor', 'dc_injection_brake', 'rotor_resistor_bank', 'speed_potentiometer', 'braking_resistor'].includes(d.type)) symbol = 'relay';
+    else if (['motor_dahlander', 'motor_wound_rotor', 'motor_dc_shunt', 'motor_brake', 'pump_submersible_3p', 'air_compressor_3p', 'hoist_conveyor'].includes(d.type)) symbol = 'motor';
+    else if (['emergency_light', 'doorbell_set', 'fan_regulator'].includes(d.type)) symbol = 'relay';
+    else if (['appliance_generic', 'power_strip'].includes(d.type)) symbol = 'motor';
+    else if (['valve_52', 'analog_io_module', 'hmi_panel'].includes(d.type)) symbol = 'relay';
+    else if (d.type === 'cylinder_da') symbol = 'motor';
     else if (d.type === 'pv_string') symbol = 'pv';
     else if (d.type === 'inverter_gridtie') symbol = 'inverter';
     else if (d.type === 'ups_battery') symbol = 'battery';

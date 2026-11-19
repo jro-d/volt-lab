@@ -68,7 +68,7 @@ const LIBRARY_TREE: FolderNode[] = [
       { id: 'motors', label: 'Motors & Drives (VFD)', types: ['motor_ac_industrial', 'motor_6lead_star_delta', 'pump_booster_3p', 'vfd_drive', 'motor_1p', 'capacitor_run'] },
     ],
   },
-  { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller', 'plc_24vdc_16io', 'psu_24vdc', 'sensor_inductive', 'sensor_capacitive', 'sensor_photoelectric'] },
+  { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller', 'plc_24vdc_16io', 'psu_24vdc', 'sensor_inductive', 'sensor_capacitive', 'sensor_photoelectric', 'analog_io_module', 'hmi_panel', 'valve_52', 'cylinder_da'] },
   {
     id: 'service',
     label: 'Service Entrance & Grounding',
@@ -91,6 +91,30 @@ const LIBRARY_TREE: FolderNode[] = [
       { id: 'operators', label: 'Operators & Contact Blocks', types: ['operator_pilot', 'aux_contact_block', 'mechanical_interlock'] },
       { id: 'safety', label: 'Safety Devices', types: ['safety_relay', 'two_hand_station', 'door_interlock_switch', 'pull_cord_switch'] },
     ],
+  },
+  {
+    id: 'field_sensors',
+    label: 'Sensors & Field Devices',
+    children: [
+      { id: 'process_sensors', label: 'Level, Temperature, Flow & Speed', types: ['electrode_level_relay', 'thermostat', 'thermocouple_k', 'temp_controller', 'flow_switch', 'zero_speed_switch', 'solenoid_valve'] },
+      { id: 'presence_sensors', label: 'Position, Light & Presence', types: ['reed_switch', 'photocell_switch', 'pir_sensor'] },
+      { id: 'fire_alarm', label: 'Fire Alarm', types: ['smoke_detector', 'manual_call_point', 'fire_alarm_panel'] },
+    ],
+  },
+  {
+    id: 'drives_starters',
+    label: 'Starters, Motors & Drives',
+    children: [
+      { id: 'starters', label: 'Soft & Reduced-Voltage Starters', types: ['soft_starter', 'starter_reduced_voltage'] },
+      { id: 'special_motors', label: 'Special Motors & Braking', types: ['motor_dahlander', 'motor_wound_rotor', 'rotor_resistor_bank', 'motor_dc_shunt', 'motor_brake', 'dc_injection_brake'] },
+      { id: 'vfd_accessories', label: 'VFD Accessories', types: ['speed_potentiometer', 'braking_resistor', 'line_reactor'] },
+      { id: 'driven_loads', label: 'Pumps, Compressor & Hoist', types: ['pump_submersible_3p', 'air_compressor_3p', 'hoist_conveyor'] },
+    ],
+  },
+  {
+    id: 'home_loads',
+    label: 'Home & Commercial Loads',
+    types: ['appliance_generic', 'emergency_light', 'fan_regulator', 'doorbell_set', 'power_strip'],
   },
   {
     id: 'appliances',

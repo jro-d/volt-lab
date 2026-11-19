@@ -37,7 +37,7 @@ export const LightFixtureDevice: React.FC<DeviceProps> = (props) => {
         strokeWidth={lit ? 1.3 : 0.8}
         strokeLinejoin="round"
       />
-      <Mono x={cx} y={bulbCy + 12} size={4.4} anchor="middle" muted={!lit}>{`${wattage}W`}</Mono>
+      <Mono x={cx} y={bulbCy + 12} size={4.4} anchor="middle" muted={!lit}>{`${wattage}W${device.state.lampType && device.state.lampType !== 'incandescent' ? ' ' + String(device.state.lampType).toUpperCase().slice(0, 4) : ''}`}</Mono>
 
       {/* E27 screw base */}
       <rect className="d-steel" x={cx - 8.5} y={holderY - 4} width={17} height={8} rx={1.5} />

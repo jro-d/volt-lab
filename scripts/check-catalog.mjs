@@ -103,7 +103,7 @@ for (const def of catalog) {
     }
   }
   // Purely mechanical accessories (a link between two contactors) have no electrical terminals
-  const MECHANICAL_ONLY = new Set(['mechanical_interlock']);
+  const MECHANICAL_ONLY = new Set(['mechanical_interlock', 'cylinder_da']);
   if ((!def.terminals || def.terminals.length === 0) && !MECHANICAL_ONLY.has(def.type)) fail(`"${def.type}": no terminals`);
   if (!def.productStandard) fail(`"${def.type}": missing productStandard`);
   if (!def.modelNumber) fail(`"${def.type}": missing modelNumber`);

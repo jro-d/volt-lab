@@ -126,6 +126,10 @@ export function solveCircuit(
   const nodePotentials: Record<string, 'live' | 'neutral' | 'earth' | 'switched' | 'none'> = {};
   const nodePhases: Record<string, PhaseId> = {};
   const deviceEnergized: Record<string, boolean> = {};
+  /** Three-phase loads declared by device behaviours (see loads3p in behaviors/types.ts) */
+  /** Single-phase loads declared by device behaviours (see loads1p in behaviors/types.ts) */
+  const load1pByDevice = new Map<string, { line: string; neutral: string; watts: number; pf: number; powered: boolean }>();
+  const load3pByDevice = new Map<string, { terminals: [string, string, string]; watts: number; startMult?: number; running: boolean; amps: number }>();
   const wireCurrents: Record<string, number> = {};
   const wireFlowDirections: Record<string, 'forward' | 'reverse'> = {};
   const wireVoltageDrops: Record<string, number> = {};
@@ -1319,6 +1323,50 @@ export function solveCircuit(
       dev.state.remoteStart = isConnected(terminalKey(dev.id, 'start_a'), terminalKey(dev.id, 'start_b'));
       deviceEnergized[dev.id] = !!dev.state.running && !dev.state.overloaded;
     } else {
+      // Three-phase loads declared by behaviours: a complete line set (three distinct phases) runs them
+      const l3 = behaviorFor(dev.type)?.loads3p?.(dev, {
+        potential: (t) => nodePotentials[terminalKey(dev.id, t)],
+        phase: (t) => nodePhases[terminalKey(dev.id, t)],
+        connected: (a, b) => isConnected(terminalKey(dev.id, a), terminalKey(dev.id, b)),
+      });
+      if (l3) {
+        const tk = l3.terminals.map((t) => terminalKey(dev.id, t));
+        const pots = tk.map((k) => nodePotentials[k]);
+        const phases = tk.map((k) => nodePhases[k]);
+        const distinct = new Set(phases.filter(Boolean));
+        let running = false;
+        let direction = 'CW';
+        let fault = l3.fault || '';
+        if (!fault && distinct.size === 3 && pots.every((p) => p === 'live')) {
+          running = true;
+          direction = CW_SEQUENCES.includes(phases.join(',')) ? 'CW' : 'CCW';
+        } else if (!fault && pots.filter((p) => p === 'live').length >= 2 && distinct.size >= 1) {
+          fault = distinct.size === 2 ? 'SINGLE PHASING (one line open)' : 'SAME PHASE ON ALL LEADS';
+        }
+        const amps = running ? motorLineAmps(l3.watts, lineVolts) : 0;
+        dev.state.powered3 = running;
+        dev.state.direction = direction;
+        dev.state.fault3 = fault;
+        dev.state.measuredAmps = amps;
+        deviceEnergized[dev.id] = running;
+        if (running) totalWatts += l3.watts;
+        load3pByDevice.set(dev.id, { terminals: l3.terminals, watts: l3.watts, startMult: l3.startMult, running, amps });
+      }
+      // Single-phase loads declared by behaviours: line live and neutral present
+      const l1 = behaviorFor(dev.type)?.loads1p?.(dev, {
+        potential: (t) => nodePotentials[terminalKey(dev.id, t)],
+        phase: (t) => nodePhases[terminalKey(dev.id, t)],
+        connected: (a, b) => isConnected(terminalKey(dev.id, a), terminalKey(dev.id, b)),
+      });
+      if (l1) {
+        const pa = nodePotentials[terminalKey(dev.id, l1.line)];
+        const pn = nodePotentials[terminalKey(dev.id, l1.neutral)];
+        const powered = (pa === 'live' && pn === 'neutral') || (pn === 'live' && pa === 'neutral');
+        dev.state.powered = powered;
+        deviceEnergized[dev.id] = powered;
+        if (powered) totalWatts += l1.watts;
+        load1pByDevice.set(dev.id, { line: l1.line, neutral: l1.neutral, watts: l1.watts, pf: l1.pf && l1.pf > 0 ? l1.pf : 1, powered });
+      }
       // Devices that declare coils / control inputs (control modules): energized when one is powered
       const coils = behaviorFor(dev.type)?.coils?.(dev);
       if (coils) {
@@ -1384,7 +1432,7 @@ export function solveCircuit(
 
     if (dev.type === 'light_bulb') {
       const w = dev.state.wattage || 60;
-      traceLoadCurrent(terminalKey(dev.id, 'hot'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
+      traceLoadCurrent(terminalKey(dev.id, 'hot'), terminalKey(dev.id, 'neutral'), w / (gridVoltage * (Number(dev.state.pf) > 0 ? Number(dev.state.pf) : 1)));
     } else if (dev.type === 'socket_duplex' || dev.type === 'socket_schuko') {
       if (dev.state.hasPluggedLoad) {
         const w = dev.state.pluggedAppliance === 'appliance_tv' ? 120 : 300;
@@ -1532,6 +1580,25 @@ export function solveCircuit(
       const neutT = a1Pot === 'live' ? 'a2' : 'a1';
       traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), 4 / gridVoltage);
     } else {
+      const l1 = load1pByDevice.get(dev.id);
+      if (l1 && l1.powered && l1.watts > 0) {
+        const liveT = nodePotentials[terminalKey(dev.id, l1.line)] === 'live' ? l1.line : l1.neutral;
+        const neutT = liveT === l1.line ? l1.neutral : l1.line;
+        traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), l1.watts / (gridVoltage * l1.pf));
+      }
+      const l3 = load3pByDevice.get(dev.id);
+      if (l3 && l3.running) {
+        // Balanced line current in each lead, traced back to its own phase; series devices on the first lead carry it
+        for (const t of l3.terminals) traceLoadCurrent(terminalKey(dev.id, t), undefined, l3.amps);
+        let curr: string | undefined = terminalKey(dev.id, l3.terminals[0]);
+        const seen = new Set<string>();
+        while (curr && !seen.has(curr)) {
+          seen.add(curr);
+          const up = deviceById.get(devOfNode(curr));
+          if (up && (up.type === 'thermal_overload_relay' || up.type === 'contactor_3p')) up.state.measuredAmps = l3.amps;
+          curr = liveParent[curr]?.prevNode;
+        }
+      }
       for (const c of behaviorFor(dev.type)?.coils?.(dev) ?? []) {
         if (!isCoilPowered(dev.id, c.a, c.b)) continue;
         const liveT = nodePotentials[terminalKey(dev.id, c.a)] === 'live' ? c.a : c.b;
@@ -1598,16 +1665,30 @@ export function solveCircuit(
     return false;
   };
 
+  /** Lowest starting-current multiple declared by a limiting series device (soft starter ...) upstream of a node */
+  const upstreamInrushLimit = (node: string): number | null => {
+    let curr: string | undefined = node;
+    const seen = new Set<string>();
+    let lowest: number | null = null;
+    while (curr && !seen.has(curr)) {
+      seen.add(curr);
+      const up = deviceById.get(devOfNode(curr));
+      const lim = up ? behaviorFor(up.type)?.limitsInrush?.(up) : null;
+      if (lim != null) lowest = lowest == null ? lim : Math.min(lowest, lim);
+      curr = liveParent[curr]?.prevNode;
+    }
+    return lowest;
+  };
+
   const motorInrushByBreaker: Record<string, number> = {};
   for (const dev of devices) {
-    if ((dev.type === 'motor_ac_industrial' || dev.type === 'pump_booster_3p' || dev.type === 'motor_6lead_star_delta') && deviceEnergized[dev.id]) {
-      const startKey = terminalKey(dev.id, 'u1');
+    const l3 = load3pByDevice.get(dev.id);
+    if (((dev.type === 'motor_ac_industrial' || dev.type === 'pump_booster_3p' || dev.type === 'motor_6lead_star_delta') || (l3 && l3.running)) && deviceEnergized[dev.id]) {
+      const startKey = terminalKey(dev.id, l3 ? l3.terminals[0] : 'u1');
       const runAmps = dev.state.measuredAmps || (dev.state.wattage || 2200) / gridVoltage;
-      const inrushMult = hasVfdUpstream(startKey)
-        ? 1.8
-        : dev.type === 'motor_6lead_star_delta'
-        ? (dev.state.starterMode === 'delta' ? 2.2 : 6.0)
-        : 6.0;
+      const baseMult = l3 ? (l3.startMult ?? 6.0) : dev.type === 'motor_6lead_star_delta' ? (dev.state.starterMode === 'delta' ? 2.2 : 6.0) : 6.0;
+      const limited = upstreamInrushLimit(startKey);
+      const inrushMult = hasVfdUpstream(startKey) ? 1.8 : limited != null ? Math.min(baseMult, limited) : baseMult;
       const inrushAmps = runAmps * inrushMult;
       let curr: string | undefined = startKey;
       const seen = new Set<string>();

@@ -31,6 +31,10 @@ import { Recorder } from './core/recorder';
 import { RecorderPanel } from './components/layout/RecorderPanel';
 import { CurvesPanel } from './components/layout/CurvesPanel';
 import { FaultLevelsPanel } from './components/layout/FaultLevelsPanel';
+import { ReportsPanel } from './components/layout/ReportsPanel';
+import { decodeShare, isShareHash } from './utils/shareLink';
+import { simulateGate } from './core/safeIsolation';
+import { accumulateEnergy, emptyLedger, DEFAULT_ENERGY, type EnergyLedger } from './core/energy';
 import { computeFaultLevels, checkInterruptingRatings, DEFAULT_SHORT_CIRCUIT } from './core/shortCircuit';
 import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
@@ -83,6 +87,7 @@ export const App: React.FC = () => {
   // Timing diagram recorder (hidden until opened from the status bar)
   const [recorderOpen, setRecorderOpen] = useState<boolean>(false);
   const [curvesOpen, setCurvesOpen] = useState<boolean>(false);
+  const [reportsOpen, setReportsOpen] = useState<boolean>(false);
   const recorderRef = useRef<Recorder>(new Recorder());
   const [recVersion, setRecVersion] = useState(0);
   const [recPaused, setRecPaused] = useState(false);
@@ -445,12 +450,21 @@ export const App: React.FC = () => {
   projectRef.current = project;
   const recChannelsRef = useRef(recChannels);
   recChannelsRef.current = recChannels;
+  // Energy ledger (kept in a ref: it changes every tick) and its version for the Reports panel
+  const energyRef = useRef<EnergyLedger>(emptyLedger());
+  const [energyVersion, setEnergyVersion] = useState(0);
+  const energyOn = !!project.energy?.enabled;
 
   // Time-dependent devices (timer relays, energy meters, fuses, generators ...) advance while simulating;
   // the recorder samples every tick too
   React.useEffect(() => {
-    if (!isSimulating || (!needsTick(project.devices) && recChannels.length === 0)) return;
+    if (!isSimulating || (!needsTick(project.devices) && recChannels.length === 0 && !energyOn)) return;
     const id = window.setInterval(() => {
+      if (projectRef.current.energy?.enabled) {
+        const cur = projectRef.current;
+        energyRef.current = accumulateEnergy(energyRef.current, cur.devices, solved, TICK_SECONDS, cur.energy?.timeScale ?? DEFAULT_ENERGY.timeScale);
+        setEnergyVersion((v) => v + 1);
+      }
       if (recChannelsRef.current.length > 0) {
         const cur = projectRef.current;
         const after = tickSimulation(cur.devices, cur.wires, solved, cur.gridFrequency, TICK_SECONDS, cur.process);
@@ -464,7 +478,7 @@ export const App: React.FC = () => {
       });
     }, TICK_SECONDS * 1000);
     return () => window.clearInterval(id);
-  }, [isSimulating, project.devices, solved, recChannels.length]);
+  }, [isSimulating, project.devices, solved, recChannels.length, energyOn]);
 
   const trippedCount = project.devices.filter(d => d.state.tripped).length;
 
@@ -501,6 +515,13 @@ export const App: React.FC = () => {
   // Start / stop simulation
   const handleToggleSimulation = () => {
     if (!isSimulating) {
+      // Safe isolation gate: Required blocks until the dead-test steps are done, Prompt warns once
+      const gate = simulateGate(project.safeIsolation);
+      if (!gate.allowed) {
+        if (gate.markWarned) setProject((prev) => (prev.safeIsolation ? { ...prev, safeIsolation: { ...prev.safeIsolation, warned: true } } : prev));
+        showNotice(gate.message);
+        return;
+      }
       sound.playBreakerSnap();
       setSelectedWireId(null);
       recorderRef.current.clear();
@@ -1060,6 +1081,27 @@ export const App: React.FC = () => {
     }));
   };
 
+  // Open a project from a share link (#share=...) once, through the same migration as a file import
+  useEffect(() => {
+    if (!isShareHash(window.location.hash)) return;
+    decodeShare(window.location.hash)
+      .then((imported) => {
+        const p = imported as ElectricalProject;
+        if (!p || !Array.isArray(p.devices) || !Array.isArray(p.wires)) throw new Error('Not a WireWise project');
+        const migrated = migrateLegacyProject(p.devices, p.wires);
+        setIsSimulating(false);
+        setProject({ ...p, devices: toEditModeDevices(migrated.devices), wires: migrated.wires });
+        if (p.codeStandard) setStandard(p.codeStandard);
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        showNotice('Project opened from a share link');
+      })
+      .catch((err) => {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        alert(`Could not open the share link: ${err instanceof Error ? err.message : 'invalid link'}`);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1503,6 +1545,8 @@ export const App: React.FC = () => {
         />
       )}
 
+      {reportsOpen && <ReportsPanel project={project} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} energy={{ ledger: energyRef.current, version: energyVersion, reset: () => { energyRef.current = emptyLedger(); setEnergyVersion((v) => v + 1); } }} isSimulating={isSimulating} inspectorErrors={report.violations.filter((v) => v.severity === 'error').length} />}
+
       {curvesOpen && (
         <CurvesPanel
           devices={project.devices}
@@ -1533,6 +1577,7 @@ export const App: React.FC = () => {
         recorderOpen={recorderOpen}
         onToggleRecorder={() => setRecorderOpen((v) => !v)}
         curvesOpen={curvesOpen}
+        onOpenReports={() => setReportsOpen(true)}
         faultLevelsOn={!!project.shortCircuit?.enabled}
         onToggleFaultLevels={() => setProject((prev) => ({ ...prev, shortCircuit: prev.shortCircuit ? { ...prev.shortCircuit, enabled: !prev.shortCircuit.enabled } : { ...DEFAULT_SHORT_CIRCUIT } }))}
         onToggleCurves={() => setCurvesOpen((v) => !v)}

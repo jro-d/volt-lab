@@ -1,6 +1,7 @@
 import type { DeviceBehavior, TickContext } from './types';
 import type { ElectricalDevice } from '../../types/electrical';
 import { withState } from './util';
+import { hmiInputs } from './automation';
 import { emptyRuntime, ioMap, scanProgram, type PlcForces, type PlcProgram, type PlcRuntime } from '../plcEngine';
 
 /** Upper bound of scans per simulation step (10 ms scan time over a 0.5 s step would be 50). */
@@ -33,6 +34,8 @@ export function plcProgramTick(dev: ElectricalDevice, ctx: TickContext, dtSec: n
   const rawInputs = (dev.state.plcInputs || {}) as Record<string, boolean>;
   const inputs: Record<string, boolean> = {};
   for (const [addr, key] of Object.entries(map.inputs)) inputs[addr] = !!rawInputs[key];
+  // HMI soft buttons bound to this PLC raise inputs on top of the wired terminals
+  for (const [addr, on] of Object.entries(hmiInputs(ctx.devices, dev.id))) if (on) inputs[addr] = true;
 
   const forces = (dev.state.plcForces || { inputs: {}, outputs: {} }) as PlcForces;
   let rt: PlcRuntime = (dev.state.plcRuntime as PlcRuntime | undefined) || emptyRuntime();
