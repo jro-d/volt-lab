@@ -68,7 +68,7 @@ const LIBRARY_TREE: FolderNode[] = [
       { id: 'motors', label: 'Motors & Drives (VFD)', types: ['motor_ac_industrial', 'motor_6lead_star_delta', 'pump_booster_3p', 'vfd_drive', 'motor_1p', 'capacitor_run'] },
     ],
   },
-  { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller', 'plc_24vdc_16io', 'psu_24vdc', 'sensor_inductive', 'sensor_capacitive', 'sensor_photoelectric', 'analog_io_module', 'hmi_panel', 'valve_52', 'cylinder_da'] },
+  { id: 'automation', label: 'PLC & Automation', types: ['plc_micro_controller', 'plc_24vdc_16io', 'plc_24vdc_32io', 'psu_24vdc', 'sensor_inductive', 'sensor_capacitive', 'sensor_photoelectric', 'analog_io_module', 'hmi_panel', 'valve_52', 'cylinder_da'] },
   {
     id: 'service',
     label: 'Service Entrance & Grounding',

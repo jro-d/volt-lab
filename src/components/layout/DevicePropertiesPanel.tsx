@@ -1569,7 +1569,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
       })()}
 
       {/* --- 24 V DC DOMAIN: supply, sensors, PLC --- */}
-      {device && (device.type === 'psu_24vdc' || device.type === 'sensor_inductive' || device.type === 'sensor_capacitive' || device.type === 'sensor_photoelectric' || device.type === 'plc_24vdc_16io') && (() => {
+      {device && (device.type === 'psu_24vdc' || device.type === 'sensor_inductive' || device.type === 'sensor_capacitive' || device.type === 'sensor_photoelectric' || device.type === 'plc_24vdc_16io' || device.type === 'plc_24vdc_32io') && (() => {
         const apply = (patch: Record<string, any>) => {
           if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
           else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
@@ -1604,7 +1604,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 {choice('Target', 'detected', [{ v: false, label: 'Clear' }, { v: true, label: 'Detected' }], false)}
               </>
             )}
-            {device.type === 'plc_24vdc_16io' && (
+            {(device.type === 'plc_24vdc_16io' || device.type === 'plc_24vdc_32io') && (
               <>
                 {choice('CPU', 'plcRunning', [{ v: true, label: 'RUN' }, { v: false, label: 'STOP' }], true)}
                 {choice('Program', 'program', [{ v: 'passthrough', label: 'Qn = In' }, { v: 'start_stop_latch', label: 'Start/Stop' }], 'passthrough')}

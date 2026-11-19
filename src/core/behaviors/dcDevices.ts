@@ -26,7 +26,7 @@ export const dcSensorBehavior: DeviceBehavior = {
 
 /** 24 V DC PLC: each transistor output that is ON connects its terminal to L+ (sourcing output). */
 export const plc24Behavior: DeviceBehavior = {
-  types: ['plc_24vdc_16io'],
+  types: ['plc_24vdc_16io', 'plc_24vdc_32io'],
   // user-programmed scan (program === 'user'); otherwise the fixed demo behaviour in circuitSolver.ts
   tick: plcProgramTick,
   edges: (dev) => {

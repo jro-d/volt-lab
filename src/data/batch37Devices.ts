@@ -2,7 +2,29 @@ import type { ComponentDefinition } from './defaultComponents';
 import { t, TOP, BOT } from './batch33Devices';
 
 /** Batch 3.7: automation (brand-neutral generic models). */
+const plc32Terminals = () => [
+  t('l_pos', 'L+', 'input', 0.02, 0.5, 'Supply L+ (+24 V DC)'),
+  t('m_neg', 'M', 'input', 0.98, 0.5, 'Supply M (0 V)'),
+  { ...t('pe', 'PE', 'earth', 0.5, 0.5, 'Chassis Earth (PE)') },
+  ...Array.from({ length: 16 }, (_, n) => t(`i${n}`, `I${n >> 3}.${n & 7}`, 'input', 0.08 + n * 0.056, 0.09, `Digital Input I${n >> 3}.${n & 7}`)),
+  ...Array.from({ length: 16 }, (_, n) => t(`q${n}`, `Q${n >> 3}.${n & 7}`, 'output', 0.08 + n * 0.056, 0.91, `Transistor Output Q${n >> 3}.${n & 7} (sourcing)`)),
+];
+
 export const BATCH37_DEVICES: ComponentDefinition[] = [
+  {
+    type: 'plc_24vdc_32io',
+    category: 'automation',
+    name: '24 V DC PLC (16 In / 16 Out)',
+    defaultLabel: 'PLC-32',
+    width: 440,
+    height: 130,
+    productStandard: 'IEC 61131-2',
+    modelNumber: 'Modular PLC 24 V DC 16DI/16DO',
+    mountingType: 'din_rail',
+    description: 'The larger 24 V DC PLC: sixteen digital inputs I0.0-I1.7 (sinking = PNP sensors, sourcing = NPN sensors, set by inputMode) and sixteen sourcing transistor outputs Q0.0-Q1.7 that switch +24 V. Same RUN / STOP, demo programs and ladder editor as the 8 in / 8 out PLC; the editor shows both address bytes for it.',
+    defaultProperties: { plcRunning: true, program: 'passthrough', inputMode: 'sinking', plcPowered: false, plcInputs: {}, plcOutputs: {}, dcNote: '', wattage: 9, tag: 'PLC1' },
+    terminals: plc32Terminals(),
+  },
   {
     type: 'valve_52',
     category: 'control',

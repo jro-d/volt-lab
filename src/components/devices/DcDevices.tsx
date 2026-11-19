@@ -94,6 +94,8 @@ export const Plc24Device: React.FC<DeviceProps> = (props) => {
   const cx = W / 2;
   const faceY = 20;
   const faceH = H - 40;
+  const big = device.type === 'plc_24vdc_32io';
+  const ioN = big ? 16 : 8;
   return (
     <g transform={`translate(${device.x}, ${device.y})`} className="select-none">
       <DinClip cx={cx} y={H} />
@@ -101,15 +103,15 @@ export const Plc24Device: React.FC<DeviceProps> = (props) => {
       <Bay x={3} y={H * 0.09 - 8} w={W - 6} h={16} />
       <Bay x={3} y={H * 0.91 - 8} w={W - 6} h={16} />
       <Face x={3} y={faceY} w={W - 6} h={faceH} />
-      <Nameplate x={3} y={faceY + 2} w={W - 6} h={8} tag={deviceTag(device) || 'A'} text="PLC 24V DC · 8DI / 8DO" size={4.4} />
-      {Array.from({ length: 8 }, (_, n) => {
-        const x = W * (0.10 + n * 0.11);
+      <Nameplate x={3} y={faceY + 2} w={W - 6} h={8} tag={deviceTag(device) || 'A'} text={big ? "PLC 24V DC · 16DI / 16DO" : "PLC 24V DC · 8DI / 8DO"} size={4.4} />
+      {Array.from({ length: ioN }, (_, n) => {
+        const x = big ? W * (0.08 + n * 0.056) : W * (0.10 + n * 0.11);
         return (
           <g key={n}>
             <Led cx={x} cy={faceY + 18} r={1.8} on={!!ins[`i${n}`]} color="green" />
-            <Mono x={x} y={faceY + 25} size={3} anchor="middle" muted>{`I0.${n}`}</Mono>
+            <Mono x={x} y={faceY + 25} size={3} anchor="middle" muted>{`I${n >> 3}.${n & 7}`}</Mono>
             <Led cx={x} cy={faceY + faceH - 12} r={1.8} on={!!outs[`q${n}`]} color="amber" />
-            <Mono x={x} y={faceY + faceH - 4} size={3} anchor="middle" muted>{`Q0.${n}`}</Mono>
+            <Mono x={x} y={faceY + faceH - 4} size={3} anchor="middle" muted>{`Q${n >> 3}.${n & 7}`}</Mono>
           </g>
         );
       })}
@@ -123,7 +125,7 @@ export const Plc24Device: React.FC<DeviceProps> = (props) => {
       <Mono x={cx + 22} y={faceY + 37.4} size={3.6} muted>{state.program === 'start_stop_latch' ? 'LATCH' : 'PASS'}</Mono>
       <Mono x={cx + 62} y={faceY + 37.4} size={3.6} muted>{state.inputMode === 'sourcing' ? 'SRC IN' : 'SINK IN'}</Mono>
       {note && <Mono x={cx} y={faceY + 47} size={3.4} anchor="middle" fill="var(--danger)">{note}</Mono>}
-      <TermIds device={device} local size={3.4} gap={0} text={(t) => (t.label || t.id).replace('I0.', '').replace('Q0.', '')} />
+      <TermIds device={device} local size={3.4} gap={0} text={(t) => (big ? (t.label || t.id).replace(/^[IQ]/, '') : (t.label || t.id).replace('I0.', '').replace('Q0.', ''))} />
       <Terminals {...props} local />
     </g>
   );
