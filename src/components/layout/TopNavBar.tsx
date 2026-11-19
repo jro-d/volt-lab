@@ -1,37 +1,42 @@
 import React from 'react';
-import { CodeStandard } from '../../types/electrical';
-import { saveTheme } from '../../utils/themeStorage';
 import {
-  Zap,
-  RotateCcw,
-  BookOpen,
-  Download,
-  Upload,
-  Layers,
-  Eye,
-  SlidersHorizontal,
-  CheckCircle2,
-  AlertTriangle,
-  ShieldAlert,
-  Undo2,
-  Redo2,
-  Play,
-  Square,
-  Library,
-  Lock,
-  Unlock,
+  Activity,
   AlignHorizontalJustifyCenter,
   AlignVerticalJustifyCenter,
-  FlipHorizontal2,
-  PanelRight,
-  Trash2,
-  Rows3,
-  Cpu,
-  Map as MapIcon,
+  BookOpen,
+  Download,
   FileCode2,
-  Sun,
+  FileText,
+  FlipHorizontal2,
+  FolderOpen,
+  Layers,
+  Library,
+  Lock,
   Moon,
+  MoreHorizontal,
+  PanelRight,
+  Play,
+  Redo2,
+  RotateCcw,
+  ShieldCheck,
+  Square,
+  Sun,
+  Trash2,
+  TrendingUp,
+  Undo2,
+  Unlock,
+  Upload,
+  Wrench,
+  Zap,
 } from 'lucide-react';
+import { CodeStandard } from '../../types/electrical';
+import { saveTheme } from '../../utils/themeStorage';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
+import { IconButton } from './topbar/IconButton';
+import { MenuButton, MenuEntry } from './topbar/Menu';
+import { StatusChip } from './topbar/StatusChip';
+import { Tooltip } from './topbar/Tooltip';
+import { TopbarViewId, ViewSwitcher } from './topbar/ViewSwitcher';
 
 /** Light / dark theme, saved per browser. The initial class is set in index.html before first paint. */
 const useTheme = () => {
@@ -51,8 +56,8 @@ interface TopNavBarProps {
   standard: CodeStandard;
   onStandardChange: (std: CodeStandard) => void;
   gridVoltage: number;
-  viewMode: 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc' | 'plan';
-  onViewModeChange: (mode: 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc' | 'plan') => void;
+  viewMode: TopbarViewId;
+  onViewModeChange: (mode: TopbarViewId) => void;
   isCompliant: boolean;
   trippedCount: number;
   activeLabTitle?: string;
@@ -86,38 +91,21 @@ interface TopNavBarProps {
   canAlign: boolean;
   onAlignHorizontal: () => void;
   onAlignVertical: () => void;
+  // Responsive / Prompt 06-07 optional panel hooks
+  isViewOnly?: boolean;
+  troubleshootMode?: boolean;
+  onToggleTroubleshoot?: () => void;
+  recorderOpen?: boolean;
+  onToggleRecorder?: () => void;
+  curvesOpen?: boolean;
+  onToggleCurves?: () => void;
+  faultLevelsOn?: boolean;
+  onToggleFaultLevels?: () => void;
+  onOpenReports?: () => void;
+  onOpenSafeIsolation?: () => void;
 }
 
-/** Reusable ribbon icon button */
-const RibbonButton: React.FC<{
-  onClick?: () => void;
-  title: string;
-  disabled?: boolean;
-  active?: boolean;
-  danger?: boolean;
-  label?: string;
-  children: React.ReactNode;
-}> = ({ onClick, title, disabled, active, danger, label, children }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    title={title}
-    className={`flex items-center gap-1.5 h-8 px-2 rounded-md text-xs font-medium border transition shrink-0 ${
-      disabled
-        ? 'bg-transparent border-transparent text-ink-faint cursor-not-allowed'
-        : active
-        ? 'bg-probe text-on-probe border-probe shadow-1'
-        : danger
-        ? 'bg-surface border-border text-danger hover:bg-danger-soft hover:border-danger/40 shadow-1'
-        : 'bg-surface border-border text-ink hover:bg-surface-hover hover:border-border-strong shadow-1'
-    }`}
-  >
-    {children}
-    {label && <span className="hidden 2xl:inline">{label}</span>}
-  </button>
-);
-
-const Divider = () => <div className="w-px h-6 bg-border mx-1 shrink-0" />;
+const Divider = () => <div className="hidden md:block w-px h-6 bg-border mx-0.5 shrink-0" />;
 
 export const TopNavBar: React.FC<TopNavBarProps> = ({
   standard,
@@ -154,20 +142,212 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   canAlign,
   onAlignHorizontal,
   onAlignVertical,
+  isViewOnly,
+  troubleshootMode = false,
+  onToggleTroubleshoot,
+  recorderOpen = false,
+  onToggleRecorder,
+  curvesOpen = false,
+  onToggleCurves,
+  faultLevelsOn = false,
+  onToggleFaultLevels,
+  onOpenReports,
+  onOpenSafeIsolation,
 }) => {
   const hz = standard === 'PEC' ? 60 : 50;
   const theme = useTheme();
+  const breakpoint = useBreakpoint();
+  const isPhone = isViewOnly ?? breakpoint === 'phone';
+  const isDesktop = breakpoint === 'desktop' && !isPhone;
+  const btnSize = isDesktop ? 'md' : 'touch';
+
+  const fileItems: MenuEntry[] = [
+    {
+      id: 'examples',
+      label: 'Examples & learning labs…',
+      icon: BookOpen,
+      onSelect: onOpenLabs,
+    },
+    {
+      id: 'import',
+      label: 'Import project JSON…',
+      icon: Upload,
+      disabled: isSimulating,
+      onSelect: onImportJson,
+    },
+    {
+      id: 'export-json',
+      label: 'Export project as JSON',
+      icon: Download,
+      onSelect: onExportJson,
+    },
+  ];
+  if (onExportHtml) {
+    fileItems.push({
+      id: 'export-html',
+      label: 'Save standalone HTML',
+      icon: FileCode2,
+      onSelect: onExportHtml,
+    });
+  }
+  fileItems.push({ kind: 'divider', id: 'file-div-1' });
+  fileItems.push({
+    id: 'reset-sim',
+    label: 'Reset tripped breakers',
+    icon: RotateCcw,
+    disabled: trippedCount === 0,
+    onSelect: onResetSimulation,
+  });
+  fileItems.push({
+    id: 'clear-canvas',
+    label: 'Clear canvas',
+    icon: Trash2,
+    disabled: isSimulating,
+    danger: true,
+    onSelect: onClearCanvas,
+  });
+
+  const panelSubmenuItems: MenuEntry[] = [];
+  if (onToggleRecorder) {
+    panelSubmenuItems.push({
+      id: 'panel-recorder',
+      label: 'Timing diagram recorder',
+      icon: Activity,
+      active: recorderOpen,
+      onSelect: onToggleRecorder,
+    });
+  }
+  if (onToggleCurves) {
+    panelSubmenuItems.push({
+      id: 'panel-curves',
+      label: 'Time-current curves',
+      icon: TrendingUp,
+      active: curvesOpen,
+      onSelect: onToggleCurves,
+    });
+  }
+  if (onToggleFaultLevels) {
+    panelSubmenuItems.push({
+      id: 'panel-faults',
+      label: 'Fault levels overlay',
+      icon: Zap,
+      active: faultLevelsOn,
+      onSelect: onToggleFaultLevels,
+    });
+  }
+  if (onOpenSafeIsolation || onOpenReports) {
+    panelSubmenuItems.push({
+      id: 'panel-isolation',
+      label: 'Safe isolation & LOTO',
+      icon: ShieldCheck,
+      onSelect: onOpenSafeIsolation || onOpenReports,
+    });
+  }
+  if (onOpenReports) {
+    panelSubmenuItems.push({
+      id: 'panel-reports',
+      label: 'Reports & schedules…',
+      icon: FileText,
+      onSelect: onOpenReports,
+    });
+  }
+
+  const overflowItems: MenuEntry[] = [];
+  if (!isPhone) {
+    overflowItems.push(
+      {
+        id: 'lock-selected',
+        label: isSelectedLocked && hasSelectedDevice ? 'Unlock selected device' : 'Lock selected device',
+        icon: isSelectedLocked && hasSelectedDevice ? Unlock : Lock,
+        disabled: !hasSelectedDevice || isSimulating,
+        active: hasSelectedDevice && isSelectedLocked,
+        onSelect: onToggleLockSelected,
+      },
+      {
+        id: 'align-h',
+        label: 'Align selected horizontally',
+        icon: AlignHorizontalJustifyCenter,
+        disabled: !canAlign || isSimulating,
+        onSelect: onAlignHorizontal,
+      },
+      {
+        id: 'align-v',
+        label: 'Align selected vertically',
+        icon: AlignVerticalJustifyCenter,
+        disabled: !canAlign || isSimulating,
+        onSelect: onAlignVertical,
+      }
+    );
+    if (onFlipAllOutlets) {
+      overflowItems.push({
+        id: 'flip-outlets',
+        label: isAllRearView ? 'Switch outlets to front view' : 'Switch outlets to rear view',
+        icon: FlipHorizontal2,
+        disabled: isSimulating,
+        active: isAllRearView,
+        onSelect: onFlipAllOutlets,
+      });
+    }
+    if (onToggleDmmMode) {
+      overflowItems.push({
+        id: 'dmm-mode',
+        label: 'Meters & test instruments (DMM)',
+        icon: Zap,
+        active: dmmMode,
+        onSelect: onToggleDmmMode,
+      });
+    }
+    if (panelSubmenuItems.length > 0) {
+      overflowItems.push({ kind: 'divider', id: 'overflow-div-panels' });
+      overflowItems.push({
+        kind: 'submenu',
+        id: 'panels-submenu',
+        label: 'Panels',
+        icon: Layers,
+        items: panelSubmenuItems,
+      });
+    }
+    overflowItems.push({ kind: 'divider', id: 'overflow-div-std' });
+  }
+
+  overflowItems.push(
+    { kind: 'header', id: 'std-header', label: 'Electrical standard' },
+    {
+      id: 'std-pec',
+      label: 'PEC 2017 (60 Hz, AWG)',
+      active: standard === 'PEC',
+      onSelect: () => onStandardChange('PEC'),
+    },
+    {
+      id: 'std-iec',
+      label: `IEC 60364 (${hz} Hz, mm²)`,
+      active: standard === 'IEC',
+      onSelect: () => onStandardChange('IEC'),
+    },
+    { kind: 'divider', id: 'overflow-div-theme' },
+    {
+      id: 'toggle-theme',
+      label: theme.dark ? 'Switch to light theme' : 'Switch to dark theme',
+      icon: theme.dark ? Sun : Moon,
+      onSelect: theme.toggle,
+    }
+  );
+
+  const runTooltip = isSimulating
+    ? 'Stop simulation and return to Edit Mode'
+    : 'Energize the grid and start simulation';
 
   return (
-    <header className="bg-surface border-b border-border px-3 h-14 shrink-0 z-30 select-none shadow-1 flex items-center justify-between gap-3">
-      {/* ───────── LEFT GROUP: Project & File ───────── */}
+    <header className="bg-surface border-b border-border px-2.5 md:px-3 h-12 md:h-14 shrink-0 z-30 select-none shadow-1 flex items-center justify-between gap-1.5 md:gap-2">
+      {/* ───────── LEFT GROUP: Brand, History, File ───────── */}
       <div className="flex items-center gap-1.5 min-w-0">
-        <div className="flex items-center gap-2 pr-2 min-w-0">
+        {/* Slot 1: Brand + active lab chip */}
+        <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-md bg-brand flex items-center justify-center shrink-0">
             <Zap className="w-4 h-4 text-on-brand fill-current" />
           </div>
-          <div className="min-w-0 hidden xl:block">
-            <div className="text-[18px] font-display font-bold text-ink leading-none tracking-[-0.01em] flex items-center gap-1.5">
+          <div className="hidden xl:flex items-center gap-2 min-w-0">
+            <div className="text-[18px] font-display font-bold text-ink leading-none tracking-[-0.01em] flex items-center gap-1.5 shrink-0">
               <span>
                 Wire<span className="text-brand">Wise</span>
               </span>
@@ -175,234 +355,165 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
                 CAD
               </span>
             </div>
-            <div
-              className="text-[11px] font-mono text-ink-muted truncate max-w-[180px]"
-              title={activeLabTitle || 'Blank Installation Canvas'}
-            >
-              {activeLabTitle || 'Blank Installation Canvas'}
-            </div>
+            <Tooltip label="Open example wirings & learning labs" align="left">
+              <button
+                type="button"
+                onClick={onOpenLabs}
+                aria-label="Open example wirings and learning labs"
+                className="h-7 px-2 rounded-md border border-border bg-surface-sunken hover:bg-surface-hover text-[11px] font-mono text-ink-muted hover:text-ink truncate max-w-[180px] transition motion-reduce:transition-none focus-visible:outline-none focus-visible:shadow-focus"
+              >
+                {activeLabTitle || 'Blank Installation'}
+              </button>
+            </Tooltip>
           </div>
         </div>
 
-        <Divider />
-
-        <RibbonButton onClick={onOpenLabs} title="Open Example Wirings & Learning Labs" label="Examples">
-          <BookOpen className="w-4 h-4" />
-        </RibbonButton>
-        <RibbonButton onClick={onImportJson} title="Open project (Import JSON)" label="Import">
-          <Upload className="w-4 h-4" />
-        </RibbonButton>
-        <RibbonButton onClick={onExportJson} title="Save project (Export JSON)" label="Export">
-          <Download className="w-4 h-4" />
-        </RibbonButton>
-        {onExportHtml && (
-          <RibbonButton
-            onClick={onExportHtml}
-            title="Save self-contained offline HTML (opens directly to your wiring)"
-            label="Save HTML"
-          >
-            <FileCode2 className="w-4 h-4" />
-          </RibbonButton>
+        {/* Slot 2: History (Undo / Redo) */}
+        {!isPhone && (
+          <>
+            <Divider />
+            <div className="flex items-center gap-1 shrink-0">
+              <IconButton
+                icon={Undo2}
+                label="Undo"
+                shortcut="Ctrl+Z"
+                disabled={!canUndo || isSimulating}
+                onClick={onUndo}
+                size={btnSize}
+              />
+              <IconButton
+                icon={Redo2}
+                label="Redo"
+                shortcut="Ctrl+Y"
+                disabled={!canRedo || isSimulating}
+                onClick={onRedo}
+                size={btnSize}
+              />
+            </div>
+          </>
         )}
-        <RibbonButton
-          onClick={onClearCanvas}
-          disabled={isSimulating}
-          danger
-          title={isSimulating ? 'Stop simulation (■) to clear the canvas' : 'Clear canvas'}
-          label="Clear"
-        >
-          <Trash2 className="w-4 h-4" />
-        </RibbonButton>
 
-        <Divider />
-
-        <RibbonButton onClick={onUndo} disabled={!canUndo || isSimulating} title="Undo (Ctrl+Z)">
-          <Undo2 className="w-4 h-4" />
-        </RibbonButton>
-        <RibbonButton onClick={onRedo} disabled={!canRedo || isSimulating} title="Redo (Ctrl+Y / Ctrl+Shift+Z)">
-          <Redo2 className="w-4 h-4" />
-        </RibbonButton>
+        {/* Slot 3: File Menu */}
+        {!isPhone && (
+          <MenuButton
+            icon={FolderOpen}
+            label="Open file and project menu"
+            text={isDesktop ? 'File' : undefined}
+            items={fileItems}
+            size={btnSize}
+            showChevron
+          />
+        )}
       </div>
 
-      {/* ───────── CENTER GROUP: Simulation & CAD tools ───────── */}
+      {/* ───────── CENTER GROUP: Run & View Switcher ───────── */}
       <div className="flex items-center gap-1.5 min-w-0">
-        {/* Play / Stop */}
-        <button
-          onClick={onToggleSimulation}
-          title={isSimulating ? 'Stop simulation and return to Edit Mode' : 'Energize the grid and start simulation'}
-          className={`flex items-center gap-1.5 h-8 pl-3 pr-3.5 rounded-md text-xs font-semibold border shadow-1 transition shrink-0 ${
-            isSimulating
-              ? 'bg-danger hover:opacity-90 text-surface border-danger'
-              : 'bg-brand hover:bg-brand-strong text-on-brand border-brand hover:border-brand-strong'
-          }`}
-        >
-          {isSimulating ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-          <span>{isSimulating ? 'Stop Sim' : 'Simulate'}</span>
-        </button>
+        {/* Slot 4: Simulate / Stop + Live-mode indicator */}
+        <Tooltip label={runTooltip}>
+          <button
+            type="button"
+            onClick={onToggleSimulation}
+            aria-label={runTooltip}
+            aria-pressed={isSimulating}
+            className={`flex items-center justify-center gap-1.5 rounded-md text-xs font-semibold border shadow-1 transition motion-reduce:transition-none shrink-0 focus-visible:outline-none focus-visible:shadow-focus ${
+              isDesktop ? 'h-8 px-3' : isPhone ? 'h-11 w-11' : 'h-11 px-3'
+            } ${
+              isSimulating
+                ? 'bg-danger hover:opacity-90 text-surface border-danger'
+                : 'bg-brand hover:bg-brand-strong text-on-brand border-brand hover:border-brand-strong'
+            }`}
+          >
+            {isSimulating ? (
+              <Square className="w-3.5 h-3.5 fill-current shrink-0" />
+            ) : (
+              <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+            )}
+            {!isPhone && <span>{isSimulating ? 'Stop Sim' : 'Simulate'}</span>}
+            {isSimulating && (
+              <span
+                aria-hidden="true"
+                className="xl:hidden w-1.5 h-1.5 rounded-full bg-surface animate-pulse motion-reduce:animate-none shrink-0"
+              />
+            )}
+          </button>
+        </Tooltip>
 
-        {/* Mode status badge */}
+        {/* Live mode badge (full pill on desktop, compact dot below 1280 px) */}
         <div
-          className={`hidden xl:flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-[10px] font-mono font-bold shrink-0 ${
+          className={`hidden xl:flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-[10px] font-mono font-bold shrink-0 ${
             isSimulating
               ? 'bg-ok-soft border-ok/40 text-ok'
               : 'bg-surface-sunken border-warning/40 text-warning'
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-ok animate-pulse' : 'bg-warning-fill'}`} />
-          {isSimulating ? `LIVE SIMULATING (${gridVoltage}V)` : 'EDIT MODE (DE-ENERGIZED)'}
+          <span className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-ok animate-pulse motion-reduce:animate-none' : 'bg-warning-fill'}`} />
+          <span>{isSimulating ? `LIVE (${gridVoltage}V)` : 'EDIT MODE'}</span>
         </div>
 
         <Divider />
 
-        <RibbonButton
-          onClick={onToggleLibrary}
-          active={isLibraryOpen}
-          title={isLibraryOpen ? 'Hide component library' : 'Show component library'}
-          label="Library"
-        >
-          <Library className="w-4 h-4" />
-        </RibbonButton>
-
-        {/* View mode switcher */}
-        <div className="flex items-center gap-0.5 bg-surface-sunken p-0.5 rounded-md shrink-0">
-          {([
-            { id: 'realistic', label: 'Realistic', icon: Eye, tip: 'Realistic physical wiring workbench' },
-            { id: 'split', label: 'Dual View', icon: Layers, tip: 'Split dual view (physical workbench + live ladder / SLD)' },
-            { id: 'ladder', label: 'Ladder Logic', icon: Rows3, tip: 'Control ladder diagram (live sync, lab target & rung builder)' },
-            { id: 'schematic', label: 'SLD Schematic', icon: SlidersHorizontal, tip: 'Single-line diagram (SLD)' },
-            { id: 'plc', label: 'PLC', icon: Cpu, tip: 'PLC program editor: write, run and monitor ladder logic' },
-            { id: 'plan', label: 'Plan', icon: MapIcon, tip: 'Floor plan: rooms, symbols linked to devices and home runs that set the wire lengths' },
-          ] as const).map((v) => (
-            <button
-              key={v.id}
-              onClick={() => onViewModeChange(v.id)}
-              title={v.tip}
-              className={`flex items-center gap-1 px-2 h-7 rounded-sm text-xs font-medium transition-all ${
-                viewMode === v.id ? 'bg-surface text-ink font-semibold shadow-1' : 'text-ink-muted hover:text-ink'
-              }`}
-            >
-              <v.icon className="w-3.5 h-3.5" />
-              <span className="hidden 2xl:inline">{v.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <Divider />
-
-        {/* CAD lock & alignment tools */}
-        <RibbonButton
-          onClick={onToggleLockSelected}
-          disabled={!hasSelectedDevice || isSimulating}
-          active={hasSelectedDevice && isSelectedLocked}
-          title={
-            !hasSelectedDevice
-              ? 'Select a device to lock / unlock its position'
-              : isSelectedLocked
-              ? 'Unlock selected device position'
-              : 'Lock selected device position'
-          }
-          label={isSelectedLocked ? 'Unlock' : 'Lock'}
-        >
-          {isSelectedLocked && hasSelectedDevice ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-        </RibbonButton>
-        <RibbonButton
-          onClick={onAlignHorizontal}
-          disabled={!canAlign || isSimulating}
-          title="Align Horizontal — line selected devices up in a row (Shift+click to select several; aligns to the first one picked)"
-          label="Align H"
-        >
-          <AlignHorizontalJustifyCenter className="w-4 h-4" />
-        </RibbonButton>
-        <RibbonButton
-          onClick={onAlignVertical}
-          disabled={!canAlign || isSimulating}
-          title="Align Vertical — stack selected devices in a column (Shift+click to select several; aligns to the first one picked)"
-          label="Align V"
-        >
-          <AlignVerticalJustifyCenter className="w-4 h-4" />
-        </RibbonButton>
-        {onFlipAllOutlets && (
-          <span className="hidden xl:contents">
-          <RibbonButton
-            onClick={onFlipAllOutlets}
-            active={isAllRearView}
-            title="Flip all outlets between Front Faceplate and Rear Wiring Mechanism"
-            label={isAllRearView ? 'Rear' : 'Front'}
-          >
-            <FlipHorizontal2 className="w-4 h-4" />
-          </RibbonButton>
-          </span>
-        )}
-        {onToggleDmmMode && (
-          <RibbonButton
-            onClick={onToggleDmmMode}
-            active={dmmMode}
-            title="Meters & Test Instruments: DMM / clamp (click a wire for Amps, 2 terminals for Volts), insulation tester, earth tester, phase rotation meter, continuity buzzer"
-            label="DMM"
-          >
-            <Zap className="w-4 h-4" />
-          </RibbonButton>
-        )}
+        {/* Slot 5: View switcher */}
+        <ViewSwitcher
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+          compact={!isDesktop}
+          size={btnSize}
+        />
       </div>
 
-      {/* ───────── RIGHT GROUP: Standards & Audit ───────── */}
+      {/* ───────── RIGHT GROUP: Status, Panels & Overflow ───────── */}
       <div className="flex items-center gap-1.5 min-w-0">
-        {trippedCount > 0 && (
-          <button
-            onClick={onResetSimulation}
-            title="Re-arm all tripped breakers"
-            className="flex items-center gap-1 h-8 px-2.5 rounded-lg bg-danger hover:opacity-90 text-surface font-mono text-xs font-bold shadow-1 shrink-0"
-          >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span>{trippedCount} TRIPPED</span>
-            <RotateCcw className="w-3 h-3 opacity-80" />
-          </button>
-        )}
+        {/* Slot 6: Status chip (+ desktop standard tag) */}
+        <StatusChip
+          isCompliant={isCompliant}
+          trippedCount={trippedCount}
+          standard={standard}
+          onResetSimulation={onResetSimulation}
+          onToggleHud={onToggleHud}
+          size={btnSize}
+        />
 
-        <div
-          className={`hidden xl:flex items-center gap-1 h-8 px-2 rounded-lg border text-[10px] font-bold shrink-0 ${
-            isCompliant
-              ? 'bg-ok-soft border-ok/40 text-ok'
-              : 'bg-warning-soft border-warning/40 text-warning'
-          }`}
-          title={isCompliant ? 'No code violations detected' : 'Open the inspector for code violations'}
-        >
-          {isCompliant ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-          {isCompliant ? 'Compliant' : 'Violations'}
+        <Divider />
+
+        {/* Slot 7: Panels toggles */}
+        <div className="flex items-center gap-1 shrink-0">
+          {!isPhone && onToggleTroubleshoot && (
+            <IconButton
+              icon={Wrench}
+              label={troubleshootMode ? 'Exit troubleshooting mode' : 'Toggle troubleshooting mode'}
+              active={troubleshootMode}
+              onClick={onToggleTroubleshoot}
+              size={btnSize}
+            />
+          )}
+          {!isPhone && (
+            <IconButton
+              icon={Library}
+              label={isLibraryOpen ? 'Hide component library' : 'Show component library'}
+              active={isLibraryOpen}
+              disabled={isSimulating}
+              onClick={onToggleLibrary}
+              size={btnSize}
+            />
+          )}
+          <IconButton
+            icon={PanelRight}
+            label={isHudOpen ? 'Hide code inspector' : 'Show code inspector'}
+            active={isHudOpen}
+            onClick={onToggleHud}
+            size={btnSize}
+            alignTooltip="right"
+          />
         </div>
 
-        <div className="flex items-center gap-0.5 bg-surface-sunken p-0.5 rounded-md shrink-0">
-          <button
-            onClick={() => onStandardChange('PEC')}
-            className={`px-2.5 h-7 rounded-sm text-xs font-semibold transition-all ${
-              standard === 'PEC' ? 'bg-surface text-ink shadow-1' : 'text-ink-muted hover:text-ink'
-            }`}
-            title="Philippine Electrical Code (60Hz, AWG, Black/Red/White/Green)"
-          >
-            PEC<span className="hidden xl:inline"> 2017</span>
-          </button>
-          <button
-            onClick={() => onStandardChange('IEC')}
-            className={`px-2.5 h-7 rounded-sm text-xs font-semibold transition-all ${
-              standard === 'IEC' ? 'bg-surface text-ink shadow-1' : 'text-ink-muted hover:text-ink'
-            }`}
-            title={`International Electrotechnical Commission (${hz}Hz, metric mm², Brown/Blue/Green-Yellow)`}
-          >
-            IEC<span className="hidden xl:inline"> 60364</span>
-          </button>
-        </div>
-
-        <RibbonButton
-          onClick={onToggleHud}
-          active={isHudOpen}
-          title={isHudOpen ? 'Collapse code inspector' : 'Expand code inspector'}
-          label="Inspector"
-        >
-          <PanelRight className="w-4 h-4" />
-        </RibbonButton>
-        <RibbonButton onClick={theme.toggle} title={theme.dark ? 'Switch to light theme' : 'Switch to dark theme'}>
-          {theme.dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </RibbonButton>
+        {/* Slot 8: Overflow menu */}
+        <MenuButton
+          icon={MoreHorizontal}
+          label="More tools and settings"
+          items={overflowItems}
+          size={btnSize}
+          align="right"
+        />
       </div>
     </header>
   );
