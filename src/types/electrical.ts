@@ -347,6 +347,27 @@ export interface ElectricalProject {
   target?: LabTarget;
   /** Safe isolation workflow (Off by default) */
   safeIsolation?: SafeIsolationState;
+  /** Floor plan: rooms, symbols linked to devices and home runs (metres) */
+  plan?: FloorPlan;
+}
+
+/** Floor plan (MVP): one floor, rectangles for rooms, symbols linked to devices, straight or orthogonal home runs. */
+export interface FloorPlan {
+  v: 1;
+  rooms: { id: string; name: string; x: number; y: number; w: number; h: number }[];
+  symbols: PlanSymbol[];
+  runs: { id: string; fromSymbolId: string; toSymbolId: string; mode: 'straight' | 'orthogonal'; /** extra vertical drop / allowance, metres */ dropM?: number }[];
+}
+
+export interface PlanSymbol {
+  id: string;
+  kind: 'light' | 'switch' | 'socket' | 'fan' | 'appliance' | 'panel';
+  /** Position in metres */
+  x: number;
+  y: number;
+  label: string;
+  /** The device on the workbench this symbol stands for */
+  deviceId?: string;
 }
 
 /** Safe isolation (dead test and lock-out / tag-out) workflow state. */

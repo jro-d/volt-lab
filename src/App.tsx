@@ -32,6 +32,7 @@ import { RecorderPanel } from './components/layout/RecorderPanel';
 import { CurvesPanel } from './components/layout/CurvesPanel';
 import { FaultLevelsPanel } from './components/layout/FaultLevelsPanel';
 import { ReportsPanel } from './components/layout/ReportsPanel';
+import { PlanView } from './components/canvas/PlanView';
 import { decodeShare, isShareHash } from './utils/shareLink';
 import { simulateGate } from './core/safeIsolation';
 import { accumulateEnergy, emptyLedger, DEFAULT_ENERGY, type EnergyLedger } from './core/energy';
@@ -42,7 +43,7 @@ import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, 
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
-type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc';
+type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc' | 'plan';
 
 function loadEmbeddedProject(): ElectricalProject | null {
   try {
@@ -1366,6 +1367,10 @@ export const App: React.FC = () => {
               wires={project.wires}
               solved={solved}
             />
+          )}
+
+          {viewMode === 'plan' && (
+            <PlanView project={project} onChange={(fn) => setProject(fn)} />
           )}
 
           {viewMode === 'plc' && (
