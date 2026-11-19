@@ -12,6 +12,7 @@ import { ControlModuleDevice } from './ControlModuleDevice';
 import { FieldModuleDevice } from './FieldModuleDevice';
 import { DriveModuleDevice } from './DriveModuleDevice';
 import { HomeModuleDevice } from './HomeModuleDevice';
+import { AutomationModuleDevice } from './AutomationModuleDevice';
 import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
 import { ProtectionModuleDevice, GfciDevice, MonitoringRelayDevice, CtDevice, AmmeterDevice, VoltmeterSelectorDevice, TerminalBlockDevice } from './ProtectionDevices';
 import { Motor1pDevice, CapacitorDevice } from './SinglePhaseMotor';
@@ -219,6 +220,11 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'doorbell_set':
       case 'power_strip':
         return <HomeModuleDevice {...commonProps} />;
+      case 'valve_52':
+      case 'cylinder_da':
+      case 'analog_io_module':
+      case 'hmi_panel':
+        return <AutomationModuleDevice {...commonProps} />;
       case 'phase_monitor_relay':
         return <PhaseMonitorDevice {...commonProps} />;
       case 'float_switch':

@@ -153,14 +153,6 @@ export const MODULE_SPECS: Partial<Record<DeviceType, ModuleSpec>> = {
       { kind: 'number', key: 'hystC', label: 'Hysteresis band', min: 1, max: 20, step: 1, unit: 'C', def: 4 },
     ],
   },
-  reed_switch: {
-    title: 'Reed switch',
-    controls: [
-      { kind: 'number', key: 'position', label: 'Magnet position', min: 0, max: 100, step: 1, unit: '%', def: 0 },
-      { kind: 'number', key: 'windowLo', label: 'Operates from', min: 0, max: 100, step: 5, unit: '%', def: 40 },
-      { kind: 'number', key: 'windowHi', label: 'Operates to', min: 0, max: 100, step: 5, unit: '%', def: 60 },
-    ],
-  },
   photocell_switch: {
     title: 'Photocell',
     controls: [
@@ -370,6 +362,60 @@ export const MODULE_SPECS: Partial<Record<DeviceType, ModuleSpec>> = {
       { kind: 'action', label: 'Unplug everything', patch: { slots: ['none', 'none', 'none', 'none'] } },
     ],
     hint: 'Click a socket on the device to plug in a load. Above the cord rating the cord heats up; at full heat it burns out and the strip goes dead.',
+  },
+  // Batch 3.7: automation
+  valve_52: {
+    title: '5/2 valve',
+    controls: [{ kind: 'select', key: 'spool', label: 'Spool (manual override)', def: 'none', options: [{ v: 'none', label: 'Memory (last position)' }, { v: 'adv', label: 'Advance' }, { v: 'ret', label: 'Retract' }] }],
+    hint: 'Y1 advances, Y2 retracts, both off keeps the position, both on is blocked. The spool follows the coils on the next step; the override is for a quick test.',
+  },
+  cylinder_da: {
+    title: 'Cylinder',
+    controls: [
+      { kind: 'device', key: 'valveId', label: 'Driven by valve', types: ['valve_52'] },
+      { kind: 'number', key: 'strokeSec', label: 'Stroke time', min: 0.5, max: 8, step: 0.5, unit: 's', def: 2 },
+      { kind: 'number', key: 'position', label: 'Piston position', min: 0, max: 100, step: 5, unit: '%', def: 0 },
+    ],
+    hint: 'Link reed switches to the end positions in their own inspector (Cylinder and End).',
+  },
+  analog_io_module: {
+    title: 'Analog I/O module',
+    controls: [
+      { kind: 'select', key: 'type1', label: 'AI1 signal', def: '4-20mA', options: [{ v: '4-20mA', label: '4-20 mA' }, { v: '0-10V', label: '0-10 V' }] },
+      { kind: 'number', key: 'pv1', label: 'AI1 process value', min: 0, max: 100, step: 1, unit: '%', def: 50 },
+      { kind: 'number', key: 'lo1', label: 'AI1 scale low', min: -100, max: 100, step: 1, unit: '', def: 0 },
+      { kind: 'number', key: 'hi1', label: 'AI1 scale high', min: 0, max: 1000, step: 10, unit: '', def: 100 },
+      { kind: 'toggle', key: 'break1', label: 'AI1 wire break' },
+      { kind: 'select', key: 'type2', label: 'AI2 signal', def: '0-10V', options: [{ v: '4-20mA', label: '4-20 mA' }, { v: '0-10V', label: '0-10 V' }] },
+      { kind: 'number', key: 'pv2', label: 'AI2 process value', min: 0, max: 100, step: 1, unit: '%', def: 50 },
+      { kind: 'number', key: 'lo2', label: 'AI2 scale low', min: -100, max: 100, step: 1, unit: '', def: 0 },
+      { kind: 'number', key: 'hi2', label: 'AI2 scale high', min: 0, max: 1000, step: 10, unit: '', def: 100 },
+      { kind: 'toggle', key: 'break2', label: 'AI2 wire break' },
+      { kind: 'number', key: 'aoPct', label: 'AO1 output', min: 0, max: 100, step: 1, unit: '%', def: 50 },
+    ],
+    hint: '4-20 mA: 4 mA is 0 %, 20 mA is 100 %; a reading below 3.8 mA is a broken wire. 0-10 V: 0 V is 0 %. The scaled value is low + (high - low) x percent. The PLC program engine has no analog inputs.',
+  },
+  hmi_panel: {
+    title: 'HMI panel',
+    controls: [
+      { kind: 'device', key: 'plcId', label: 'Bound PLC', types: ['plc_micro_controller', 'plc_24vdc_16io'] },
+      { kind: 'toggle', key: 'btn1', label: 'Soft button 1 (default I0.4)' },
+      { kind: 'toggle', key: 'btn2', label: 'Soft button 2 (default I0.5)' },
+      { kind: 'toggle', key: 'btn3', label: 'Soft button 3 (default I0.6)' },
+      { kind: 'toggle', key: 'btn4', label: 'Soft button 4 (default I0.7)' },
+    ],
+    hint: 'The soft buttons are extra inputs of the PLC and the lamps show Q0.0-Q0.3. Use I0.4-I0.7 in the program for the buttons. The micro PLC only has I0.0-I0.3 wired, so bind the HMI to a 24 V PLC for four buttons.',
+  },
+  reed_switch: {
+    title: 'Reed switch',
+    controls: [
+      { kind: 'device', key: 'cylinderId', label: 'Mounted on cylinder', types: ['cylinder_da'] },
+      { kind: 'select', key: 'endPos', label: 'At the end', def: 'extended', options: [{ v: 'extended', label: 'Extended end' }, { v: 'retracted', label: 'Retracted end' }] },
+      { kind: 'number', key: 'position', label: 'Magnet position (free)', min: 0, max: 100, step: 1, unit: '%', def: 0 },
+      { kind: 'number', key: 'windowLo', label: 'Operates from', min: 0, max: 100, step: 5, unit: '%', def: 40 },
+      { kind: 'number', key: 'windowHi', label: 'Operates to', min: 0, max: 100, step: 5, unit: '%', def: 60 },
+    ],
+    hint: 'Mounted on a cylinder it closes when the piston is at the chosen end. Unmounted, the magnet position is a slider.',
   },
   fire_alarm_panel: {
     title: 'Fire alarm panel',

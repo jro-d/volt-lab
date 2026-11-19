@@ -9,6 +9,7 @@ import { BATCH33_LABS } from './batch33Labs';
 import { BATCH34_LABS } from './batch34Labs';
 import { BATCH35_LABS } from './batch35Labs';
 import { BATCH36_LABS } from './batch36Labs';
+import { BATCH37_LABS } from './batch37Labs';
 import { CURVES_LAB } from './curvesLab';
 
 export type LabCategory = 'all' | 'sockets' | 'lighting' | 'splice' | 'appliances' | 'residential' | 'industrial' | 'automation';
@@ -45,6 +46,8 @@ export const LAB_LESSONS: LabLesson[] = [
   ...BATCH35_LABS,
   // Batch 3.6: residential and commercial loads
   ...BATCH36_LABS,
+  // Batch 3.7: automation
+  ...BATCH37_LABS,
   ...PHASE3_LABS,
   CURVES_LAB,
 

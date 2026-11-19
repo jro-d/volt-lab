@@ -159,6 +159,11 @@ export type DeviceType =
   | 'fan_regulator'
   | 'doorbell_set'
   | 'power_strip'
+  // Batch 3.7: automation
+  | 'valve_52'
+  | 'cylinder_da'
+  | 'analog_io_module'
+  | 'hmi_panel'
   // Batch 3.2: sources and power systems
   | 'transfer_switch_manual'
   | 'ups_battery'
