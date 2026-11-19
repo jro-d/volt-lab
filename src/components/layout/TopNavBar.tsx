@@ -17,6 +17,7 @@ import {
   PanelRight,
   Play,
   Redo2,
+  RefreshCw,
   RotateCcw,
   ShieldCheck,
   Square,
@@ -103,6 +104,9 @@ interface TopNavBarProps {
   onToggleFaultLevels?: () => void;
   onOpenReports?: () => void;
   onOpenSafeIsolation?: () => void;
+  // Desktop app updater hooks
+  appVersion?: string;
+  onCheckForUpdates?: () => void;
 }
 
 const Divider = () => <div className="hidden md:block w-px h-6 bg-border mx-0.5 shrink-0" />;
@@ -153,6 +157,8 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   onToggleFaultLevels,
   onOpenReports,
   onOpenSafeIsolation,
+  appVersion,
+  onCheckForUpdates,
 }) => {
   const hz = standard === 'PEC' ? 60 : 50;
   const theme = useTheme();
@@ -332,6 +338,22 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       onSelect: theme.toggle,
     }
   );
+  if (onCheckForUpdates) {
+    overflowItems.push(
+      { kind: 'divider', id: 'overflow-div-desktop' },
+      {
+        kind: 'header',
+        id: 'desktop-ver-header',
+        label: appVersion ? `WireWise Desktop v${appVersion}` : 'WireWise Desktop',
+      },
+      {
+        id: 'check-updates',
+        label: 'Check for updates…',
+        icon: RefreshCw,
+        onSelect: onCheckForUpdates,
+      }
+    );
+  }
 
   const runTooltip = isSimulating
     ? 'Stop simulation and return to Edit Mode'
