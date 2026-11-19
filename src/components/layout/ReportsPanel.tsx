@@ -2,6 +2,7 @@ import React from 'react';
 import type { ElectricalProject } from '../../types/electrical';
 import { buildLoadSchedule, scheduleToCsv } from '../../core/loadSchedule';
 import { buildBom, bomToCsv, DEFAULT_BOM } from '../../core/bom';
+import { summarizeEnergy, ledgerToCsv, DEFAULT_ENERGY, emptyLedger, type EnergyLedger } from '../../core/energy';
 import { encodeShare, SHARE_WARN_LENGTH, type ShareResult } from '../../utils/shareLink';
 import { numberWires, terminalStrips, terminalStripSvg, wireListCsv, DEFAULT_NUMBERING } from '../../core/wireNumbering';
 import { DEMAND_FACTORS } from '../../data/standardsData';
@@ -16,6 +17,9 @@ export interface ReportTab {
 export interface ReportContext {
   project: ElectricalProject;
   onChange: (updater: (p: ElectricalProject) => ElectricalProject) => void;
+  /** Live energy ledger (Energy tab) */
+  energy?: { ledger: EnergyLedger; version: number; reset: () => void };
+  isSimulating?: boolean;
 }
 
 /** Download a text file (CSV) entirely in the browser: no network. */
@@ -307,10 +311,71 @@ export const ShareTab: React.FC<ReportContext> = ({ project }) => {
   );
 };
 
+export const EnergyTab: React.FC<ReportContext> = ({ project, onChange, energy, isSimulating }) => {
+  const cfg = { ...DEFAULT_ENERGY, ...(project.energy ?? {}), tariff: { ...DEFAULT_ENERGY.tariff, ...(project.energy?.tariff ?? {}) } };
+  const ledger = energy?.ledger ?? emptyLedger();
+  const sum = summarizeEnergy(ledger, project.devices, cfg.tariff);
+  const patch = (fn: (c: typeof cfg) => typeof cfg) => onChange((p) => ({ ...p, energy: fn({ ...DEFAULT_ENERGY, ...(p.energy ?? {}), tariff: { ...DEFAULT_ENERGY.tariff, ...(p.energy?.tariff ?? {}) } }) }));
+  const input = 'px-1.5 py-0.5 rounded border border-border bg-surface text-[11px]';
+  const tiers = cfg.tariff.tiers ?? [];
+  return (
+    <div className="space-y-3 text-[11px]">
+      <div className="flex flex-wrap items-end gap-3 print:hidden">
+        <label className="flex items-center gap-1.5 font-semibold"><input type="checkbox" checked={cfg.enabled} onChange={(e) => patch((c) => ({ ...c, enabled: e.target.checked }))} />Record energy while simulating</label>
+        <label className="flex flex-col gap-0.5">Time scale
+          <select className={input} value={cfg.timeScale} onChange={(e) => patch((c) => ({ ...c, timeScale: Number(e.target.value) as 1 | 60 | 3600 }))}>
+            <option value={1}>1x (real time)</option>
+            <option value={60}>60x (an hour per minute)</option>
+            <option value={3600}>3600x (a day in 24 s)</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-0.5">Tariff ({cfg.tariff.currency}/kWh)
+          <input className={`${input} w-24 font-mono`} type="number" min={0} step="any" value={cfg.tariff.perKwh || ''} placeholder="enter rate" onChange={(e) => patch((c) => ({ ...c, tariff: { ...c.tariff, perKwh: Math.max(0, parseFloat(e.target.value) || 0) } }))} />
+        </label>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold" onClick={() => energy?.reset()}>Reset ledger</button>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold flex items-center gap-1" onClick={() => downloadText('wirewise_energy_ledger.csv', ledgerToCsv(ledger, project.devices, cfg.tariff))}><Download className="w-3 h-3" />CSV</button>
+      </div>
+      {!isSimulating && <div className="text-ink-muted print:hidden">Press Simulate: the ledger fills while the simulation runs.</div>}
+      {cfg.tariff.perKwh === 0 && tiers.length === 0 && <div className="text-warning font-semibold print:hidden">No tariff entered: costs show 0. Type the rate from your electricity bill (none is built in).</div>}
+      <div className="rounded border border-border p-2.5 print:hidden space-y-1">
+        <div className="font-bold uppercase tracking-wider text-[9px] text-ink-muted">Optional tiers (progressive; the flat rate applies above the last tier)</div>
+        {tiers.map((t, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span>up to</span>
+            <input className={`${input} w-20 font-mono`} type="number" min={0} value={t.upToKwh ?? ''} placeholder="∞" onChange={(e) => patch((c) => ({ ...c, tariff: { ...c.tariff, tiers: tiers.map((x, j) => (j === i ? { ...x, upToKwh: e.target.value === '' ? null : Math.max(0, parseFloat(e.target.value) || 0) } : x)) } }))} />
+            <span>kWh at</span>
+            <input className={`${input} w-20 font-mono`} type="number" min={0} step="any" value={t.perKwh} onChange={(e) => patch((c) => ({ ...c, tariff: { ...c.tariff, tiers: tiers.map((x, j) => (j === i ? { ...x, perKwh: Math.max(0, parseFloat(e.target.value) || 0) } : x)) } }))} />
+            <button className="text-danger font-semibold" onClick={() => patch((c) => ({ ...c, tariff: { ...c.tariff, tiers: tiers.filter((_, j) => j !== i) } }))}>remove</button>
+          </div>
+        ))}
+        <button className="px-2 py-0.5 rounded border border-border bg-surface hover:bg-surface-hover font-semibold" onClick={() => patch((c) => ({ ...c, tariff: { ...c.tariff, tiers: [...tiers, { upToKwh: 200, perKwh: c.tariff.perKwh }] } }))}>Add tier</button>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[['Energy', `${sum.totalKwh} kWh`], ['Simulated time', `${sum.simulatedHours} h`], [`Cost so far`, `${sum.costSoFar} ${cfg.tariff.currency}`], ['Projected 30 days', sum.monthKwh === null ? '—' : `${sum.monthKwh} kWh · ${sum.monthCost} ${cfg.tariff.currency}`]].map(([k, v]) => (
+          <div key={k} className="rounded border border-border p-2"><div className="text-[9px] uppercase tracking-wider text-ink-muted font-bold">{k}</div><div className="font-mono font-bold">{v}</div></div>
+        ))}
+      </div>
+      <div className="rounded border border-border p-2.5">
+        <div className="font-bold uppercase tracking-wider text-[9px] text-ink-muted mb-1">Power triangle of the installation (now)</div>
+        <div className="font-mono">P {ledger.p.toFixed(0)} W · Q {ledger.q.toFixed(0)} var · S {ledger.s.toFixed(0)} VA · PF {ledger.pf.toFixed(2)} · peak {ledger.peakW.toFixed(0)} W</div>
+      </div>
+      <table className="w-full border-collapse">
+        <thead><tr>{['Device', 'kWh', 'Share %', `Cost (${cfg.tariff.currency})`].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
+        <tbody>
+          {sum.ranking.map((r) => <tr key={r.deviceId}><td className={td}>{r.name}</td><td className={`${td} text-right`}>{r.kwh}</td><td className={`${td} text-right`}>{r.sharePct}</td><td className={`${td} text-right`}>{r.cost}</td></tr>)}
+          {sum.ranking.length === 0 && <tr><td className={td} colSpan={4}>No energy recorded yet.</td></tr>}
+        </tbody>
+      </table>
+      <div className="text-[9px] text-ink-muted">The ledger holds the present power of each energized load for the scaled time, so a load that cycles faster than the step is averaged by the sampling. Power factor comes from the load type.</div>
+    </div>
+  );
+};
+
 export const BASE_TABS: ReportTab[] = [
   { id: 'load', label: 'Load schedule', render: (ctx) => <LoadScheduleTab {...ctx} /> },
   { id: 'bom', label: 'Bill of materials', render: (ctx) => <BomTab {...ctx} /> },
   { id: 'wires', label: 'Wire numbers & terminals', render: (ctx) => <WiresTab {...ctx} /> },
+  { id: 'energy', label: 'Energy & billing', render: (ctx) => <EnergyTab {...ctx} /> },
   { id: 'share', label: 'Share link', render: (ctx) => <ShareTab {...ctx} /> },
 ];
 
@@ -320,7 +385,9 @@ export const ReportsPanel: React.FC<{
   onChange: (updater: (p: ElectricalProject) => ElectricalProject) => void;
   onClose: () => void;
   tabs?: ReportTab[];
-}> = ({ project, onChange, onClose, tabs = BASE_TABS }) => {
+  energy?: ReportContext['energy'];
+  isSimulating?: boolean;
+}> = ({ project, onChange, onClose, tabs = BASE_TABS, energy, isSimulating }) => {
   const [active, setActive] = React.useState(tabs[0].id);
   const tab = tabs.find((t) => t.id === active) || tabs[0];
   return (
@@ -341,7 +408,7 @@ export const ReportsPanel: React.FC<{
             <div className="text-base font-bold">{project.title}</div>
             <div className="text-xs">{project.codeStandard} · {project.gridVoltage} V · {project.gridFrequency} Hz · {new Date().toLocaleDateString()}</div>
           </div>
-          {tab.render({ project, onChange })}
+          {tab.render({ project, onChange, energy, isSimulating })}
         </div>
       </div>
     </div>

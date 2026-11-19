@@ -33,6 +33,7 @@ import { CurvesPanel } from './components/layout/CurvesPanel';
 import { FaultLevelsPanel } from './components/layout/FaultLevelsPanel';
 import { ReportsPanel } from './components/layout/ReportsPanel';
 import { decodeShare, isShareHash } from './utils/shareLink';
+import { accumulateEnergy, emptyLedger, DEFAULT_ENERGY, type EnergyLedger } from './core/energy';
 import { computeFaultLevels, checkInterruptingRatings, DEFAULT_SHORT_CIRCUIT } from './core/shortCircuit';
 import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
@@ -448,12 +449,21 @@ export const App: React.FC = () => {
   projectRef.current = project;
   const recChannelsRef = useRef(recChannels);
   recChannelsRef.current = recChannels;
+  // Energy ledger (kept in a ref: it changes every tick) and its version for the Reports panel
+  const energyRef = useRef<EnergyLedger>(emptyLedger());
+  const [energyVersion, setEnergyVersion] = useState(0);
+  const energyOn = !!project.energy?.enabled;
 
   // Time-dependent devices (timer relays, energy meters, fuses, generators ...) advance while simulating;
   // the recorder samples every tick too
   React.useEffect(() => {
-    if (!isSimulating || (!needsTick(project.devices) && recChannels.length === 0)) return;
+    if (!isSimulating || (!needsTick(project.devices) && recChannels.length === 0 && !energyOn)) return;
     const id = window.setInterval(() => {
+      if (projectRef.current.energy?.enabled) {
+        const cur = projectRef.current;
+        energyRef.current = accumulateEnergy(energyRef.current, cur.devices, solved, TICK_SECONDS, cur.energy?.timeScale ?? DEFAULT_ENERGY.timeScale);
+        setEnergyVersion((v) => v + 1);
+      }
       if (recChannelsRef.current.length > 0) {
         const cur = projectRef.current;
         const after = tickSimulation(cur.devices, cur.wires, solved, cur.gridFrequency, TICK_SECONDS, cur.process);
@@ -467,7 +477,7 @@ export const App: React.FC = () => {
       });
     }, TICK_SECONDS * 1000);
     return () => window.clearInterval(id);
-  }, [isSimulating, project.devices, solved, recChannels.length]);
+  }, [isSimulating, project.devices, solved, recChannels.length, energyOn]);
 
   const trippedCount = project.devices.filter(d => d.state.tripped).length;
 
@@ -1527,7 +1537,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {reportsOpen && <ReportsPanel project={project} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} />}
+      {reportsOpen && <ReportsPanel project={project} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} energy={{ ledger: energyRef.current, version: energyVersion, reset: () => { energyRef.current = emptyLedger(); setEnergyVersion((v) => v + 1); } }} isSimulating={isSimulating} />}
 
       {curvesOpen && (
         <CurvesPanel
