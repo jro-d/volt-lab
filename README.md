@@ -48,6 +48,7 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Annunciation**: panel buzzer / horn (audible, mutable), signal beacon (steady or flashing, selectable colour) and a three-segment red / amber / green tower light; each runs from 24 V DC or 230 V AC.
 - **Single-phase motors**: one motor with split-phase, capacitor-start and PSC variants (main U1-U2 and start winding Z1-Z2, visible centrifugal switch that opens at 75 % speed, reversal by swapping the start winding leads) and a separate motor capacitor wired in series with the start winding. A missing or open capacitor leaves the motor humming (no start capacitor), a wrong value is flagged with a high running current.
 - **Sources & power systems (batch 3.2)**: manual transfer switch (I-0-II, break-before-make), UPS with battery and charger (state of charge, autonomy, static transfer), PV string + DC isolator + grid-tie inverter (anti-islanding, 5 s reconnect) + net meter (import / export kWh), 1-phase pole and 3-phase delta-wye distribution transformers (turns ratio, vector group label, loaded and unloaded voltage), capacitor bank (4 steps, capacitor-duty contactors built in, 3 s discharge lock) with a power factor controller, shore connection box with phase-sequence lamps, ground detection lamps for an isolated (IT) 440 V feeder, synchroscope with sync lamps, reverse-power relay and preferential trip relay.
+- **Control & timing (batch 3.3)**: star-delta timer with a transition pause, counter relay (preset, latching output, reset coil), latching (impulse) relay, re-triggerable staircase timer, 24-hour time switch with a simulated clock and speed control, alternating relay for duplex pumps, solid-state relay, a control operator (illuminated push button, key selector, 2-position selector, foot switch with guard, pendant) with its lamp on its own terminals, auxiliary contact block, mechanical interlock between two contactors, dual-channel safety relay with monitored start, two-hand station, door interlock switch and latching pull-cord switch.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
 #### Sources and power systems: what is simplified
@@ -57,6 +58,15 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **IT system**: a first earth fault on one line is tolerated when the feeder is set to Isolated; earth faults on two lines are a short circuit. Insulation monitoring is shown as lamps only.
 - **Paralleling**: the phase difference between two sets slips at 360° × frequency difference, slowed 4×. The synchroscope gives a permissive contact; closing out of sync is not simulated as a clash. Reverse power is raised by the generator's Motoring switch.
 - **UPS / meters / fuses**: simulated time runs 60× faster than real time for the battery and the net meter register.
+
+#### Control and timing: what is simplified
+- **One-step latency**: the control modules decide their contacts in the simulation tick, so contacts follow their coil one 0.5 s step later (the same as the timer relay). A pulse must last at least one step to be seen; a counter pulse shorter than that can be missed.
+- **Star-delta pause**: the 50-100 ms transition pause is modelled as one 0.5 s step.
+- **Solid-state relay**: the leakage current through the output when off is shown but not solved; the off output is open.
+- **Safety relay**: channel discrepancy is "one channel made and the other open for more than a step". Cross-short and test-pulse monitoring are not modelled; S11 / S21 simply carry the supply.
+- **Two-hand station**: the 0.5 s window uses the real-time stamps of the two presses made on the device.
+- **Time switch**: one schedule per day with a manual override; the clock only runs while the switch is powered (no power reserve).
+- **Mechanical interlock**: the first contactor in the project that pulls in wins; the other stays out while the first is in.
 
 #### Test instruments
 Click **DMM** in the toolbar and pick an instrument in its panel: **DMM / clamp** (volts between two terminals, amps on a wire), **Megger** (insulation resistance at 250 / 500 / 1000 V between two terminals or a terminal and PE; refuses on an energized circuit; reads the `insulation` condition set on a motor in the inspector), **Earth** (electrode resistance of a ground pit), **Rotation** (click the three phases in turn: CW or CCW) and **Continuity** (de-energized only; beeps on a closed path, contacts shown at rest).
@@ -173,6 +183,12 @@ Open **Examples** in the ribbon. WireWise starts on a blank canvas; each lab loa
 39. **Marine Switchboard: Shore Connection, Ground Detection and a Delta-Wye Transformer** — ungrounded (IT) 440 V: the first earth fault shows on the lamps and nothing trips.
 40. **Generator Paralleling: Synchroscope, Sync Permissive and Reverse Power** — trim the incoming set, close on sync, reverse-power relay trips a motoring set.
 41. **Generator Overload: Preferential Trip Sheds the Non-Essential Feeder** — the relay opens the galley feeder through its shunt trip before the set trips.
+
+### Control and timing modules
+42. **Star-Delta Transition Timer: Star, Pause, Delta** — a dedicated timer module sequences two contactor coils with a break between them.
+43. **Staircase Timer and Impulse Relay Lighting** — re-triggerable staircase light and multi-point hall light.
+44. **Dual-Channel Safety Circuit: E-Stop, Guard Door and Safety Relay** — monitored start, channel discrepancy fault, no restart on door close.
+45. **Part Counter, Duplex Pump Alternation and a 24-Hour Time Switch** — batch counter with reset, lead pump flips every start, yard light on a schedule.
 
 ---
 

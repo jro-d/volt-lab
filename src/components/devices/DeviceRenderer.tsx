@@ -8,6 +8,7 @@ import { GeneratorDevice } from './GeneratorDevice';
 import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
 import { PhaseMonitorDevice } from './PhaseMonitorDevice';
 import { PowerSystemsDevice } from './PowerSystemsDevice';
+import { ControlModuleDevice } from './ControlModuleDevice';
 import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
 import { ProtectionModuleDevice, GfciDevice, MonitoringRelayDevice, CtDevice, AmmeterDevice, VoltmeterSelectorDevice, TerminalBlockDevice } from './ProtectionDevices';
 import { Motor1pDevice, CapacitorDevice } from './SinglePhaseMotor';
@@ -165,6 +166,21 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'reverse_power_relay':
       case 'preferential_trip_relay':
         return <PowerSystemsDevice {...commonProps} />;
+      case 'star_delta_timer':
+      case 'counter_relay':
+      case 'impulse_relay':
+      case 'staircase_timer':
+      case 'time_switch_24h':
+      case 'alternating_relay':
+      case 'ssr_1p':
+      case 'operator_pilot':
+      case 'aux_contact_block':
+      case 'mechanical_interlock':
+      case 'safety_relay':
+      case 'two_hand_station':
+      case 'door_interlock_switch':
+      case 'pull_cord_switch':
+        return <ControlModuleDevice {...commonProps} />;
       case 'phase_monitor_relay':
         return <PhaseMonitorDevice {...commonProps} />;
       case 'float_switch':
