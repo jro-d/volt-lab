@@ -338,6 +338,16 @@ export interface ElectricalProject {
   loadSchedule?: { v: 1; demandFactors: Record<string, number> };
   /** Bill of materials: unit prices typed in by the user and the allowances (no prices are bundled) */
   bom?: BomSettings;
+  /** Wire numbering scheme and the title block of the terminal-strip drawings */
+  wireNumbering?: WireNumberingSettings;
+}
+
+/** Wire numbering settings stored with the project. */
+export interface WireNumberingSettings {
+  v: 1;
+  scheme: 'sequential' | 'from-to' | 'per-circuit';
+  prefix: string;
+  titleBlock: { project: string; drawnBy: string; checkedBy: string; date: string; sheet: string };
 }
 
 /** Bill-of-materials settings stored with the project. */
