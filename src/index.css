@@ -168,3 +168,12 @@ html, body, #root {
   .t-tag { font-family: var(--font-mono); font-weight: 700; font-size: 6px; fill: var(--nameplate-tag); }
   .t-lcd { font-family: var(--font-mono); font-weight: 700; fill: var(--lcd-ink); }
 }
+
+/* Reports: print only the report area on A4 (no screenshots) */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; overflow: visible; }
+  .print-area table { font-size: 9px; }
+}
