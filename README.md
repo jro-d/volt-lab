@@ -50,6 +50,7 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Sources & power systems (batch 3.2)**: manual transfer switch (I-0-II, break-before-make), UPS with battery and charger (state of charge, autonomy, static transfer), PV string + DC isolator + grid-tie inverter (anti-islanding, 5 s reconnect) + net meter (import / export kWh), 1-phase pole and 3-phase delta-wye distribution transformers (turns ratio, vector group label, loaded and unloaded voltage), capacitor bank (4 steps, capacitor-duty contactors built in, 3 s discharge lock) with a power factor controller, shore connection box with phase-sequence lamps, ground detection lamps for an isolated (IT) 440 V feeder, synchroscope with sync lamps, reverse-power relay and preferential trip relay.
 - **Control & timing (batch 3.3)**: star-delta timer with a transition pause, counter relay (preset, latching output, reset coil), latching (impulse) relay, re-triggerable staircase timer, 24-hour time switch with a simulated clock and speed control, alternating relay for duplex pumps, solid-state relay, a control operator (illuminated push button, key selector, 2-position selector, foot switch with guard, pendant) with its lamp on its own terminals, auxiliary contact block, mechanical interlock between two contactors, dual-channel safety relay with monitored start, two-hand station, door interlock switch and latching pull-cord switch.
 - **Sensors & field devices (batch 3.4)**: electrode level relay (min / max probes on the shared tank, fill or drain), thermostat and a type K thermocouple with a temperature controller (setpoint, hysteresis, sensor-break fail-safe; each sensor warms with a heater you link to it), reed switch with a magnet-position slider, photocell dusk switch with hysteresis, PIR occupancy sensor with hold time and daylight lock, flow switch, zero-speed switch (coast-down estimate from the motor you name), 2/2 solenoid valve (coil and manual override), conventional fire alarm loop (smoke detectors and manual call points in parallel on a panel with latched alarm, bell output, relay, silence and reset). The existing buzzer / horn serves as the alarm bell.
+- **Starters, motors & drives (batch 3.5)**: soft starter (ramped voltage, end-of-ramp contact, limited inrush), reduced-voltage starter (autotransformer, primary resistor or part winding), Dahlander two-speed motor (low / high set, star point, interlock fault), wound-rotor motor with a three-stage rotor resistor bank, 24 V DC shunt motor with a timed starter and a field-loss overspeed warning, brake motor (spring brake released by its own coil), DC injection braking module, VFD speed potentiometer / braking resistor / line reactor, submersible pump, air compressor (raises the shared line pressure, pair it with the pressure switch) and a hoist / conveyor section with top and bottom limit contacts and a load-position slider.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
 #### Sources and power systems: what is simplified
@@ -75,6 +76,15 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Fire alarm**: a bare conventional loop with no end-of-line resistor, so open-circuit and short-circuit loop faults are not monitored; one zone; the bell is the standard buzzer.
 - **PIR / photocell**: movement is a toggle and the light level a slider; there is no detection area or dead time.
 - **Zero speed**: the coast-down is a linear estimate over the coast time; 3-phase motors have no measured speed in the solver.
+
+#### Starters, motors and drives: what is simplified
+- **Starting current** is shown and used for the breaker inrush check only: a soft starter limits it to the set multiple (default 3 x FLA instead of 6 x), a reduced-voltage starter to 6 x tap squared (autotransformer), 6 x (1 - drop) (primary resistor) or 3 x (part winding), assuming closed transition. The running current of the motor in the solver is unchanged.
+- **Speed** is a first-order estimate kept in each new motor (ramps and coast-down), not a torque-speed model. The wound-rotor speed per stage (35 / 55 / 80 / 98 %) and the hoist travel rate are set numbers.
+- **Dahlander**: high speed needs the low-speed leads joined; supply on both sets at once is reported as an interlock fault rather than solved as a short circuit.
+- **DC shunt motor**: only on the 24 V DC domain; the supply current limit does not include it. Field loss runs away to 250 % speed.
+- **DC injection brake**: it times the braking and shortens the stop seen by a linked zero-speed switch; the DC output to the windings is a marker, not solved.
+- **VFD accessories**: the speed potentiometer is a link (the drive frequency follows the knob), the analog wiring is not solved; the braking resistor and line reactor are passive (no regenerative energy or harmonic model).
+- **Compressor / submersible pump** use the shared process (one tank, one line); the compressor raises line pressure only.
 
 #### Test instruments
 Click **DMM** in the toolbar and pick an instrument in its panel: **DMM / clamp** (volts between two terminals, amps on a wire), **Megger** (insulation resistance at 250 / 500 / 1000 V between two terminals or a terminal and PE; refuses on an energized circuit; reads the `insulation` condition set on a motor in the inspector), **Earth** (electrode resistance of a ground pit), **Rotation** (click the three phases in turn: CW or CCW) and **Continuity** (de-energized only; beeps on a closed path, contacts shown at rest).
@@ -202,6 +212,11 @@ Open **Examples** in the ribbon. WireWise starts on a blank canvas; each lab loa
 46. **Tank Level Control with an Electrode Level Relay** — probes at 30 % and 70 % start and stop a filling pump with hysteresis between them.
 47. **Thermostat and Thermocouple Temperature Control** — a room thermostat and an oven controller on a type K thermocouple, sensor break fails safe.
 48. **Conventional Fire Alarm Loop and Photocell / PIR Security Light** — latched alarm with silence and reset; a yard light that needs dark and movement.
+
+### Starters, motors and drives
+49. **Soft Starter: Ramped Start and Reduced Inrush** — voltage ramp, end-of-ramp contact, breaker inrush limited to 3 x FLA.
+50. **Wound-Rotor Motor with a Stepped Rotor Resistor Bank** — speed climbs as each resistor stage is shorted; open rotor gives no torque.
+51. **Air Compressor with a Pressure Switch** — cut-in starts the compressor through a contactor, cut-out stops it.
 
 ---
 

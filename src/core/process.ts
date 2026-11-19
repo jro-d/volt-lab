@@ -21,8 +21,8 @@ export const BAR_DECAY_BASE = 0.02;
 export const BAR_DECAY_PER_LPM = 0.004;
 export const MAX_BAR = 5;
 
-export const PUMP_TYPES = new Set(['pump_booster_1p', 'pump_booster_3p']);
-export const PROCESS_DEVICE_TYPES = new Set(['pump_booster_1p', 'pump_booster_3p', 'float_switch', 'pressure_switch']);
+export const PUMP_TYPES = new Set(['pump_booster_1p', 'pump_booster_3p', 'pump_submersible_3p', 'air_compressor_3p']);
+export const PROCESS_DEVICE_TYPES = new Set(['pump_booster_1p', 'pump_booster_3p', 'pump_submersible_3p', 'air_compressor_3p', 'float_switch', 'pressure_switch']);
 
 export const isPump = (d: ElectricalDevice) => PUMP_TYPES.has(d.type);
 /** A pump is pumping when its motor is electrically running (set by the solver). */

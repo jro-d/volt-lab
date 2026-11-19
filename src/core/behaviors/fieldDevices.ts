@@ -186,7 +186,8 @@ export const zeroSpeedBehavior: DeviceBehavior = {
     const motor = ctx.devices.find((d) => d.id === dev.state.motorId);
     const measured = motor && typeof motor.state.speedPct === 'number' ? (motor.state.speedPct as number) : undefined;
     const running = !!motor && (measured !== undefined ? measured > 0 : !!motor.state.running);
-    const decay = Math.max(num(dev.state.coastSec, 6), 0.5);
+    const brake = ctx.devices.find((d) => d.id === dev.state.brakeId && d.type === 'dc_injection_brake');
+    const decay = Math.max(brake && brake.state.braking ? num(brake.state.brakeSec, 3) : num(dev.state.coastSec, 6), 0.5);
     const speed = running ? (measured ?? 100) : Math.max(0, num(dev.state.speedPct, 0) - (100 / decay) * dt);
     return withState(dev, { speedPct: round1(speed), zero: !!motor && speed < num(dev.state.setPct, 5) });
   },

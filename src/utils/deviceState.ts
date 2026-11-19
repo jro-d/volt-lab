@@ -132,6 +132,46 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.zero = false;
   }
   if (device.type === 'solenoid_valve') state.open = false;
+  // Batch 3.5: speeds, ramps and positions return to standstill; set points stay
+  if (['soft_starter', 'starter_reduced_voltage'].includes(device.type)) {
+    state.on = false;
+    state.phase = 'idle';
+    state.elapsedSec = 0;
+    state.rampPct = 0;
+  }
+  if (['motor_dahlander', 'motor_wound_rotor', 'motor_dc_shunt', 'motor_brake'].includes(device.type)) {
+    state.speedPct = 0;
+    state.running = false;
+  }
+  if (device.type === 'motor_dahlander') state.speedSet = 'off';
+  if (device.type === 'motor_wound_rotor') state.stages = -1;
+  if (device.type === 'rotor_resistor_bank') state.stages = 0;
+  if (device.type === 'motor_dc_shunt') {
+    state.elapsedSec = 0;
+    state.starterStep = 0;
+    state.armPowered = false;
+    state.fieldPowered = false;
+    state.overspeed = false;
+  }
+  if (device.type === 'motor_brake') {
+    state.brakeReleased = false;
+    state.locked = false;
+  }
+  if (device.type === 'dc_injection_brake') {
+    state.remainingSec = 0;
+    state.braking = false;
+    state.runPrev = false;
+  }
+  if (device.type === 'pump_submersible_3p' || device.type === 'air_compressor_3p') {
+    state.running = false;
+    state.pumping = false;
+  }
+  if (device.type === 'hoist_conveyor') {
+    state.running = false;
+    state.moving = false;
+    state.stalled = false;
+    state.stallSec = 0;
+  }
   if (device.type === 'fire_alarm_panel') {
     state.powered = false;
     state.alarm = false;

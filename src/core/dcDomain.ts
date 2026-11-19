@@ -28,6 +28,7 @@ export function isDcTerminal(dev: ElectricalDevice, terminalId: string): boolean
   if (dev.type === 'inverter_gridtie') return terminalId === 'pv_pos' || terminalId === 'pv_neg';
   if (isDcSensor(dev.type)) return true;
   if (dev.type === 'plc_24vdc_16io') return terminalId !== 'pe';
+  if (dev.type === 'motor_dc_shunt') return true;
   if (isDcCoilDevice(dev)) return dev.type !== 'industrial_relay_dpdt' || terminalId === 'a1' || terminalId === 'a2';
   return false;
 }
