@@ -342,6 +342,35 @@ export interface ElectricalProject {
   wireNumbering?: WireNumberingSettings;
   /** Energy and billing: time scale and tariff (the tariff rate is typed in by the user) */
   energy?: EnergySettings;
+  /** Graded lab: what the finished work must contain (set when an exercise is started) */
+  target?: LabTarget;
+  /** Safe isolation workflow (Off by default) */
+  safeIsolation?: SafeIsolationState;
+}
+
+/** Safe isolation (dead test and lock-out / tag-out) workflow state. */
+export interface SafeIsolationState {
+  v: 1;
+  mode: 'off' | 'prompt' | 'required';
+  /** Step ids done, in order */
+  done: string[];
+  /** Prompt mode: the one-time warning has been shown */
+  warned: boolean;
+  log: { step: string; at: number }[];
+}
+
+/** Graded lab target: required devices, connections, ladder and Code Inspector result. */
+export interface LabTarget {
+  v: 1;
+  labId: string;
+  title: string;
+  devices: { type: string; count: number }[];
+  /** Required connections as device:terminal pairs (order independent, same net counts) */
+  connections: [string, string][];
+  needsLadder: boolean;
+  noErrors: boolean;
+  /** Show which devices and connections are missing (off by default) */
+  showSolution: boolean;
 }
 
 /** Energy and billing settings stored with the project. */
