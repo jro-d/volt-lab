@@ -22,6 +22,8 @@ interface StatusBarProps {
   /** Time-current coordination curves dock */
   curvesOpen?: boolean;
   onToggleCurves?: () => void;
+  /** Reports: load schedule, bill of materials and the other planning documents */
+  onOpenReports?: () => void;
   /** Short-circuit check: fault levels overlay */
   faultLevelsOn?: boolean;
   onToggleFaultLevels?: () => void;
@@ -50,6 +52,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onToggleCurves,
   faultLevelsOn = false,
   onToggleFaultLevels,
+  onOpenReports,
 }) => {
   const { cursorX, cursorY, zoom, wiring } = useCadStatus();
 
@@ -119,6 +122,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${faultLevelsOn ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
         >
           ⚡ Fault levels
+        </button>
+      )}
+
+      {onOpenReports && (
+        <button
+          onClick={onOpenReports}
+          title="Reports: load schedule, bill of materials, wire numbering, energy and billing, share link"
+          className="mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition bg-surface border-border text-ink hover:bg-surface-hover"
+        >
+          📄 Reports
         </button>
       )}
 

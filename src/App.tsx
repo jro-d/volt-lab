@@ -31,6 +31,7 @@ import { Recorder } from './core/recorder';
 import { RecorderPanel } from './components/layout/RecorderPanel';
 import { CurvesPanel } from './components/layout/CurvesPanel';
 import { FaultLevelsPanel } from './components/layout/FaultLevelsPanel';
+import { ReportsPanel } from './components/layout/ReportsPanel';
 import { computeFaultLevels, checkInterruptingRatings, DEFAULT_SHORT_CIRCUIT } from './core/shortCircuit';
 import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
@@ -83,6 +84,7 @@ export const App: React.FC = () => {
   // Timing diagram recorder (hidden until opened from the status bar)
   const [recorderOpen, setRecorderOpen] = useState<boolean>(false);
   const [curvesOpen, setCurvesOpen] = useState<boolean>(false);
+  const [reportsOpen, setReportsOpen] = useState<boolean>(false);
   const recorderRef = useRef<Recorder>(new Recorder());
   const [recVersion, setRecVersion] = useState(0);
   const [recPaused, setRecPaused] = useState(false);
@@ -1503,6 +1505,8 @@ export const App: React.FC = () => {
         />
       )}
 
+      {reportsOpen && <ReportsPanel project={project} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} />}
+
       {curvesOpen && (
         <CurvesPanel
           devices={project.devices}
@@ -1533,6 +1537,7 @@ export const App: React.FC = () => {
         recorderOpen={recorderOpen}
         onToggleRecorder={() => setRecorderOpen((v) => !v)}
         curvesOpen={curvesOpen}
+        onOpenReports={() => setReportsOpen(true)}
         faultLevelsOn={!!project.shortCircuit?.enabled}
         onToggleFaultLevels={() => setProject((prev) => ({ ...prev, shortCircuit: prev.shortCircuit ? { ...prev.shortCircuit, enabled: !prev.shortCircuit.enabled } : { ...DEFAULT_SHORT_CIRCUIT } }))}
         onToggleCurves={() => setCurvesOpen((v) => !v)}

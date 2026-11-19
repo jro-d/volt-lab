@@ -334,6 +334,8 @@ export interface ElectricalProject {
   curves?: { v: 1; chain: string[]; wireId?: string; motorId?: string };
   /** Short-circuit check (off until enabled): source level and optional transformer, see core/shortCircuit.ts */
   shortCircuit?: ShortCircuitSettings;
+  /** Load schedule: demand factors typed in by the user, by load type (none is built in) */
+  loadSchedule?: { v: 1; demandFactors: Record<string, number> };
 }
 
 /** Settings of the ohmic short-circuit check. */
