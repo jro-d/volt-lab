@@ -340,6 +340,18 @@ export interface ElectricalProject {
   bom?: BomSettings;
   /** Wire numbering scheme and the title block of the terminal-strip drawings */
   wireNumbering?: WireNumberingSettings;
+  /** Energy and billing: time scale and tariff (the tariff rate is typed in by the user) */
+  energy?: EnergySettings;
+}
+
+/** Energy and billing settings stored with the project. */
+export interface EnergySettings {
+  v: 1;
+  /** Accumulate energy while simulating */
+  enabled: boolean;
+  /** Simulated seconds per real second: 1, 60 or 3600 */
+  timeScale: 1 | 60 | 3600;
+  tariff: { currency: string; perKwh: number; tiers?: { upToKwh: number | null; perKwh: number }[] };
 }
 
 /** Wire numbering settings stored with the project. */
