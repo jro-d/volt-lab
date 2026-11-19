@@ -27,6 +27,7 @@ import {
   Trash2,
   Rows3,
   Cpu,
+  Map as MapIcon,
   FileCode2,
   Sun,
   Moon,
@@ -50,8 +51,8 @@ interface TopNavBarProps {
   standard: CodeStandard;
   onStandardChange: (std: CodeStandard) => void;
   gridVoltage: number;
-  viewMode: 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc';
-  onViewModeChange: (mode: 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc') => void;
+  viewMode: 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc' | 'plan';
+  onViewModeChange: (mode: 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc' | 'plan') => void;
   isCompliant: boolean;
   trippedCount: number;
   activeLabTitle?: string;
@@ -270,6 +271,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             { id: 'ladder', label: 'Ladder Logic', icon: Rows3, tip: 'Control ladder diagram (live sync, lab target & rung builder)' },
             { id: 'schematic', label: 'SLD Schematic', icon: SlidersHorizontal, tip: 'Single-line diagram (SLD)' },
             { id: 'plc', label: 'PLC', icon: Cpu, tip: 'PLC program editor: write, run and monitor ladder logic' },
+            { id: 'plan', label: 'Plan', icon: MapIcon, tip: 'Floor plan: rooms, symbols linked to devices and home runs that set the wire lengths' },
           ] as const).map((v) => (
             <button
               key={v.id}
