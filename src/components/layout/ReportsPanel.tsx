@@ -2,6 +2,7 @@ import React from 'react';
 import type { ElectricalProject } from '../../types/electrical';
 import { buildLoadSchedule, scheduleToCsv } from '../../core/loadSchedule';
 import { buildBom, bomToCsv, DEFAULT_BOM } from '../../core/bom';
+import { encodeShare, SHARE_WARN_LENGTH, type ShareResult } from '../../utils/shareLink';
 import { numberWires, terminalStrips, terminalStripSvg, wireListCsv, DEFAULT_NUMBERING } from '../../core/wireNumbering';
 import { DEMAND_FACTORS } from '../../data/standardsData';
 import { Download, Printer, X } from 'lucide-react';
@@ -266,10 +267,51 @@ export const WiresTab: React.FC<ReportContext> = ({ project, onChange }) => {
   );
 };
 
+export const ShareTab: React.FC<ReportContext> = ({ project }) => {
+  const [result, setResult] = React.useState<ShareResult | null>(null);
+  const [error, setError] = React.useState('');
+  const [copied, setCopied] = React.useState(false);
+  const make = async () => {
+    setError('');
+    setCopied(false);
+    try {
+      setResult(await encodeShare(project));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not build the link');
+    }
+  };
+  const url = result ? `${window.location.origin}${window.location.pathname}${result.hash}` : '';
+  return (
+    <div className="space-y-3 text-[11px]">
+      <p>A share link carries the whole project inside the address (compressed in the URL hash): nothing is uploaded, and whoever opens it gets an editable copy.</p>
+      <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold" onClick={make}>Make share link</button>
+      {error && <div className="text-danger font-semibold">{error}</div>}
+      {result && (
+        <div className="space-y-2">
+          <div>{result.length.toLocaleString()} characters ({result.method === 'deflate' ? 'deflate' : 'LZW fallback'}).</div>
+          {result.tooLong && (
+            <div className="text-warning font-semibold">
+              This link is longer than about {SHARE_WARN_LENGTH.toLocaleString()} characters: some chat apps and browsers cut long links. Use <b>Export JSON</b> (the download button in the top bar) to send the project as a file instead.
+            </div>
+          )}
+          <textarea readOnly className="w-full h-24 p-1.5 rounded border border-border bg-surface font-mono text-[10px]" value={url} onFocus={(e) => e.currentTarget.select()} />
+          <button
+            className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold"
+            onClick={() => { navigator.clipboard?.writeText(url).then(() => setCopied(true)).catch(() => setCopied(false)); }}
+          >
+            {copied ? 'Copied' : 'Copy link'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const BASE_TABS: ReportTab[] = [
   { id: 'load', label: 'Load schedule', render: (ctx) => <LoadScheduleTab {...ctx} /> },
   { id: 'bom', label: 'Bill of materials', render: (ctx) => <BomTab {...ctx} /> },
   { id: 'wires', label: 'Wire numbers & terminals', render: (ctx) => <WiresTab {...ctx} /> },
+  { id: 'share', label: 'Share link', render: (ctx) => <ShareTab {...ctx} /> },
 ];
 
 /** Modal with one tab per report. Every report only reads the project; none changes the solver. */

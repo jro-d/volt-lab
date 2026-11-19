@@ -32,6 +32,7 @@ import { RecorderPanel } from './components/layout/RecorderPanel';
 import { CurvesPanel } from './components/layout/CurvesPanel';
 import { FaultLevelsPanel } from './components/layout/FaultLevelsPanel';
 import { ReportsPanel } from './components/layout/ReportsPanel';
+import { decodeShare, isShareHash } from './utils/shareLink';
 import { computeFaultLevels, checkInterruptingRatings, DEFAULT_SHORT_CIRCUIT } from './core/shortCircuit';
 import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
@@ -1061,6 +1062,27 @@ export const App: React.FC = () => {
       )
     }));
   };
+
+  // Open a project from a share link (#share=...) once, through the same migration as a file import
+  useEffect(() => {
+    if (!isShareHash(window.location.hash)) return;
+    decodeShare(window.location.hash)
+      .then((imported) => {
+        const p = imported as ElectricalProject;
+        if (!p || !Array.isArray(p.devices) || !Array.isArray(p.wires)) throw new Error('Not a WireWise project');
+        const migrated = migrateLegacyProject(p.devices, p.wires);
+        setIsSimulating(false);
+        setProject({ ...p, devices: toEditModeDevices(migrated.devices), wires: migrated.wires });
+        if (p.codeStandard) setStandard(p.codeStandard);
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        showNotice('Project opened from a share link');
+      })
+      .catch((err) => {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        alert(`Could not open the share link: ${err instanceof Error ? err.message : 'invalid link'}`);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
