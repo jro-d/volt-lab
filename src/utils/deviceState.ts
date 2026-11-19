@@ -193,6 +193,24 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.loadAmps = 0;
     state.overload = false;
   }
+  // Batch 3.7: the valve spool and cylinder go back to retracted, the displays clear
+  if (device.type === 'valve_52') {
+    state.spool = 'none';
+    state.y1 = false;
+    state.y2 = false;
+  }
+  if (device.type === 'cylinder_da') {
+    state.position = 0;
+    state.atExtended = false;
+    state.atRetracted = true;
+    state.moving = false;
+  }
+  if (device.type === 'analog_io_module') state.powered = false;
+  if (device.type === 'hmi_panel') {
+    state.powered = false;
+    state.linked = false;
+    for (let i = 1; i <= 4; i++) state[`lamp${i}`] = false;
+  }
   if (device.type === 'fire_alarm_panel') {
     state.powered = false;
     state.alarm = false;

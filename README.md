@@ -52,6 +52,7 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Sensors & field devices (batch 3.4)**: electrode level relay (min / max probes on the shared tank, fill or drain), thermostat and a type K thermocouple with a temperature controller (setpoint, hysteresis, sensor-break fail-safe; each sensor warms with a heater you link to it), reed switch with a magnet-position slider, photocell dusk switch with hysteresis, PIR occupancy sensor with hold time and daylight lock, flow switch, zero-speed switch (coast-down estimate from the motor you name), 2/2 solenoid valve (coil and manual override), conventional fire alarm loop (smoke detectors and manual call points in parallel on a panel with latched alarm, bell output, relay, silence and reset). The existing buzzer / horn serves as the alarm bell.
 - **Starters, motors & drives (batch 3.5)**: soft starter (ramped voltage, end-of-ramp contact, limited inrush), reduced-voltage starter (autotransformer, primary resistor or part winding), Dahlander two-speed motor (low / high set, star point, interlock fault), wound-rotor motor with a three-stage rotor resistor bank, 24 V DC shunt motor with a timed starter and a field-loss overspeed warning, brake motor (spring brake released by its own coil), DC injection braking module, VFD speed potentiometer / braking resistor / line reactor, submersible pump, air compressor (raises the shared line pressure, pair it with the pressure switch) and a hoist / conveyor section with top and bottom limit contacts and a load-position slider.
 - **Residential & commercial loads (batch 3.6)**: the lamp gets a `lampType` (incandescent, LED, fluorescent with ballast and starter, CFL, halogen) that sets watts and power factor (current = W / (V x pf)); one appliance device with kind presets (range, refrigerator, washing machine, rice cooker, microwave, 7 kW EV charger) whose power cycles over time; outlet types (universal, air-conditioner, range, weatherproof) on the duplex and Schuko receptacles; emergency luminaire and exit sign with a battery (the Code Inspector flags a wall switch in their feed); ceiling-fan speed regulator; doorbell set (230 V to 12 V transformer, push button on the secondary, chime); power strip with a cord that heats and burns out when overloaded.
+- **Automation (batch 3.7)**: 5/2 double-solenoid pneumatic valve and a double-acting cylinder (the reed switch can be mounted on either end of the stroke), analog I/O module (4-20 mA / 0-10 V inputs with scaling and wire-break fault, 4-20 mA output) and an HMI panel whose four soft buttons are extra PLC inputs (I0.4-I0.7) and whose lamps show PLC bits. The Micro PLC and its program editor (function blocks TON / TOF / TP, counters, comparators, MOV, ADD) serve as the smart relay.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
 #### Sources and power systems: what is simplified
@@ -94,6 +95,13 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Emergency light**: a battery with a 1-3 h autonomy that runs 60 x faster than real time; the switched-feed rule has its clause marked "to be verified".
 - **Power strip**: the cord heat is a simple model (rises with the square of the overload) and the strip does not try to trip the upstream breaker, which is the point of the lab.
 - **Doorbell**: the 12 V loop is sensed by continuity between B1 and B2; the 12 V side is not solved as a separate voltage.
+
+#### Automation: what is simplified
+- **Not done: the 16-in / 16-out 24 V PLC.** The 24 V DC PLC keeps its 8 inputs and 8 outputs; a larger variant needs the 24 V solver paths made size-aware and is left for a follow-up.
+- **No separate smart-relay device**: the Micro PLC with the ladder editor is the smart relay (the same program model, function blocks and monitor); no LOGO-style function-block diagram editor was written.
+- **Analog signals** are sliders on the module: the wiring of the 4-20 mA / 0-10 V loops is not solved, and the PLC program engine has no analog inputs, so the module cannot feed a PLC program yet.
+- **HMI** soft buttons toggle (latching) and map onto PLC inputs I0.4-I0.7 (addresses can be rebound); lamps read PLC bits. The Micro PLC has only I0.0-I0.3 wired, so use the 24 V PLC with the HMI.
+- **Pneumatics**: the valve and cylinder are a position state machine (stroke time, end stops); there is no air supply, pressure or force model, and the cylinder has no electrical terminals.
 
 #### Test instruments
 Click **DMM** in the toolbar and pick an instrument in its panel: **DMM / clamp** (volts between two terminals, amps on a wire), **Megger** (insulation resistance at 250 / 500 / 1000 V between two terminals or a terminal and PE; refuses on an energized circuit; reads the `insulation` condition set on a motor in the inspector), **Earth** (electrode resistance of a ground pit), **Rotation** (click the three phases in turn: CW or CCW) and **Continuity** (de-energized only; beeps on a closed path, contacts shown at rest).
@@ -231,6 +239,9 @@ Open **Examples** in the ribbon. WireWise starts on a blank canvas; each lab loa
 52. **Kitchen Circuit: Cycling Appliances and Lamp Types** — refrigerator, rice cooker, microwave, range, LED and fluorescent lamps on one feeder.
 53. **The Octopus Overload: A Power Strip with a 10 A Cord** — the cord burns out before the 32 A breaker acts.
 54. **Emergency Lighting, Exit Sign, Doorbell and a Fan Regulator** — battery backup, 12 V bell loop, fan speed steps and the switched-feed warning.
+
+### Automation
+55. **Double-Acting Cylinder: 5/2 Valve and Reed Switch End Feedback** — double solenoid memory, blocked valve and end-position lamps from reed switches.
 
 ---
 

@@ -29,6 +29,8 @@ export function isDcTerminal(dev: ElectricalDevice, terminalId: string): boolean
   if (isDcSensor(dev.type)) return true;
   if (dev.type === 'plc_24vdc_16io') return terminalId !== 'pe';
   if (dev.type === 'motor_dc_shunt') return true;
+  if (dev.type === 'analog_io_module') return true;
+  if (dev.type === 'hmi_panel') return terminalId === 'l_pos' || terminalId === 'm_neg';
   if (isDcCoilDevice(dev)) return dev.type !== 'industrial_relay_dpdt' || terminalId === 'a1' || terminalId === 'a2';
   return false;
 }
