@@ -41,7 +41,7 @@ export const ModuleInspector: React.FC<{
               value={String(raw)}
               onChange={(e) => {
                 const opt = c.options.find((o) => String(o.v) === e.target.value);
-                apply({ [c.key]: opt ? opt.v : e.target.value });
+                apply({ ...(c.presets?.[e.target.value] ?? {}), [c.key]: opt ? opt.v : e.target.value });
               }}
               className="mt-0.5 w-full text-xs font-normal bg-surface border border-border rounded px-1.5 py-1 text-ink"
             >

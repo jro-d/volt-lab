@@ -1,4 +1,5 @@
 import type { DeviceType } from '../types/electrical';
+import { LAMP_TYPES, APPLIANCE_KINDS } from './loadPresets';
 
 /**
  * Inspector controls for the generic device modules (batches 3.3 onward), described as data so that one
@@ -6,7 +7,7 @@ import type { DeviceType } from '../types/electrical';
  */
 export type ModuleControl =
   | { kind: 'number'; key: string; label: string; min: number; max: number; step: number; unit: string; def: number; fmt?: 'clock' }
-  | { kind: 'select'; key: string; label: string; options: { v: string | number; label: string }[]; def: string | number }
+  | { kind: 'select'; key: string; label: string; options: { v: string | number; label: string }[]; def: string | number; presets?: Record<string, Record<string, unknown>> }
   | { kind: 'device'; key: string; label: string; types: DeviceType[] }
   | { kind: 'toggle'; key: string; label: string; def?: boolean }
   | { kind: 'action'; label: string; patch: Record<string, unknown> };
@@ -293,6 +294,82 @@ export const MODULE_SPECS: Partial<Record<DeviceType, ModuleSpec>> = {
       { kind: 'number', key: 'wattage', label: 'Rated power', min: 500, max: 7500, step: 100, unit: 'W', def: 2200 },
     ],
     hint: 'Forward (CW) raises the load, reverse lowers it. Wire the limit contacts 11-12 (top) and 21-22 (bottom) in the control circuit.',
+  },
+  // Batch 3.6: residential and commercial loads
+  light_bulb: {
+    title: 'Lamp type',
+    controls: [
+      {
+        kind: 'select', key: 'lampType', label: 'Type', def: 'incandescent',
+        options: Object.entries(LAMP_TYPES).map(([v, p]) => ({ v, label: `${p.label} (${p.wattage} W, pf ${p.pf})` })),
+        presets: Object.fromEntries(Object.entries(LAMP_TYPES).map(([v, p]) => [v, { wattage: p.wattage, pf: p.pf, inrush: p.inrush }])),
+      },
+    ],
+    hint: 'The type sets the power and power factor: a low power factor means more current than the watts suggest. Fluorescent: the ballast halves the power factor and the starter flickers before the tube strikes.',
+  },
+  appliance_generic: {
+    title: 'Appliance',
+    controls: [
+      {
+        kind: 'select', key: 'applianceKind', label: 'Kind', def: 'range',
+        options: Object.entries(APPLIANCE_KINDS).map(([v, p]) => ({ v, label: `${p.label} (${p.wattage} W)` })),
+        presets: Object.fromEntries(Object.entries(APPLIANCE_KINDS).map(([v, p]) => [v, { wattage: p.wattage, pf: p.pf, elapsedSec: 0, wattsNow: 0 }])),
+      },
+      { kind: 'number', key: 'cookSec', label: 'Cook time (rice cooker)', min: 10, max: 300, step: 10, unit: 's', def: 60 },
+      { kind: 'action', label: 'Start (microwave: 30 s)', patch: { timerSec: 30 } },
+    ],
+    hint: 'Cycling appliances change the circuit current over time. EV charging and ranges are continuous or heavy loads: give them their own circuit and check the rules in your copy of the code.',
+  },
+  socket_duplex: {
+    title: 'Outlet type',
+    controls: [
+      {
+        kind: 'select', key: 'outletType', label: 'Outlet', def: 'universal',
+        options: [{ v: 'universal', label: 'Universal 16 A' }, { v: 'aircon', label: 'Air-conditioner 20 A' }, { v: 'range', label: 'Range 50 A' }, { v: 'weatherproof', label: 'Weatherproof 16 A' }],
+        presets: { universal: { ratedAmps: 16 }, aircon: { ratedAmps: 20 }, range: { ratedAmps: 50 }, weatherproof: { ratedAmps: 16 } },
+      },
+    ],
+    hint: 'Informational: the rating is shown with the device. Dedicated-circuit and weatherproof (RCD / GFCI) rules are for you to confirm in your copy of the code.',
+  },
+  socket_schuko: {
+    title: 'Outlet type',
+    controls: [
+      {
+        kind: 'select', key: 'outletType', label: 'Outlet', def: 'universal',
+        options: [{ v: 'universal', label: 'Universal 16 A' }, { v: 'aircon', label: 'Air-conditioner 20 A' }, { v: 'range', label: 'Range 50 A' }, { v: 'weatherproof', label: 'Weatherproof 16 A' }],
+        presets: { universal: { ratedAmps: 16 }, aircon: { ratedAmps: 20 }, range: { ratedAmps: 50 }, weatherproof: { ratedAmps: 16 } },
+      },
+    ],
+  },
+  emergency_light: {
+    title: 'Emergency luminaire',
+    controls: [
+      { kind: 'select', key: 'kind', label: 'Kind', def: 'emergency', options: [{ v: 'emergency', label: 'Emergency light (non-maintained)' }, { v: 'exit_sign', label: 'Exit sign (maintained)' }] },
+      { kind: 'number', key: 'autonomyH', label: 'Battery autonomy', min: 1, max: 3, step: 1, unit: 'h', def: 3 },
+      { kind: 'action', label: 'Recharge the battery', patch: { socPct: 100 } },
+    ],
+    hint: 'Feed it from an unswitched live. Open the supply to test: the emergency light then runs on its battery (60x faster than real time).',
+  },
+  fan_regulator: {
+    title: 'Fan regulator',
+    controls: [
+      { kind: 'number', key: 'step', label: 'Speed step', min: 0, max: 5, step: 1, unit: '', def: 3 },
+      { kind: 'device', key: 'fanId', label: 'Fan it controls', types: ['appliance_fan'] },
+    ],
+  },
+  doorbell_set: {
+    title: 'Doorbell set',
+    controls: [],
+    hint: 'Wire a push button (a switch will do) between B1 and B2. The 12 V loop is separate from the 230 V primary.',
+  },
+  power_strip: {
+    title: 'Power strip',
+    controls: [
+      { kind: 'number', key: 'cordAmps', label: 'Cord rating', min: 6, max: 16, step: 1, unit: 'A', def: 10 },
+      { kind: 'action', label: 'Replace the cord (cool, repaired)', patch: { burnt: false, cordHeat: 0 } },
+      { kind: 'action', label: 'Unplug everything', patch: { slots: ['none', 'none', 'none', 'none'] } },
+    ],
+    hint: 'Click a socket on the device to plug in a load. Above the cord rating the cord heats up; at full heat it burns out and the strip goes dead.',
   },
   fire_alarm_panel: {
     title: 'Fire alarm panel',

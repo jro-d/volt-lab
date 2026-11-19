@@ -16,6 +16,7 @@ import { plcProgramBehavior } from './plcProgram';
 import * as ctl from './controlModules';
 import * as fld from './fieldDevices';
 import * as drv from './drives';
+import * as home from './homeLoads';
 
 const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1pBehavior, fuse3pBehavior, rcboBehavior, generatorBehavior, atsTransferBehavior, floatSwitchBehavior, pressureSwitchBehavior, phaseMonitorBehavior, psuBehavior, dcSensorBehavior, plc24Behavior, motor1pBehavior, capacitorBehavior,
   prot.rcd4pBehavior, prot.gfciBehavior, prot.afddBehavior, prot.mccbBehavior, prot.mpcbBehavior, prot.isolatorBehavior,
@@ -33,7 +34,8 @@ const BEHAVIORS: DeviceBehavior[] = [meter3pBehavior, timerModesBehavior, fuse1p
   fld.smokeDetectorBehavior, fld.callPointBehavior, fld.fireAlarmPanelBehavior,
   drv.softStarterBehavior, drv.reducedVoltageBehavior, drv.dahlanderBehavior, drv.rotorBankBehavior, drv.woundRotorBehavior,
   drv.dcShuntBehavior, drv.brakeMotorBehavior, drv.dcInjectionBehavior, drv.vfdLinkBehavior, drv.lineReactorBehavior,
-  drv.submersiblePumpBehavior, drv.compressorBehavior, drv.hoistConveyorBehavior];
+  drv.submersiblePumpBehavior, drv.compressorBehavior, drv.hoistConveyorBehavior,
+  home.applianceBehavior, home.emergencyLightBehavior, home.fanRegulatorBehavior, home.fanSpeedBehavior, home.doorbellBehavior, home.powerStripBehavior];
 
 const byType = new Map<DeviceType, DeviceBehavior>();
 for (const b of BEHAVIORS) for (const t of b.types) byType.set(t, b);

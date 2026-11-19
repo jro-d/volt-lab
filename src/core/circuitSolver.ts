@@ -127,6 +127,8 @@ export function solveCircuit(
   const nodePhases: Record<string, PhaseId> = {};
   const deviceEnergized: Record<string, boolean> = {};
   /** Three-phase loads declared by device behaviours (see loads3p in behaviors/types.ts) */
+  /** Single-phase loads declared by device behaviours (see loads1p in behaviors/types.ts) */
+  const load1pByDevice = new Map<string, { line: string; neutral: string; watts: number; pf: number; powered: boolean }>();
   const load3pByDevice = new Map<string, { terminals: [string, string, string]; watts: number; startMult?: number; running: boolean; amps: number }>();
   const wireCurrents: Record<string, number> = {};
   const wireFlowDirections: Record<string, 'forward' | 'reverse'> = {};
@@ -1350,6 +1352,21 @@ export function solveCircuit(
         if (running) totalWatts += l3.watts;
         load3pByDevice.set(dev.id, { terminals: l3.terminals, watts: l3.watts, startMult: l3.startMult, running, amps });
       }
+      // Single-phase loads declared by behaviours: line live and neutral present
+      const l1 = behaviorFor(dev.type)?.loads1p?.(dev, {
+        potential: (t) => nodePotentials[terminalKey(dev.id, t)],
+        phase: (t) => nodePhases[terminalKey(dev.id, t)],
+        connected: (a, b) => isConnected(terminalKey(dev.id, a), terminalKey(dev.id, b)),
+      });
+      if (l1) {
+        const pa = nodePotentials[terminalKey(dev.id, l1.line)];
+        const pn = nodePotentials[terminalKey(dev.id, l1.neutral)];
+        const powered = (pa === 'live' && pn === 'neutral') || (pn === 'live' && pa === 'neutral');
+        dev.state.powered = powered;
+        deviceEnergized[dev.id] = powered;
+        if (powered) totalWatts += l1.watts;
+        load1pByDevice.set(dev.id, { line: l1.line, neutral: l1.neutral, watts: l1.watts, pf: l1.pf && l1.pf > 0 ? l1.pf : 1, powered });
+      }
       // Devices that declare coils / control inputs (control modules): energized when one is powered
       const coils = behaviorFor(dev.type)?.coils?.(dev);
       if (coils) {
@@ -1415,7 +1432,7 @@ export function solveCircuit(
 
     if (dev.type === 'light_bulb') {
       const w = dev.state.wattage || 60;
-      traceLoadCurrent(terminalKey(dev.id, 'hot'), terminalKey(dev.id, 'neutral'), w / gridVoltage);
+      traceLoadCurrent(terminalKey(dev.id, 'hot'), terminalKey(dev.id, 'neutral'), w / (gridVoltage * (Number(dev.state.pf) > 0 ? Number(dev.state.pf) : 1)));
     } else if (dev.type === 'socket_duplex' || dev.type === 'socket_schuko') {
       if (dev.state.hasPluggedLoad) {
         const w = dev.state.pluggedAppliance === 'appliance_tv' ? 120 : 300;
@@ -1563,6 +1580,12 @@ export function solveCircuit(
       const neutT = a1Pot === 'live' ? 'a2' : 'a1';
       traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), 4 / gridVoltage);
     } else {
+      const l1 = load1pByDevice.get(dev.id);
+      if (l1 && l1.powered && l1.watts > 0) {
+        const liveT = nodePotentials[terminalKey(dev.id, l1.line)] === 'live' ? l1.line : l1.neutral;
+        const neutT = liveT === l1.line ? l1.neutral : l1.line;
+        traceLoadCurrent(terminalKey(dev.id, liveT), terminalKey(dev.id, neutT), l1.watts / (gridVoltage * l1.pf));
+      }
       const l3 = load3pByDevice.get(dev.id);
       if (l3 && l3.running) {
         // Balanced line current in each lead, traced back to its own phase; series devices on the first lead carry it

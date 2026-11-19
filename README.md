@@ -51,6 +51,7 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Control & timing (batch 3.3)**: star-delta timer with a transition pause, counter relay (preset, latching output, reset coil), latching (impulse) relay, re-triggerable staircase timer, 24-hour time switch with a simulated clock and speed control, alternating relay for duplex pumps, solid-state relay, a control operator (illuminated push button, key selector, 2-position selector, foot switch with guard, pendant) with its lamp on its own terminals, auxiliary contact block, mechanical interlock between two contactors, dual-channel safety relay with monitored start, two-hand station, door interlock switch and latching pull-cord switch.
 - **Sensors & field devices (batch 3.4)**: electrode level relay (min / max probes on the shared tank, fill or drain), thermostat and a type K thermocouple with a temperature controller (setpoint, hysteresis, sensor-break fail-safe; each sensor warms with a heater you link to it), reed switch with a magnet-position slider, photocell dusk switch with hysteresis, PIR occupancy sensor with hold time and daylight lock, flow switch, zero-speed switch (coast-down estimate from the motor you name), 2/2 solenoid valve (coil and manual override), conventional fire alarm loop (smoke detectors and manual call points in parallel on a panel with latched alarm, bell output, relay, silence and reset). The existing buzzer / horn serves as the alarm bell.
 - **Starters, motors & drives (batch 3.5)**: soft starter (ramped voltage, end-of-ramp contact, limited inrush), reduced-voltage starter (autotransformer, primary resistor or part winding), Dahlander two-speed motor (low / high set, star point, interlock fault), wound-rotor motor with a three-stage rotor resistor bank, 24 V DC shunt motor with a timed starter and a field-loss overspeed warning, brake motor (spring brake released by its own coil), DC injection braking module, VFD speed potentiometer / braking resistor / line reactor, submersible pump, air compressor (raises the shared line pressure, pair it with the pressure switch) and a hoist / conveyor section with top and bottom limit contacts and a load-position slider.
+- **Residential & commercial loads (batch 3.6)**: the lamp gets a `lampType` (incandescent, LED, fluorescent with ballast and starter, CFL, halogen) that sets watts and power factor (current = W / (V x pf)); one appliance device with kind presets (range, refrigerator, washing machine, rice cooker, microwave, 7 kW EV charger) whose power cycles over time; outlet types (universal, air-conditioner, range, weatherproof) on the duplex and Schuko receptacles; emergency luminaire and exit sign with a battery (the Code Inspector flags a wall switch in their feed); ceiling-fan speed regulator; doorbell set (230 V to 12 V transformer, push button on the secondary, chime); power strip with a cord that heats and burns out when overloaded.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
 #### Sources and power systems: what is simplified
@@ -85,6 +86,14 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **DC injection brake**: it times the braking and shortens the stop seen by a linked zero-speed switch; the DC output to the windings is a marker, not solved.
 - **VFD accessories**: the speed potentiometer is a link (the drive frequency follows the knob), the analog wiring is not solved; the braking resistor and line reactor are passive (no regenerative energy or harmonic model).
 - **Compressor / submersible pump** use the shared process (one tank, one line); the compressor raises line pressure only.
+
+#### Residential and commercial loads: what is simplified
+- **Cycles** (range 40 s on / 20 s off, refrigerator 30 / 30, washing machine fill-heat-wash-spin, rice cooker cook then 60 W keep-warm) are fixed teaching cycles on the simulated clock, not thermostat models. Power factor changes the current drawn, not the real power counted.
+- **Lamp inrush and the fluorescent starter flicker** are shown as notes; the solver uses the steady current.
+- **Outlet types** change the rating shown on the device only. Dedicated-circuit, weatherproof and EV-charger leakage rules are not enforced because the clauses are for you to confirm in your copy of the code.
+- **Emergency light**: a battery with a 1-3 h autonomy that runs 60 x faster than real time; the switched-feed rule has its clause marked "to be verified".
+- **Power strip**: the cord heat is a simple model (rises with the square of the overload) and the strip does not try to trip the upstream breaker, which is the point of the lab.
+- **Doorbell**: the 12 V loop is sensed by continuity between B1 and B2; the 12 V side is not solved as a separate voltage.
 
 #### Test instruments
 Click **DMM** in the toolbar and pick an instrument in its panel: **DMM / clamp** (volts between two terminals, amps on a wire), **Megger** (insulation resistance at 250 / 500 / 1000 V between two terminals or a terminal and PE; refuses on an energized circuit; reads the `insulation` condition set on a motor in the inspector), **Earth** (electrode resistance of a ground pit), **Rotation** (click the three phases in turn: CW or CCW) and **Continuity** (de-energized only; beeps on a closed path, contacts shown at rest).
@@ -217,6 +226,11 @@ Open **Examples** in the ribbon. WireWise starts on a blank canvas; each lab loa
 49. **Soft Starter: Ramped Start and Reduced Inrush** — voltage ramp, end-of-ramp contact, breaker inrush limited to 3 x FLA.
 50. **Wound-Rotor Motor with a Stepped Rotor Resistor Bank** — speed climbs as each resistor stage is shorted; open rotor gives no torque.
 51. **Air Compressor with a Pressure Switch** — cut-in starts the compressor through a contactor, cut-out stops it.
+
+### Residential and commercial loads
+52. **Kitchen Circuit: Cycling Appliances and Lamp Types** — refrigerator, rice cooker, microwave, range, LED and fluorescent lamps on one feeder.
+53. **The Octopus Overload: A Power Strip with a 10 A Cord** — the cord burns out before the 32 A breaker acts.
+54. **Emergency Lighting, Exit Sign, Doorbell and a Fan Regulator** — battery backup, 12 V bell loop, fan speed steps and the switched-feed warning.
 
 ---
 

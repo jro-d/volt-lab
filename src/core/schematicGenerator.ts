@@ -59,6 +59,8 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
     else if (['reed_switch', 'flow_switch', 'zero_speed_switch', 'smoke_detector', 'manual_call_point'].includes(d.type)) symbol = 'switch';
     else if (['soft_starter', 'starter_reduced_voltage', 'line_reactor', 'dc_injection_brake', 'rotor_resistor_bank', 'speed_potentiometer', 'braking_resistor'].includes(d.type)) symbol = 'relay';
     else if (['motor_dahlander', 'motor_wound_rotor', 'motor_dc_shunt', 'motor_brake', 'pump_submersible_3p', 'air_compressor_3p', 'hoist_conveyor'].includes(d.type)) symbol = 'motor';
+    else if (['emergency_light', 'doorbell_set', 'fan_regulator'].includes(d.type)) symbol = 'relay';
+    else if (['appliance_generic', 'power_strip'].includes(d.type)) symbol = 'motor';
     else if (d.type === 'pv_string') symbol = 'pv';
     else if (d.type === 'inverter_gridtie') symbol = 'inverter';
     else if (d.type === 'ups_battery') symbol = 'battery';
