@@ -41,6 +41,8 @@ import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
 import { useBreakpoint } from './hooks/useBreakpoint';
+import { UpdateBanner } from './components/layout/UpdateBanner';
+import type { DesktopUpdateStatus } from './types/desktop';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
@@ -84,6 +86,18 @@ export const App: React.FC = () => {
   const breakpoint = useBreakpoint();
   const isViewOnly = breakpoint === 'phone';
   const [reportsInitialTab, setReportsInitialTab] = useState<string | undefined>(undefined);
+  const [desktopVersion, setDesktopVersion] = useState<string | undefined>(undefined);
+  const [updateStatus, setUpdateStatus] = useState<DesktopUpdateStatus | null>(null);
+
+  useEffect(() => {
+    const bridge = window.wirewiseDesktop;
+    if (!bridge) return;
+    bridge.getInfo().then((info) => setDesktopVersion(info.version)).catch(() => {});
+    const unsubscribe = bridge.onUpdateStatus((status) => {
+      setUpdateStatus(status);
+    });
+    return unsubscribe;
+  }, []);
   const [dmmMode, setDmmMode] = useState<boolean>(false);
   const [rewiringTarget, setRewiringTarget] = useState<{ wireId: string; moveEnd: 'from' | 'to' } | null>(null);
   const [dmmProbeA, setDmmProbeA] = useState<{ deviceId: string; terminalId: string } | null>(null);
@@ -1294,6 +1308,27 @@ export const App: React.FC = () => {
           setReportsInitialTab('isolation');
           setReportsOpen(true);
         }}
+        appVersion={desktopVersion}
+        onCheckForUpdates={
+          window.wirewiseDesktop
+            ? () => {
+                window.wirewiseDesktop?.checkForUpdates();
+              }
+            : undefined
+        }
+      />
+
+      {/* Desktop App Online Update Notification Banner */}
+      <UpdateBanner
+        status={updateStatus}
+        currentVersion={desktopVersion}
+        onDownload={() => {
+          window.wirewiseDesktop?.downloadUpdate();
+        }}
+        onInstall={() => {
+          window.wirewiseDesktop?.installUpdate();
+        }}
+        onDismiss={() => setUpdateStatus(null)}
       />
 
       {/* Conductor & Cable Tool Ribbon Dock (hidden in phone view-only mode) */}
