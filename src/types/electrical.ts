@@ -344,6 +344,19 @@ export interface ElectricalProject {
   energy?: EnergySettings;
   /** Graded lab: what the finished work must contain (set when an exercise is started) */
   target?: LabTarget;
+  /** Safe isolation workflow (Off by default) */
+  safeIsolation?: SafeIsolationState;
+}
+
+/** Safe isolation (dead test and lock-out / tag-out) workflow state. */
+export interface SafeIsolationState {
+  v: 1;
+  mode: 'off' | 'prompt' | 'required';
+  /** Step ids done, in order */
+  done: string[];
+  /** Prompt mode: the one-time warning has been shown */
+  warned: boolean;
+  log: { step: string; at: number }[];
 }
 
 /** Graded lab target: required devices, connections, ladder and Code Inspector result. */

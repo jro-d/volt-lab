@@ -2,6 +2,7 @@ import React from 'react';
 import type { ElectricalProject } from '../../types/electrical';
 import { buildLoadSchedule, scheduleToCsv } from '../../core/loadSchedule';
 import { buildBom, bomToCsv, DEFAULT_BOM } from '../../core/bom';
+import { ISOLATION_STEPS, DEFAULT_ISOLATION, completeStep, nextStep } from '../../core/safeIsolation';
 import { GRADED_LAB_IDS, exerciseProject, gradeWork, resultJson, type GradeResult, type StudentInfo } from '../../core/grading';
 import { LAB_LESSONS } from '../../data/labTemplates';
 import { summarizeEnergy, ledgerToCsv, DEFAULT_ENERGY, emptyLedger, type EnergyLedger } from '../../core/energy';
@@ -428,7 +429,7 @@ export const GradedTab: React.FC<ReportContext> = ({ project, onChange, inspecto
         <label className="flex items-center gap-1"><input type="checkbox" checked={showSolution} onChange={(e) => setShowSolution(e.target.checked)} />Show what is missing</label>
         <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold" onClick={start}>Start exercise</button>
         <button className="px-2 py-1 rounded bg-probe text-on-probe font-semibold disabled:opacity-40" disabled={!project.target} onClick={check}>Check my work</button>
-        {result && <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold flex items-center gap-1" onClick={() => downloadText(`wirewise_result_${result.labId}.json`, resultJson(student, result, stamp ?? new Date()), 'application/json')}><Download className="w-3 h-3" />Result JSON</button>}
+        {result && <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold flex items-center gap-1" onClick={() => downloadText(`wirewise_result_${result.labId}.json`, resultJson(student, result, stamp ?? new Date(), project.safeIsolation), 'application/json')}><Download className="w-3 h-3" />Result JSON</button>}
         {result && <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold flex items-center gap-1" onClick={() => window.print()}><Printer className="w-3 h-3" />Print report (A4)</button>}
       </div>
       {!project.target && <div className="text-ink-muted print:hidden">Start an exercise: the devices of the lab are placed with no wiring. Wire them (and build the ladder where asked), then press Check my work.</div>}
@@ -441,9 +442,61 @@ export const GradedTab: React.FC<ReportContext> = ({ project, onChange, inspecto
               <li key={i.id} className="flex gap-2"><span className={`font-bold ${badge[i.status]}`}>{i.status === 'pass' ? '✔' : i.status === 'partial' ? '◐' : '✘'}</span><span><b>{i.label}</b> ({i.points} / {i.max}): {i.detail}</span></li>
             ))}
           </ul>
+          {project.safeIsolation && project.safeIsolation.done.length > 0 && (
+            <div><b>Safe isolation:</b> {ISOLATION_STEPS.filter((st) => project.safeIsolation!.done.includes(st.id)).map((st) => st.label).join(' → ')}</div>
+          )}
           <div className="text-[10px] text-ink-muted">{student.name || '(name not set)'} · {student.course || '(course)'} · {student.section || '(section)'} · {(stamp ?? new Date()).toLocaleString()}</div>
         </div>
       )}
+    </div>
+  );
+};
+
+export const IsolationTab: React.FC<ReportContext> = ({ project, onChange, isSimulating }) => {
+  const state = { ...DEFAULT_ISOLATION, ...(project.safeIsolation ?? {}) };
+  const next = nextStep(state);
+  const [message, setMessage] = React.useState('');
+  const patch = (fn: (s: typeof state) => typeof state) => onChange((p) => ({ ...p, safeIsolation: fn({ ...DEFAULT_ISOLATION, ...(p.safeIsolation ?? {}) }) }));
+  const mark = (id: (typeof ISOLATION_STEPS)[number]['id']) => {
+    const r = completeStep(state, id, project.devices);
+    setMessage(r.ok ? '' : r.reason || '');
+    if (r.ok) patch(() => r.state);
+  };
+  return (
+    <div className="space-y-3 text-[11px]">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-0.5">Before Simulate
+          <select className="px-1.5 py-0.5 rounded border border-border bg-surface" value={state.mode} onChange={(e) => patch((s) => ({ ...s, mode: e.target.value as typeof s.mode }))}>
+            <option value="off">Off (no check)</option>
+            <option value="prompt">Prompt (warn once)</option>
+            <option value="required">Required (block until done)</option>
+          </select>
+        </label>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold" onClick={() => { patch((s) => ({ ...s, done: [], warned: false, log: [] })); setMessage(''); }}>Start over</button>
+        {isSimulating && <span className="text-warning font-semibold">The circuit is energized: stop the simulation before isolating.</span>}
+      </div>
+      <ol className="space-y-1.5">
+        {ISOLATION_STEPS.map((s, i) => {
+          const done = state.done.includes(s.id);
+          const current = next?.id === s.id;
+          return (
+            <li key={s.id} className={`rounded border p-2 flex items-start gap-2 ${current ? 'border-probe bg-probe-soft' : 'border-border'}`}>
+              <span className="font-mono font-bold w-5">{done ? '✔' : i + 1}</span>
+              <div className="flex-1">
+                <div className="font-bold">{s.label}</div>
+                <div className="text-ink-muted">{s.help}</div>
+              </div>
+              {current && <button className="px-2 py-1 rounded bg-probe text-on-probe font-semibold" onClick={() => mark(s.id)}>Mark done</button>}
+            </li>
+          );
+        })}
+        <li className={`rounded border p-2 flex items-start gap-2 ${!next ? 'border-ok' : 'border-border'}`}>
+          <span className="font-mono font-bold w-5">{!next ? '▶' : 9}</span>
+          <div className="flex-1"><div className="font-bold">Energize</div><div className="text-ink-muted">Press Simulate in the toolbar: allowed once the steps above are done (or always when the mode is Off).</div></div>
+        </li>
+      </ol>
+      {message && <div className="text-danger font-semibold">{message}</div>}
+      <div className="text-[9px] text-ink-muted">Isolate, Lock and tag, and Remove the lock are checked against the project (an isolating device open, a padlock on a rotary isolator). The steps are generic good practice: no regulation clause is cited, so check the procedure your site follows.</div>
     </div>
   );
 };
@@ -454,6 +507,7 @@ export const BASE_TABS: ReportTab[] = [
   { id: 'wires', label: 'Wire numbers & terminals', render: (ctx) => <WiresTab {...ctx} /> },
   { id: 'energy', label: 'Energy & billing', render: (ctx) => <EnergyTab {...ctx} /> },
   { id: 'graded', label: 'Graded lab', render: (ctx) => <GradedTab {...ctx} /> },
+  { id: 'isolation', label: 'Safe isolation', render: (ctx) => <IsolationTab {...ctx} /> },
   { id: 'share', label: 'Share link', render: (ctx) => <ShareTab {...ctx} /> },
 ];
 
