@@ -183,6 +183,6 @@ export interface StudentInfo {
 }
 
 /** JSON a student hands in: header, result, timestamp. No hidden faults or solutions are included. */
-export function resultJson(student: StudentInfo, result: GradeResult, when = new Date()): string {
-  return JSON.stringify({ app: 'WireWise', v: 1, student, labId: result.labId, title: result.title, score: result.score, max: result.max, percent: result.percent, checklist: result.items.map((i) => ({ id: i.id, label: i.label, points: i.points, max: i.max, status: i.status, detail: i.detail })), timestamp: when.toISOString() }, null, 2);
+export function resultJson(student: StudentInfo, result: GradeResult, when = new Date(), isolation?: { mode: string; done: string[] }): string {
+  return JSON.stringify({ app: 'WireWise', v: 1, student, labId: result.labId, title: result.title, score: result.score, max: result.max, percent: result.percent, checklist: result.items.map((i) => ({ id: i.id, label: i.label, points: i.points, max: i.max, status: i.status, detail: i.detail })), timestamp: when.toISOString(), ...(isolation && isolation.done.length > 0 ? { safeIsolation: { mode: isolation.mode, stepsDone: isolation.done } } : {}) }, null, 2);
 }

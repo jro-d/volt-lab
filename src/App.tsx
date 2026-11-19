@@ -33,6 +33,7 @@ import { CurvesPanel } from './components/layout/CurvesPanel';
 import { FaultLevelsPanel } from './components/layout/FaultLevelsPanel';
 import { ReportsPanel } from './components/layout/ReportsPanel';
 import { decodeShare, isShareHash } from './utils/shareLink';
+import { simulateGate } from './core/safeIsolation';
 import { accumulateEnergy, emptyLedger, DEFAULT_ENERGY, type EnergyLedger } from './core/energy';
 import { computeFaultLevels, checkInterruptingRatings, DEFAULT_SHORT_CIRCUIT } from './core/shortCircuit';
 import { PlcEditor } from './components/canvas/PlcEditor';
@@ -514,6 +515,13 @@ export const App: React.FC = () => {
   // Start / stop simulation
   const handleToggleSimulation = () => {
     if (!isSimulating) {
+      // Safe isolation gate: Required blocks until the dead-test steps are done, Prompt warns once
+      const gate = simulateGate(project.safeIsolation);
+      if (!gate.allowed) {
+        if (gate.markWarned) setProject((prev) => (prev.safeIsolation ? { ...prev, safeIsolation: { ...prev.safeIsolation, warned: true } } : prev));
+        showNotice(gate.message);
+        return;
+      }
       sound.playBreakerSnap();
       setSelectedWireId(null);
       recorderRef.current.clear();
