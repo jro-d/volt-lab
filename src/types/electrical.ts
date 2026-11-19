@@ -336,6 +336,23 @@ export interface ElectricalProject {
   shortCircuit?: ShortCircuitSettings;
   /** Load schedule: demand factors typed in by the user, by load type (none is built in) */
   loadSchedule?: { v: 1; demandFactors: Record<string, number> };
+  /** Bill of materials: unit prices typed in by the user and the allowances (no prices are bundled) */
+  bom?: BomSettings;
+}
+
+/** Bill-of-materials settings stored with the project. */
+export interface BomSettings {
+  v: 1;
+  /** Unit price by line key (see core/bom.ts) */
+  prices: Record<string, number>;
+  /** Extra conductor length added for waste, percent */
+  wastePct: number;
+  contingencyPct: number;
+  vatPct: number;
+  /** Conduit allowance, metres, and box allowance, pieces */
+  conduitM: number;
+  boxCount: number;
+  currency: string;
 }
 
 /** Settings of the ohmic short-circuit check. */

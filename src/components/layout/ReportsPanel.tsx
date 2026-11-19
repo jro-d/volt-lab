@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ElectricalProject } from '../../types/electrical';
 import { buildLoadSchedule, scheduleToCsv } from '../../core/loadSchedule';
+import { buildBom, bomToCsv, DEFAULT_BOM } from '../../core/bom';
 import { DEMAND_FACTORS } from '../../data/standardsData';
 import { Download, Printer, X } from 'lucide-react';
 
@@ -140,8 +141,69 @@ export const LoadScheduleTab: React.FC<ReportContext> = ({ project, onChange }) 
   );
 };
 
+export const BomTab: React.FC<ReportContext> = ({ project, onChange }) => {
+  const cfg = { ...DEFAULT_BOM, ...(project.bom ?? {}), prices: project.bom?.prices ?? {} };
+  const bom = React.useMemo(() => buildBom(project.devices, project.wires, cfg), [project.devices, project.wires, project.bom]);
+  const patch = (fn: (b: typeof cfg) => typeof cfg) => onChange((p) => ({ ...p, bom: fn({ ...DEFAULT_BOM, ...(p.bom ?? {}), prices: p.bom?.prices ?? {} }) }));
+  const setPrice = (key: string, raw: string) => patch((b) => {
+    const prices = { ...b.prices };
+    const n = parseFloat(raw);
+    if (Number.isFinite(n) && n >= 0) prices[key] = n;
+    else delete prices[key];
+    return { ...b, prices };
+  });
+  const num = (key: 'wastePct' | 'contingencyPct' | 'vatPct' | 'conduitM' | 'boxCount', raw: string) => patch((b) => ({ ...b, [key]: Math.max(0, parseFloat(raw) || 0) }));
+  const field = (label: string, key: 'wastePct' | 'contingencyPct' | 'vatPct' | 'conduitM' | 'boxCount') => (
+    <label className="flex items-center justify-between gap-2">
+      <span>{label}</span>
+      <input className="w-16 px-1 py-0.5 rounded border border-border bg-surface text-right font-mono" type="number" min={0} value={cfg[key]} onChange={(e) => num(key, e.target.value)} />
+    </label>
+  );
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 print:hidden">
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover text-[11px] font-semibold flex items-center gap-1" onClick={() => downloadText('wirewise_bill_of_materials.csv', bomToCsv(bom))}><Download className="w-3 h-3" />CSV</button>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover text-[11px] font-semibold flex items-center gap-1" onClick={() => window.print()}><Printer className="w-3 h-3" />Print (A4)</button>
+        {bom.unpriced > 0 && <span className="text-[11px] text-warning font-semibold">{bom.unpriced} line{bom.unpriced === 1 ? '' : 's'} without a price: type the unit prices yourself (none are bundled)</span>}
+      </div>
+      <table className="w-full border-collapse">
+        <thead><tr>{['Category', 'Description', 'Qty', 'Unit', `Unit price (${bom.currency})`, `Amount (${bom.currency})`].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
+        <tbody>
+          {bom.lines.map((l) => (
+            <tr key={l.key}>
+              <td className={td}>{l.category}</td>
+              <td className={td}>{l.description}</td>
+              <td className={`${td} text-right`}>{l.quantity}</td>
+              <td className={td}>{l.unit}</td>
+              <td className={td}>
+                <input className="w-20 px-1 py-0.5 rounded border border-border bg-surface text-right font-mono print:border-0" type="number" min={0} step="any" placeholder="—" value={cfg.prices[l.key] ?? ''} onChange={(e) => setPrice(l.key, e.target.value)} />
+              </td>
+              <td className={`${td} text-right`}>{l.amount ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          {Object.entries(bom.subtotalByCategory).map(([c, v]) => <tr key={c}><td className={td} colSpan={5}>Subtotal: {c}</td><td className={`${td} text-right`}>{v}</td></tr>)}
+          <tr className="font-bold"><td className={td} colSpan={5}>Subtotal</td><td className={`${td} text-right`}>{bom.subtotal}</td></tr>
+          <tr><td className={td} colSpan={5}>Contingency ({cfg.contingencyPct} %)</td><td className={`${td} text-right`}>{bom.contingency}</td></tr>
+          <tr><td className={td} colSpan={5}>VAT ({cfg.vatPct} %)</td><td className={`${td} text-right`}>{bom.vat}</td></tr>
+          <tr className="font-bold"><td className={td} colSpan={5}>TOTAL ({bom.currency})</td><td className={`${td} text-right`}>{bom.total}</td></tr>
+        </tfoot>
+      </table>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-[11px] print:hidden">
+        {field('Waste %', 'wastePct')}
+        {field('Contingency %', 'contingencyPct')}
+        {field('VAT %', 'vatPct')}
+        {field('Conduit (m)', 'conduitM')}
+        {field('Boxes (pcs)', 'boxCount')}
+      </div>
+    </div>
+  );
+};
+
 export const BASE_TABS: ReportTab[] = [
   { id: 'load', label: 'Load schedule', render: (ctx) => <LoadScheduleTab {...ctx} /> },
+  { id: 'bom', label: 'Bill of materials', render: (ctx) => <BomTab {...ctx} /> },
 ];
 
 /** Modal with one tab per report. Every report only reads the project; none changes the solver. */
