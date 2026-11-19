@@ -188,6 +188,7 @@ export const MODULE_SPECS: Partial<Record<DeviceType, ModuleSpec>> = {
       { kind: 'device', key: 'motorId', label: 'Motor', types: ['motor_ac_industrial', 'pump_booster_3p', 'motor_6lead_star_delta', 'motor_1p'] },
       { kind: 'number', key: 'setPct', label: 'Standstill below', min: 1, max: 20, step: 1, unit: '%', def: 5 },
       { kind: 'number', key: 'coastSec', label: 'Coast-down time', min: 1, max: 20, step: 1, unit: 's', def: 6 },
+      { kind: 'device', key: 'brakeId', label: 'DC injection module', types: ['dc_injection_brake'] },
     ],
   },
   solenoid_valve: {
@@ -201,6 +202,97 @@ export const MODULE_SPECS: Partial<Record<DeviceType, ModuleSpec>> = {
   manual_call_point: {
     title: 'Manual call point',
     controls: [{ kind: 'toggle', key: 'pulled', label: 'Operated (latched)' }],
+  },
+  // Batch 3.5: motors, starters and drives
+  soft_starter: {
+    title: 'Soft starter',
+    controls: [
+      { kind: 'number', key: 'rampSec', label: 'Ramp time', min: 1, max: 20, step: 1, unit: 's', def: 6 },
+      { kind: 'number', key: 'startPct', label: 'Starting voltage', min: 10, max: 60, step: 5, unit: '%', def: 30 },
+      { kind: 'number', key: 'startMult', label: 'Starting current limit', min: 1.5, max: 4.5, step: 0.5, unit: 'x FLA', def: 3 },
+    ],
+    hint: 'Start command on A1-A2. Use the end-of-ramp contact (13-14) to close a bypass contactor.',
+  },
+  starter_reduced_voltage: {
+    title: 'Reduced-voltage starter',
+    controls: [
+      { kind: 'select', key: 'method', label: 'Method', def: 'autotransformer', options: [{ v: 'autotransformer', label: 'Autotransformer' }, { v: 'primary_resistor', label: 'Primary resistor' }, { v: 'part_winding', label: 'Part winding' }] },
+      { kind: 'number', key: 'tapPct', label: 'Autotransformer tap', min: 50, max: 80, step: 5, unit: '%', def: 65 },
+      { kind: 'number', key: 'resistorDropPct', label: 'Resistor voltage drop', min: 10, max: 50, step: 5, unit: '%', def: 30 },
+      { kind: 'number', key: 'startSec', label: 'Start time', min: 1, max: 20, step: 1, unit: 's', def: 6 },
+    ],
+    hint: 'Part winding: T1-T3 feed the first winding, R1-R3 the second one after the start time.',
+  },
+  motor_dahlander: {
+    title: 'Dahlander motor',
+    controls: [
+      { kind: 'number', key: 'wattageLow', label: 'Low-speed power', min: 300, max: 3000, step: 100, unit: 'W', def: 1100 },
+      { kind: 'number', key: 'wattageHigh', label: 'High-speed power', min: 600, max: 6000, step: 100, unit: 'W', def: 2200 },
+    ],
+    hint: 'Low: supply on 1U-1V-1W, 2U-2V-2W open. High: supply on 2U-2V-2W with 1U-1V-1W joined. Interlock the contactors.',
+  },
+  motor_wound_rotor: {
+    title: 'Wound-rotor motor',
+    controls: [{ kind: 'number', key: 'wattage', label: 'Rated power', min: 1500, max: 11000, step: 500, unit: 'W', def: 3700 }],
+    hint: 'Wire K, L and M to a rotor resistor bank, one wire each. Without it the rotor circuit is open.',
+  },
+  rotor_resistor_bank: {
+    title: 'Rotor resistor bank',
+    controls: [],
+    hint: 'Power C1, then C2, then C3 (against CN) to short one more stage each. A stage only counts when the ones before it are in.',
+  },
+  motor_dc_shunt: {
+    title: 'DC shunt motor',
+    controls: [{ kind: 'number', key: 'startSec', label: 'Starter time (3 steps)', min: 1, max: 12, step: 1, unit: 's', def: 3 }],
+    hint: 'Wire A+/A- and F+/F- to the 24 V supply. Break the field with the armature on to see the overspeed warning.',
+  },
+  motor_brake: {
+    title: 'Brake motor',
+    controls: [{ kind: 'number', key: 'wattage', label: 'Rated power', min: 300, max: 5500, step: 100, unit: 'W', def: 1500 }],
+    hint: 'Power the brake coil BR1-BR2 with the motor to release the brake; removing power applies it.',
+  },
+  dc_injection_brake: {
+    title: 'DC injection brake',
+    controls: [{ kind: 'number', key: 'brakeSec', label: 'Braking time', min: 1, max: 10, step: 1, unit: 's', def: 3 }],
+    hint: 'Link a zero-speed switch to this module to see the shorter stop. The DC output to the windings is not solved.',
+  },
+  speed_potentiometer: {
+    title: 'Speed potentiometer',
+    controls: [
+      { kind: 'number', key: 'value', label: 'Knob position', min: 0, max: 100, step: 1, unit: '%', def: 50 },
+      { kind: 'device', key: 'vfdId', label: 'Drives VFD', types: ['vfd_drive'] },
+    ],
+    hint: 'The linked VFD output frequency is the knob position of 60 Hz.',
+  },
+  braking_resistor: {
+    title: 'Braking resistor',
+    controls: [
+      { kind: 'number', key: 'ohms', label: 'Resistance', min: 20, max: 300, step: 10, unit: 'ohm', def: 100 },
+      { kind: 'number', key: 'watts', label: 'Rating', min: 50, max: 1000, step: 50, unit: 'W', def: 200 },
+    ],
+  },
+  line_reactor: {
+    title: 'Line reactor',
+    controls: [{ kind: 'number', key: 'impedancePct', label: 'Impedance', min: 2, max: 5, step: 1, unit: '%', def: 3 }],
+  },
+  pump_submersible_3p: {
+    title: 'Submersible pump',
+    controls: [{ kind: 'number', key: 'wattage', label: 'Rated power', min: 500, max: 7500, step: 100, unit: 'W', def: 1500 }],
+    hint: 'Fills the shared tank and raises the line pressure while it runs.',
+  },
+  air_compressor_3p: {
+    title: 'Air compressor',
+    controls: [{ kind: 'number', key: 'wattage', label: 'Rated power', min: 1000, max: 11000, step: 500, unit: 'W', def: 3000 }],
+    hint: 'Raises the shared line pressure while it runs. Use a pressure switch to start and stop it.',
+  },
+  hoist_conveyor: {
+    title: 'Hoist / conveyor',
+    controls: [
+      { kind: 'number', key: 'position', label: 'Load position', min: 0, max: 100, step: 1, unit: '%', def: 0 },
+      { kind: 'number', key: 'ratePctPerSec', label: 'Travel speed', min: 2, max: 20, step: 1, unit: '%/s', def: 8 },
+      { kind: 'number', key: 'wattage', label: 'Rated power', min: 500, max: 7500, step: 100, unit: 'W', def: 2200 },
+    ],
+    hint: 'Forward (CW) raises the load, reverse lowers it. Wire the limit contacts 11-12 (top) and 21-22 (bottom) in the control circuit.',
   },
   fire_alarm_panel: {
     title: 'Fire alarm panel',

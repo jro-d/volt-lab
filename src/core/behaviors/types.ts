@@ -56,4 +56,25 @@ export interface DeviceBehavior {
    * own `tick` decides what the contacts do (see `coilPowered` in util.ts).
    */
   coils?(dev: ElectricalDevice): { a: string; b: string; watts: number }[];
+
+  /**
+   * A three-phase load (motor, pump, compressor ...). The solver decides from the potentials and phases of the
+   * returned terminals whether it is supplied with a complete line set, records `powered3`, `direction`
+   * ('CW' / 'CCW'), `fault3` and `measuredAmps` in the device state, draws the line current through the wiring
+   * and counts the motor start in the breaker inrush check. Return null while the load is not connected.
+   */
+  loads3p?(dev: ElectricalDevice, probe: LoadProbe): { terminals: [string, string, string]; watts: number; startMult?: number; fault?: string } | null;
+
+  /**
+   * A series device that limits the motor starting current of everything downstream of it (soft starter,
+   * reduced-voltage starter): the multiple of full-load current the start draws, or null when not limiting.
+   */
+  limitsInrush?(dev: ElectricalDevice): number | null;
+}
+
+/** What the solver lets a three-phase load look at: potentials and phases of its terminals and connectivity. */
+export interface LoadProbe {
+  potential(terminal: string): string | undefined;
+  phase(terminal: string): string | undefined;
+  connected(a: string, b: string): boolean;
 }

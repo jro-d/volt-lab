@@ -102,6 +102,16 @@ const LIBRARY_TREE: FolderNode[] = [
     ],
   },
   {
+    id: 'drives_starters',
+    label: 'Starters, Motors & Drives',
+    children: [
+      { id: 'starters', label: 'Soft & Reduced-Voltage Starters', types: ['soft_starter', 'starter_reduced_voltage'] },
+      { id: 'special_motors', label: 'Special Motors & Braking', types: ['motor_dahlander', 'motor_wound_rotor', 'rotor_resistor_bank', 'motor_dc_shunt', 'motor_brake', 'dc_injection_brake'] },
+      { id: 'vfd_accessories', label: 'VFD Accessories', types: ['speed_potentiometer', 'braking_resistor', 'line_reactor'] },
+      { id: 'driven_loads', label: 'Pumps, Compressor & Hoist', types: ['pump_submersible_3p', 'air_compressor_3p', 'hoist_conveyor'] },
+    ],
+  },
+  {
     id: 'appliances',
     label: 'Appliances & Loads',
     types: ['appliance_tv', 'appliance_water_heater', 'appliance_fan', 'appliance_ac', 'pump_booster_1p'],
