@@ -312,3 +312,18 @@ export function scheduleToCsv(schedule: LoadSchedule): string {
   if (schedule.suggestedMainAmps) lines.push(['', `Suggested main breaker ${schedule.suggestedMainAmps} A (${schedule.suggestedMainBasis} load), feeder ${schedule.suggestedFeeder ?? ''}`].map(csvCell).join(','));
   return lines.join('\r\n');
 }
+
+/** The circuit number (as in the load schedule) of every wire that lies between a load and its breaker. */
+export function wireCircuits(devices: ElectricalDevice[], wires: ElectricalWire[]): Record<string, number> {
+  const graph = buildGraph(devices, wires);
+  const circuitIds = new Map<string, number>();
+  const out: Record<string, number> = {};
+  for (const dev of devices) {
+    if (!loadSpec(dev)) continue;
+    const trace = traceToBreaker(dev, devices, graph);
+    if (!trace.breaker) continue;
+    const no = circuitIds.get(trace.breaker.id) ?? circuitIds.set(trace.breaker.id, circuitIds.size + 1).get(trace.breaker.id)!;
+    for (const w of trace.wires) if (out[w.id] === undefined) out[w.id] = no;
+  }
+  return out;
+}

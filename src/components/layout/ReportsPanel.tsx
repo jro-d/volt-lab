@@ -2,6 +2,7 @@ import React from 'react';
 import type { ElectricalProject } from '../../types/electrical';
 import { buildLoadSchedule, scheduleToCsv } from '../../core/loadSchedule';
 import { buildBom, bomToCsv, DEFAULT_BOM } from '../../core/bom';
+import { numberWires, terminalStrips, terminalStripSvg, wireListCsv, DEFAULT_NUMBERING } from '../../core/wireNumbering';
 import { DEMAND_FACTORS } from '../../data/standardsData';
 import { Download, Printer, X } from 'lucide-react';
 
@@ -201,9 +202,74 @@ export const BomTab: React.FC<ReportContext> = ({ project, onChange }) => {
   );
 };
 
+export const WiresTab: React.FC<ReportContext> = ({ project, onChange }) => {
+  const cfg = { ...DEFAULT_NUMBERING, ...(project.wireNumbering ?? {}), titleBlock: { ...DEFAULT_NUMBERING.titleBlock, ...(project.wireNumbering?.titleBlock ?? {}) } };
+  const strips = React.useMemo(() => terminalStrips(project.devices, project.wires), [project.devices, project.wires]);
+  const save = (patch: Partial<typeof cfg>) => onChange((p) => ({ ...p, wireNumbering: { ...cfg, ...patch } }));
+  const apply = () => onChange((p) => {
+    const labels = numberWires(p.devices, p.wires, cfg.scheme, cfg.prefix);
+    return { ...p, wires: p.wires.map((w) => ({ ...w, label: labels[w.id] ?? w.label })), wireNumbering: cfg };
+  });
+  const clear = () => onChange((p) => ({ ...p, wires: p.wires.map((w) => ({ ...w, label: '' })) }));
+  const input = 'px-1.5 py-0.5 rounded border border-border bg-surface text-[11px]';
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-end gap-2 print:hidden text-[11px]">
+        <label className="flex flex-col gap-0.5">Scheme
+          <select className={input} value={cfg.scheme} onChange={(e) => save({ scheme: e.target.value as typeof cfg.scheme })}>
+            <option value="sequential">Sequential (W1, W2 ...)</option>
+            <option value="from-to">From-to (KM1.t1-F2.l1)</option>
+            <option value="per-circuit">Per circuit (W3.2)</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-0.5">Prefix
+          <input className={`${input} w-16 font-mono`} value={cfg.prefix} onChange={(e) => save({ prefix: e.target.value })} />
+        </label>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold" onClick={apply}>Number all wires</button>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold" onClick={clear}>Clear numbers</button>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold flex items-center gap-1" onClick={() => downloadText('wirewise_wire_list.csv', wireListCsv(project.devices, project.wires))}><Download className="w-3 h-3" />Wire list CSV</button>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold flex items-center gap-1" onClick={() => window.print()}><Printer className="w-3 h-3" />Print (A4)</button>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
+        {(['project', 'drawnBy', 'checkedBy', 'date', 'sheet'] as const).map((k) => (
+          <label key={k} className="flex flex-col gap-0.5 capitalize">{k === 'drawnBy' ? 'Drawn by' : k === 'checkedBy' ? 'Checked by' : k}
+            <input className={input} value={cfg.titleBlock[k]} onChange={(e) => save({ titleBlock: { ...cfg.titleBlock, [k]: e.target.value } })} />
+          </label>
+        ))}
+      </div>
+      {strips.length === 0 && <div className="text-[11px] text-ink-muted">No terminal blocks in the project: add a terminal block to get a terminal-strip table.</div>}
+      {strips.map((s) => (
+        <div key={s.deviceId} className="rounded border border-border p-2.5">
+          <div className="flex items-center gap-2 mb-1">
+            <b className="text-xs">Terminal strip {s.tag}</b><span className="text-[10px] text-ink-muted">{s.kind}</span>
+            <div className="flex-1" />
+            <button className="px-2 py-0.5 rounded border border-border bg-surface hover:bg-surface-hover text-[11px] font-semibold print:hidden" onClick={() => downloadText(`wirewise_terminal_strip_${s.tag}.svg`, terminalStripSvg(s, cfg.titleBlock, project.title), 'image/svg+xml')}>Export SVG</button>
+          </div>
+          <table className="w-full border-collapse">
+            <thead><tr>{['Terminal', 'Incoming wire', 'From', 'Outgoing wire', 'To'].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
+            <tbody>
+              {s.rows.map((r) => (
+                <tr key={r.pole}>
+                  <td className={td}>{r.pole}</td>
+                  <td className={td}>{r.incoming.map((e) => e.wire).join(', ') || '—'}</td>
+                  <td className={td}>{r.incoming.map((e) => e.destination).join(', ') || '—'}</td>
+                  <td className={td}>{r.outgoing.map((e) => e.wire).join(', ') || '—'}</td>
+                  <td className={td}>{r.outgoing.map((e) => e.destination).join(', ') || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+      <div className="text-[9px] text-ink-muted">Numbers are written into each wire's label and drawn as ferrule tags on the workbench. The single-line diagram does not show them yet.</div>
+    </div>
+  );
+};
+
 export const BASE_TABS: ReportTab[] = [
   { id: 'load', label: 'Load schedule', render: (ctx) => <LoadScheduleTab {...ctx} /> },
   { id: 'bom', label: 'Bill of materials', render: (ctx) => <BomTab {...ctx} /> },
+  { id: 'wires', label: 'Wire numbers & terminals', render: (ctx) => <WiresTab {...ctx} /> },
 ];
 
 /** Modal with one tab per report. Every report only reads the project; none changes the solver. */
