@@ -70,6 +70,13 @@ export interface DeviceBehavior {
    * reduced-voltage starter): the multiple of full-load current the start draws, or null when not limiting.
    */
   limitsInrush?(dev: ElectricalDevice): number | null;
+
+  /**
+   * A single-phase load between a line and a neutral terminal whose power can change over time (a cycling
+   * appliance, a charger). The solver adds `watts` while the load is supplied, draws watts / (V x pf) through the
+   * wiring and records `powered` in the device state. Return null while the load takes nothing.
+   */
+  loads1p?(dev: ElectricalDevice, probe: LoadProbe): { line: string; neutral: string; watts: number; pf?: number } | null;
 }
 
 /** What the solver lets a three-phase load look at: potentials and phases of its terminals and connectivity. */

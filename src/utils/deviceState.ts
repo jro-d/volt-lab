@@ -172,6 +172,27 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.stalled = false;
     state.stallSec = 0;
   }
+  // Batch 3.6: cycles restart, batteries and heat keep their value except the live flags
+  if (device.type === 'appliance_generic') {
+    state.elapsedSec = 0;
+    state.wattsNow = 0;
+    state.phase = 'off';
+    state.timerSec = 0;
+  }
+  if (device.type === 'emergency_light') {
+    state.mains = false;
+    state.lit = false;
+    state.onBattery = false;
+  }
+  if (device.type === 'doorbell_set') {
+    state.ringing = false;
+    state.secondaryV = 0;
+    state.pressedSense = false;
+  }
+  if (device.type === 'power_strip') {
+    state.loadAmps = 0;
+    state.overload = false;
+  }
   if (device.type === 'fire_alarm_panel') {
     state.powered = false;
     state.alarm = false;

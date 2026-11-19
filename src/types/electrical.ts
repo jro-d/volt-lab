@@ -153,6 +153,12 @@ export type DeviceType =
   | 'pump_submersible_3p'
   | 'air_compressor_3p'
   | 'hoist_conveyor'
+  // Batch 3.6: residential and commercial loads
+  | 'appliance_generic'
+  | 'emergency_light'
+  | 'fan_regulator'
+  | 'doorbell_set'
+  | 'power_strip'
   // Batch 3.2: sources and power systems
   | 'transfer_switch_manual'
   | 'ups_battery'

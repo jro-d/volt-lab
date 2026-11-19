@@ -77,6 +77,37 @@ const OVERCURRENT_PROTECTION_TYPES = new Set([
 /** Devices that give 30 mA earth-leakage protection to the circuits they feed */
 const RCD_PROTECTION_TYPES = new Set(['rcd_2p', 'rcd_4p', 'rcbo_1pn', 'gfci_receptacle']);
 
+/** Types that carry a feed through (box, splice) when looking for a switch in a supply path. */
+const FEED_THROUGH_TYPES = new Set(['junction_box_4way', 'junction_box_octagonal_orange', 'splice_wire_nut', 'lever_connector_3p', 'utility_box_surface_pvc', 'terminal_block', 'distribution_block']);
+const WALL_SWITCH_TYPES = new Set(['switch_1gang', 'switch_2gang', 'switch_3gang', 'switch_3way', 'switch_4way', 'dimmer_switch', 'modular_combo_plate']);
+
+/** A wall switch in the supply of `dev` (walking back from its L terminal through boxes and splices), or null. */
+function findSwitchInFeed(dev: ElectricalDevice, devices: ElectricalDevice[], wires: ElectricalWire[]): ElectricalDevice | null {
+  const seen = new Set<string>();
+  const walk = (devId: string, terminalId: string): ElectricalDevice | null => {
+    const key = `${devId}:${terminalId}`;
+    if (seen.has(key)) return null;
+    seen.add(key);
+    for (const w of wires) {
+      let otherDev: string | null = null;
+      if (w.fromDeviceId === devId && w.fromTerminalId === terminalId) otherDev = w.toDeviceId;
+      else if (w.toDeviceId === devId && w.toTerminalId === terminalId) otherDev = w.fromDeviceId;
+      if (!otherDev || otherDev === devId) continue;
+      const other = devices.find(d => d.id === otherDev);
+      if (!other) continue;
+      if (WALL_SWITCH_TYPES.has(other.type)) return other;
+      if (FEED_THROUGH_TYPES.has(other.type)) {
+        for (const t of other.terminals) {
+          const hit = walk(other.id, t.id);
+          if (hit) return hit;
+        }
+      }
+    }
+    return null;
+  };
+  return walk(dev.id, 'l');
+}
+
 export function analyzeCodeCompliance(
   devices: ElectricalDevice[],
   wires: ElectricalWire[],
@@ -535,6 +566,25 @@ export function analyzeCodeCompliance(
         recommendation: 'Verify continuity of the neutral conductor back to the main Neutral Busbar / N-OUT terminal.',
       });
     }
+  }
+
+  // Emergency luminaires and exit signs need an unswitched supply (clause left for the user to confirm)
+  for (const dev of devices) {
+    if (dev.type !== 'emergency_light') continue;
+    const sw = findSwitchInFeed(dev, devices, wires);
+    if (!sw) continue;
+    violations.push({
+      id: `viol_em_switched_${dev.id}`,
+      codeStandard: standard,
+      severity: 'warning',
+      category: 'shock_hazard',
+      hazardLevel: 'code_infraction',
+      articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60364-5-56 (clause to be verified)',
+      title: 'Emergency Light on a Switched Supply',
+      message: `${dev.name || dev.id} is fed through ${sw.name || sw.id}. Switching it off leaves the battery charging path open and the luminaire cannot sense a real outage.`,
+      affectedDeviceId: dev.id,
+      recommendation: 'Take the emergency luminaire and exit sign supply from an unswitched live conductor on the same circuit as the lighting it covers.'
+    });
   }
 
   // Interrupting rating against the available fault current (only when the short-circuit check is enabled)

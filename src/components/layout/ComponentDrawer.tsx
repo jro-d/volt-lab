@@ -112,6 +112,11 @@ const LIBRARY_TREE: FolderNode[] = [
     ],
   },
   {
+    id: 'home_loads',
+    label: 'Home & Commercial Loads',
+    types: ['appliance_generic', 'emergency_light', 'fan_regulator', 'doorbell_set', 'power_strip'],
+  },
+  {
     id: 'appliances',
     label: 'Appliances & Loads',
     types: ['appliance_tv', 'appliance_water_heater', 'appliance_fan', 'appliance_ac', 'pump_booster_1p'],
