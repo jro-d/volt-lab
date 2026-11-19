@@ -49,6 +49,7 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Single-phase motors**: one motor with split-phase, capacitor-start and PSC variants (main U1-U2 and start winding Z1-Z2, visible centrifugal switch that opens at 75 % speed, reversal by swapping the start winding leads) and a separate motor capacitor wired in series with the start winding. A missing or open capacitor leaves the motor humming (no start capacitor), a wrong value is flagged with a high running current.
 - **Sources & power systems (batch 3.2)**: manual transfer switch (I-0-II, break-before-make), UPS with battery and charger (state of charge, autonomy, static transfer), PV string + DC isolator + grid-tie inverter (anti-islanding, 5 s reconnect) + net meter (import / export kWh), 1-phase pole and 3-phase delta-wye distribution transformers (turns ratio, vector group label, loaded and unloaded voltage), capacitor bank (4 steps, capacitor-duty contactors built in, 3 s discharge lock) with a power factor controller, shore connection box with phase-sequence lamps, ground detection lamps for an isolated (IT) 440 V feeder, synchroscope with sync lamps, reverse-power relay and preferential trip relay.
 - **Control & timing (batch 3.3)**: star-delta timer with a transition pause, counter relay (preset, latching output, reset coil), latching (impulse) relay, re-triggerable staircase timer, 24-hour time switch with a simulated clock and speed control, alternating relay for duplex pumps, solid-state relay, a control operator (illuminated push button, key selector, 2-position selector, foot switch with guard, pendant) with its lamp on its own terminals, auxiliary contact block, mechanical interlock between two contactors, dual-channel safety relay with monitored start, two-hand station, door interlock switch and latching pull-cord switch.
+- **Sensors & field devices (batch 3.4)**: electrode level relay (min / max probes on the shared tank, fill or drain), thermostat and a type K thermocouple with a temperature controller (setpoint, hysteresis, sensor-break fail-safe; each sensor warms with a heater you link to it), reed switch with a magnet-position slider, photocell dusk switch with hysteresis, PIR occupancy sensor with hold time and daylight lock, flow switch, zero-speed switch (coast-down estimate from the motor you name), 2/2 solenoid valve (coil and manual override), conventional fire alarm loop (smoke detectors and manual call points in parallel on a panel with latched alarm, bell output, relay, silence and reset). The existing buzzer / horn serves as the alarm bell.
 - **Loads**: lamps, TV, instant water heater, ventilation fan, 1.5 HP inverter air conditioner.
 
 #### Sources and power systems: what is simplified
@@ -67,6 +68,13 @@ Switch views from the ribbon: **Realistic | Dual View | Ladder Logic | SLD Schem
 - **Two-hand station**: the 0.5 s window uses the real-time stamps of the two presses made on the device.
 - **Time switch**: one schedule per day with a manual override; the clock only runs while the switch is powered (no power reserve).
 - **Mechanical interlock**: the first contactor in the project that pulls in wins; the other stays out while the first is in.
+
+#### Sensors and field devices: what is simplified
+- **Thermal model**: a first-order lag (temperature moves towards the ambient and rises while the linked heater is energized). It is a teaching loop, not a heat-transfer model; there is no sensor lag separate from the plant.
+- **Level, pressure and flow** come from the single shared process model: one tank, one line, one draw-off. Probes and the flow switch read it but cannot change it, and the solenoid valve does not drive it.
+- **Fire alarm**: a bare conventional loop with no end-of-line resistor, so open-circuit and short-circuit loop faults are not monitored; one zone; the bell is the standard buzzer.
+- **PIR / photocell**: movement is a toggle and the light level a slider; there is no detection area or dead time.
+- **Zero speed**: the coast-down is a linear estimate over the coast time; 3-phase motors have no measured speed in the solver.
 
 #### Test instruments
 Click **DMM** in the toolbar and pick an instrument in its panel: **DMM / clamp** (volts between two terminals, amps on a wire), **Megger** (insulation resistance at 250 / 500 / 1000 V between two terminals or a terminal and PE; refuses on an energized circuit; reads the `insulation` condition set on a motor in the inspector), **Earth** (electrode resistance of a ground pit), **Rotation** (click the three phases in turn: CW or CCW) and **Continuity** (de-energized only; beeps on a closed path, contacts shown at rest).
@@ -189,6 +197,11 @@ Open **Examples** in the ribbon. WireWise starts on a blank canvas; each lab loa
 43. **Staircase Timer and Impulse Relay Lighting** — re-triggerable staircase light and multi-point hall light.
 44. **Dual-Channel Safety Circuit: E-Stop, Guard Door and Safety Relay** — monitored start, channel discrepancy fault, no restart on door close.
 45. **Part Counter, Duplex Pump Alternation and a 24-Hour Time Switch** — batch counter with reset, lead pump flips every start, yard light on a schedule.
+
+### Sensors and field devices
+46. **Tank Level Control with an Electrode Level Relay** — probes at 30 % and 70 % start and stop a filling pump with hysteresis between them.
+47. **Thermostat and Thermocouple Temperature Control** — a room thermostat and an oven controller on a type K thermocouple, sensor break fails safe.
+48. **Conventional Fire Alarm Loop and Photocell / PIR Security Light** — latched alarm with silence and reset; a yard light that needs dark and movement.
 
 ---
 

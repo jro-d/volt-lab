@@ -6,6 +6,7 @@ import { PHASE2_LABS } from './phase2Labs';
 import { BATCH32_LABS } from './batch32Labs';
 import { PHASE3_LABS } from './phase3Labs';
 import { BATCH33_LABS } from './batch33Labs';
+import { BATCH34_LABS } from './batch34Labs';
 import { CURVES_LAB } from './curvesLab';
 
 export type LabCategory = 'all' | 'sockets' | 'lighting' | 'splice' | 'appliances' | 'residential' | 'industrial' | 'automation';
@@ -36,6 +37,8 @@ export const LAB_LESSONS: LabLesson[] = [
   ...BATCH32_LABS,
   // Batch 3.3: control and timing modules
   ...BATCH33_LABS,
+  // Batch 3.4: sensors and field devices
+  ...BATCH34_LABS,
   ...PHASE3_LABS,
   CURVES_LAB,
 

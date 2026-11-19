@@ -93,6 +93,15 @@ const LIBRARY_TREE: FolderNode[] = [
     ],
   },
   {
+    id: 'field_sensors',
+    label: 'Sensors & Field Devices',
+    children: [
+      { id: 'process_sensors', label: 'Level, Temperature, Flow & Speed', types: ['electrode_level_relay', 'thermostat', 'thermocouple_k', 'temp_controller', 'flow_switch', 'zero_speed_switch', 'solenoid_valve'] },
+      { id: 'presence_sensors', label: 'Position, Light & Presence', types: ['reed_switch', 'photocell_switch', 'pir_sensor'] },
+      { id: 'fire_alarm', label: 'Fire Alarm', types: ['smoke_detector', 'manual_call_point', 'fire_alarm_panel'] },
+    ],
+  },
+  {
     id: 'appliances',
     label: 'Appliances & Loads',
     types: ['appliance_tv', 'appliance_water_heater', 'appliance_fan', 'appliance_ac', 'pump_booster_1p'],
