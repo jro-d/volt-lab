@@ -2,6 +2,8 @@ import React from 'react';
 import type { ElectricalProject } from '../../types/electrical';
 import { buildLoadSchedule, scheduleToCsv } from '../../core/loadSchedule';
 import { buildBom, bomToCsv, DEFAULT_BOM } from '../../core/bom';
+import { GRADED_LAB_IDS, exerciseProject, gradeWork, resultJson, type GradeResult, type StudentInfo } from '../../core/grading';
+import { LAB_LESSONS } from '../../data/labTemplates';
 import { summarizeEnergy, ledgerToCsv, DEFAULT_ENERGY, emptyLedger, type EnergyLedger } from '../../core/energy';
 import { encodeShare, SHARE_WARN_LENGTH, type ShareResult } from '../../utils/shareLink';
 import { numberWires, terminalStrips, terminalStripSvg, wireListCsv, DEFAULT_NUMBERING } from '../../core/wireNumbering';
@@ -20,6 +22,8 @@ export interface ReportContext {
   /** Live energy ledger (Energy tab) */
   energy?: { ledger: EnergyLedger; version: number; reset: () => void };
   isSimulating?: boolean;
+  /** Number of errors the Code Inspector reports right now (graded labs) */
+  inspectorErrors?: number;
 }
 
 /** Download a text file (CSV) entirely in the browser: no network. */
@@ -371,11 +375,85 @@ export const EnergyTab: React.FC<ReportContext> = ({ project, onChange, energy, 
   );
 };
 
+const STUDENT_KEY = 'wirewise-student';
+const readStudent = (): StudentInfo => {
+  try {
+    const raw = localStorage.getItem(STUDENT_KEY);
+    if (raw) return { name: '', course: '', section: '', ...JSON.parse(raw) };
+  } catch { /* storage unavailable */ }
+  return { name: '', course: '', section: '' };
+};
+
+export const GradedTab: React.FC<ReportContext> = ({ project, onChange, inspectorErrors = 0 }) => {
+  const [student, setStudent] = React.useState<StudentInfo>(readStudent);
+  const [labId, setLabId] = React.useState(project.target?.labId || GRADED_LAB_IDS[0]);
+  const [showSolution, setShowSolution] = React.useState(false);
+  const [result, setResult] = React.useState<GradeResult | null>(null);
+  const [stamp, setStamp] = React.useState<Date | null>(null);
+  const labs = LAB_LESSONS.filter((l) => GRADED_LAB_IDS.includes(l.id));
+  const saveStudent = (patch: Partial<StudentInfo>) => {
+    const next = { ...student, ...patch };
+    setStudent(next);
+    try { localStorage.setItem(STUDENT_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+  };
+  const start = () => {
+    const lab = labs.find((l) => l.id === labId);
+    if (!lab) return;
+    if (project.wires.length > 0 && !window.confirm('Starting an exercise replaces the project on the bench. Continue?')) return;
+    onChange(() => exerciseProject(lab.project, lab.id, lab.title, showSolution));
+    setResult(null);
+  };
+  const check = () => {
+    if (!project.target) return;
+    setResult(gradeWork(project, project.target, inspectorErrors));
+    setStamp(new Date());
+  };
+  const input = 'px-1.5 py-0.5 rounded border border-border bg-surface text-[11px]';
+  const badge = { pass: 'text-ok', partial: 'text-warning', fail: 'text-danger' } as const;
+  return (
+    <div className="space-y-3 text-[11px]">
+      <div className="grid grid-cols-3 gap-2">
+        {(['name', 'course', 'section'] as const).map((k) => (
+          <label key={k} className="flex flex-col gap-0.5 capitalize">{k}
+            <input className={input} value={student[k]} onChange={(e) => saveStudent({ [k]: e.target.value })} placeholder="kept on this device only" />
+          </label>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-end gap-2 print:hidden">
+        <label className="flex flex-col gap-0.5">Graded exercise
+          <select className={`${input} max-w-[420px]`} value={labId} onChange={(e) => setLabId(e.target.value)}>
+            {labs.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1"><input type="checkbox" checked={showSolution} onChange={(e) => setShowSolution(e.target.checked)} />Show what is missing</label>
+        <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold" onClick={start}>Start exercise</button>
+        <button className="px-2 py-1 rounded bg-probe text-on-probe font-semibold disabled:opacity-40" disabled={!project.target} onClick={check}>Check my work</button>
+        {result && <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold flex items-center gap-1" onClick={() => downloadText(`wirewise_result_${result.labId}.json`, resultJson(student, result, stamp ?? new Date()), 'application/json')}><Download className="w-3 h-3" />Result JSON</button>}
+        {result && <button className="px-2 py-1 rounded border border-border bg-surface hover:bg-surface-hover font-semibold flex items-center gap-1" onClick={() => window.print()}><Printer className="w-3 h-3" />Print report (A4)</button>}
+      </div>
+      {!project.target && <div className="text-ink-muted print:hidden">Start an exercise: the devices of the lab are placed with no wiring. Wire them (and build the ladder where asked), then press Check my work.</div>}
+      {project.target && <div className="font-semibold">Exercise: {project.target.title}</div>}
+      {result && (
+        <div className="rounded border border-border p-2.5 space-y-2">
+          <div className="text-sm font-bold">Score {result.score} / {result.max} ({result.percent} %)</div>
+          <ul className="space-y-1">
+            {result.items.map((i) => (
+              <li key={i.id} className="flex gap-2"><span className={`font-bold ${badge[i.status]}`}>{i.status === 'pass' ? '✔' : i.status === 'partial' ? '◐' : '✘'}</span><span><b>{i.label}</b> ({i.points} / {i.max}): {i.detail}</span></li>
+            ))}
+          </ul>
+          <div className="text-[10px] text-ink-muted">{student.name || '(name not set)'} · {student.course || '(course)'} · {student.section || '(section)'} · {(stamp ?? new Date()).toLocaleString()}</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const BASE_TABS: ReportTab[] = [
   { id: 'load', label: 'Load schedule', render: (ctx) => <LoadScheduleTab {...ctx} /> },
   { id: 'bom', label: 'Bill of materials', render: (ctx) => <BomTab {...ctx} /> },
   { id: 'wires', label: 'Wire numbers & terminals', render: (ctx) => <WiresTab {...ctx} /> },
   { id: 'energy', label: 'Energy & billing', render: (ctx) => <EnergyTab {...ctx} /> },
+  { id: 'graded', label: 'Graded lab', render: (ctx) => <GradedTab {...ctx} /> },
   { id: 'share', label: 'Share link', render: (ctx) => <ShareTab {...ctx} /> },
 ];
 
@@ -387,7 +465,8 @@ export const ReportsPanel: React.FC<{
   tabs?: ReportTab[];
   energy?: ReportContext['energy'];
   isSimulating?: boolean;
-}> = ({ project, onChange, onClose, tabs = BASE_TABS, energy, isSimulating }) => {
+  inspectorErrors?: number;
+}> = ({ project, onChange, onClose, tabs = BASE_TABS, energy, isSimulating, inspectorErrors }) => {
   const [active, setActive] = React.useState(tabs[0].id);
   const tab = tabs.find((t) => t.id === active) || tabs[0];
   return (
@@ -408,7 +487,7 @@ export const ReportsPanel: React.FC<{
             <div className="text-base font-bold">{project.title}</div>
             <div className="text-xs">{project.codeStandard} · {project.gridVoltage} V · {project.gridFrequency} Hz · {new Date().toLocaleDateString()}</div>
           </div>
-          {tab.render({ project, onChange, energy, isSimulating })}
+          {tab.render({ project, onChange, energy, isSimulating, inspectorErrors })}
         </div>
       </div>
     </div>

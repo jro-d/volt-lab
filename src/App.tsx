@@ -1537,7 +1537,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {reportsOpen && <ReportsPanel project={project} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} energy={{ ledger: energyRef.current, version: energyVersion, reset: () => { energyRef.current = emptyLedger(); setEnergyVersion((v) => v + 1); } }} isSimulating={isSimulating} />}
+      {reportsOpen && <ReportsPanel project={project} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} energy={{ ledger: energyRef.current, version: energyVersion, reset: () => { energyRef.current = emptyLedger(); setEnergyVersion((v) => v + 1); } }} isSimulating={isSimulating} inspectorErrors={report.violations.filter((v) => v.severity === 'error').length} />}
 
       {curvesOpen && (
         <CurvesPanel

@@ -342,6 +342,22 @@ export interface ElectricalProject {
   wireNumbering?: WireNumberingSettings;
   /** Energy and billing: time scale and tariff (the tariff rate is typed in by the user) */
   energy?: EnergySettings;
+  /** Graded lab: what the finished work must contain (set when an exercise is started) */
+  target?: LabTarget;
+}
+
+/** Graded lab target: required devices, connections, ladder and Code Inspector result. */
+export interface LabTarget {
+  v: 1;
+  labId: string;
+  title: string;
+  devices: { type: string; count: number }[];
+  /** Required connections as device:terminal pairs (order independent, same net counts) */
+  connections: [string, string][];
+  needsLadder: boolean;
+  noErrors: boolean;
+  /** Show which devices and connections are missing (off by default) */
+  showSolution: boolean;
 }
 
 /** Energy and billing settings stored with the project. */
