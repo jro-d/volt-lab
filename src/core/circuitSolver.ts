@@ -6,7 +6,7 @@ import { behaviorFor } from './behaviors/registry';
 import { interlockedOut } from './behaviors/controlModules';
 import { PSU_RECOVERY_SEC } from './behaviors/dcDevices';
 import { CENTRIFUGAL_PCT } from './behaviors/singlePhaseMotor';
-import { floodDc, dcLoadAmps, isDcCoilDevice, type DcPotential, type DcResult } from './dcDomain';
+import { floodDc, dcLoadAmps, isDcCoilDevice, isPlc24, plc24Count, type DcPotential, type DcResult } from './dcDomain';
 
 export type PhaseId = 'L1' | 'L2' | 'L3';
 
@@ -622,7 +622,7 @@ export function solveCircuit(
     for (const d of devices) {
       if (d.type === 'sensor_inductive' || d.type === 'sensor_capacitive' || d.type === 'sensor_photoelectric') {
         if (isDcPowered(d.id, 'brown', 'blue')) add(terminalKey(d.id, 'brown'), dcLoadAmps(d));
-      } else if (d.type === 'plc_24vdc_16io') {
+      } else if (isPlc24(d.type)) {
         if (isDcPowered(d.id, 'l_pos', 'm_neg')) add(terminalKey(d.id, 'l_pos'), dcLoadAmps(d));
       } else if (d.type === 'tower_light' && d.state.supply === 'dc24') {
         for (const seg of ['r', 'a', 'g']) if (isDcPowered(d.id, seg, 'com')) add(terminalKey(d.id, seg), dcLoadAmps(d));
@@ -728,30 +728,31 @@ export function solveCircuit(
           contactsChanged = true;
           break;
         }
-      } else if (dev.type === 'plc_24vdc_16io') {
+      } else if (isPlc24(dev.type)) {
+        const ioN = plc24Count(dev.type);
         const powered = isDcPowered(dev.id, 'l_pos', 'm_neg');
         const running = powered && dev.state.plcRunning !== false;
         const wantPot: DcPotential = dev.state.inputMode === 'sourcing' ? 'dc_neg' : 'dc_pos';
         const inp: Record<string, boolean> = {};
-        for (let n = 0; n < 8; n++) inp[`i${n}`] = powered && dc.potentials[terminalKey(dev.id, `i${n}`)] === wantPot;
+        for (let n = 0; n < ioN; n++) inp[`i${n}`] = powered && dc.potentials[terminalKey(dev.id, `i${n}`)] === wantPot;
         const prevOut = (dev.state.plcOutputs || {}) as Record<string, boolean>;
         const out: Record<string, boolean> = {};
-        for (let n = 0; n < 8; n++) out[`q${n}`] = false;
+        for (let n = 0; n < ioN; n++) out[`q${n}`] = false;
         if (running && dev.state.program === 'user') {
           // user program: the scan engine (behaviors/plcProgram.ts) writes plcOutputs on each simulation step
-          for (let n = 0; n < 8; n++) out[`q${n}`] = !!prevOut[`q${n}`];
+          for (let n = 0; n < ioN; n++) out[`q${n}`] = !!prevOut[`q${n}`];
         } else if (running) {
           if (dev.state.program === 'start_stop_latch') {
             // I0.0 = START (NO), I0.1 = STOP wired NC (true while healthy); Q0.0 seals in through itself
             out.q0 = (inp.i0 || !!prevOut.q0) && inp.i1;
           } else {
-            for (let n = 0; n < 8; n++) out[`q${n}`] = inp[`i${n}`];
+            for (let n = 0; n < ioN; n++) out[`q${n}`] = inp[`i${n}`];
           }
         }
         dev.state.plcPowered = powered;
         dev.state.plcInputs = inp;
         let changed = false;
-        for (let n = 0; n < 8; n++) if (!!prevOut[`q${n}`] !== out[`q${n}`]) changed = true;
+        for (let n = 0; n < ioN; n++) if (!!prevOut[`q${n}`] !== out[`q${n}`]) changed = true;
         dev.state.plcOutputs = out;
         if (changed) {
           contactsChanged = true;
@@ -1885,7 +1886,7 @@ export function solveCircuit(
         const end = w.fromDeviceId === dev.id && w.fromTerminalId === 'black' ? [w.toDeviceId, w.toTerminalId]
           : w.toDeviceId === dev.id && w.toTerminalId === 'black' ? [w.fromDeviceId, w.fromTerminalId] : null;
         const other = end && deviceById.get(end[0]);
-        if (other && other.type === 'plc_24vdc_16io' && /^i\d$/.test(end![1])) {
+        if (other && isPlc24(other.type) && /^i\d+$/.test(end![1])) {
           const sinking = other.state.inputMode !== 'sourcing';
           const mismatch = (dev.state.output === 'NPN') === sinking;
           other.state.dcNote = mismatch ? `${dev.state.output} sensor on a ${sinking ? 'SINKING (PNP)' : 'SOURCING (NPN)'} input: it can never switch ${end![1].toUpperCase()}` : '';
@@ -1893,7 +1894,7 @@ export function solveCircuit(
         }
       }
       dev.state.wiringNote = note;
-    } else if (dev.type === 'plc_24vdc_16io') {
+    } else if (isPlc24(dev.type)) {
       deviceEnergized[dev.id] = !!dev.state.plcPowered;
     }
   }

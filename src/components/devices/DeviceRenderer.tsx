@@ -153,6 +153,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'sensor_photoelectric':
         return <SensorDevice {...commonProps} />;
       case 'plc_24vdc_16io':
+      case 'plc_24vdc_32io':
         return <Plc24Device {...commonProps} />;
       case 'transfer_switch_manual':
       case 'ups_battery':

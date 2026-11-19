@@ -398,7 +398,7 @@ export const MODULE_SPECS: Partial<Record<DeviceType, ModuleSpec>> = {
   hmi_panel: {
     title: 'HMI panel',
     controls: [
-      { kind: 'device', key: 'plcId', label: 'Bound PLC', types: ['plc_micro_controller', 'plc_24vdc_16io'] },
+      { kind: 'device', key: 'plcId', label: 'Bound PLC', types: ['plc_micro_controller', 'plc_24vdc_16io', 'plc_24vdc_32io'] },
       { kind: 'toggle', key: 'btn1', label: 'Soft button 1 (default I0.4)' },
       { kind: 'toggle', key: 'btn2', label: 'Soft button 2 (default I0.5)' },
       { kind: 'toggle', key: 'btn3', label: 'Soft button 3 (default I0.6)' },

@@ -30,7 +30,7 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorDirection' in state) state.motorDirection = null;
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
-  if (device.type === 'plc_micro_controller' || device.type === 'plc_24vdc_16io') {
+  if (device.type === 'plc_micro_controller' || device.type === 'plc_24vdc_16io' || device.type === 'plc_24vdc_32io') {
     // The scan memory (timers, counters, latches) clears with the PLC power; the program itself stays
     state.plcRuntime = undefined;
     state.plcScans = 0;
@@ -253,7 +253,7 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
     state.wiringNote = '';
     state.supplyNote = '';
   }
-  if (device.type === 'plc_24vdc_16io') state.dcNote = '';
+  if (device.type === 'plc_24vdc_16io' || device.type === 'plc_24vdc_32io') state.dcNote = '';
   if (device.type === 'motor_1p') {
     state.speedPct = 0;
     state.startOk = false;

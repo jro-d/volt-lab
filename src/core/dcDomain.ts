@@ -16,6 +16,10 @@ export const isPvDcDevice = (type: string) => type === 'pv_string' || type === '
 export const isDcSensor = (type: string) => (DC_SENSOR_TYPES as readonly string[]).includes(type);
 
 /** True when the relay is the 24 V DC variant (its A1 is +, A2 is 0 V). */
+/** The 24 V DC PLC family: the 8 in / 8 out compact PLC and the 16 in / 16 out one */
+export const isPlc24 = (type: string) => type === 'plc_24vdc_16io' || type === 'plc_24vdc_32io';
+export const plc24Count = (type: string) => (type === 'plc_24vdc_32io' ? 16 : 8);
+
 export const isAnnunciator = (type: string) => type === 'buzzer_horn' || type === 'beacon' || type === 'tower_light';
 
 export const isDcCoilDevice = (dev: ElectricalDevice) =>
@@ -27,7 +31,7 @@ export function isDcTerminal(dev: ElectricalDevice, terminalId: string): boolean
   if (isPvDcDevice(dev.type)) return true;
   if (dev.type === 'inverter_gridtie') return terminalId === 'pv_pos' || terminalId === 'pv_neg';
   if (isDcSensor(dev.type)) return true;
-  if (dev.type === 'plc_24vdc_16io') return terminalId !== 'pe';
+  if (isPlc24(dev.type)) return terminalId !== 'pe';
   if (dev.type === 'motor_dc_shunt') return true;
   if (dev.type === 'analog_io_module') return true;
   if (dev.type === 'hmi_panel') return terminalId === 'l_pos' || terminalId === 'm_neg';
@@ -152,6 +156,8 @@ export function dcLoadAmps(dev: ElectricalDevice): number {
       return 0.015;
     case 'plc_24vdc_16io':
       return 0.25;
+    case 'plc_24vdc_32io':
+      return 0.4;
     case 'industrial_relay_dpdt':
       return 0.04;
     case 'buzzer_horn':

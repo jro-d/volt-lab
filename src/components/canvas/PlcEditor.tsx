@@ -74,7 +74,7 @@ function addressOptions(kind: LadderElementKind): string[] {
  * live scan (power flow, timer and counter values) and lets you force inputs and outputs.
  */
 export const PlcEditor: React.FC<PlcEditorProps> = ({ devices, selectedDeviceId, isSimulating, onPatchDeviceState }) => {
-  const plcs = devices.filter((d) => d.type === 'plc_micro_controller' || d.type === 'plc_24vdc_16io');
+  const plcs = devices.filter((d) => d.type === 'plc_micro_controller' || d.type === 'plc_24vdc_16io' || d.type === 'plc_24vdc_32io');
   const [plcId, setPlcId] = React.useState<string | null>(null);
   const plc = plcs.find((d) => d.id === (plcId ?? selectedDeviceId)) || plcs[0] || null;
   const [mode, setMode] = React.useState<'edit' | 'monitor'>('edit');

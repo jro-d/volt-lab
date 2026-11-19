@@ -58,8 +58,8 @@ export const emptyRuntime = (): PlcRuntime => ({ bits: {}, words: {}, timers: {}
 
 export type AddressKind = 'I' | 'Q' | 'M' | 'MW' | 'T' | 'C';
 const PATTERNS: [AddressKind, RegExp][] = [
-  ['I', /^I0\.[0-7]$/],
-  ['Q', /^Q0\.[0-7]$/],
+  ['I', /^I[01]\.[0-7]$/],
+  ['Q', /^Q[01]\.[0-7]$/],
   ['M', /^M0\.[0-7]$/],
   ['MW', /^MW[0-7]$/],
   ['T', /^T[0-7]$/],
@@ -70,8 +70,9 @@ export const addressKind = (a: string | undefined): AddressKind | null => {
   for (const [k, re] of PATTERNS) if (re.test(a)) return k;
   return null;
 };
-export const ALL_INPUTS = Array.from({ length: 8 }, (_, i) => `I0.${i}`);
-export const ALL_OUTPUTS = Array.from({ length: 8 }, (_, i) => `Q0.${i}`);
+/** I0.0-I1.7 and Q0.0-Q1.7: the 16 in / 16 out PLC uses both bytes, the others only the first */
+export const ALL_INPUTS = Array.from({ length: 16 }, (_, i) => `I${i >> 3}.${i & 7}`);
+export const ALL_OUTPUTS = Array.from({ length: 16 }, (_, i) => `Q${i >> 3}.${i & 7}`);
 export const ALL_MEMORY_BITS = Array.from({ length: 8 }, (_, i) => `M0.${i}`);
 export const ALL_WORDS = Array.from({ length: 8 }, (_, i) => `MW${i}`);
 export const ALL_TIMERS = Array.from({ length: 8 }, (_, i) => `T${i}`);
@@ -345,9 +346,10 @@ export function ioMap(type: string): { inputs: Record<string, string>; outputs: 
   }
   const inputs: Record<string, string> = {};
   const outputs: Record<string, string> = {};
-  for (let n = 0; n < 8; n++) {
-    inputs[`I0.${n}`] = `i${n}`;
-    outputs[`Q0.${n}`] = `q${n}`;
+  const count = type === 'plc_24vdc_32io' ? 16 : 8;
+  for (let n = 0; n < count; n++) {
+    inputs[`I${n >> 3}.${n & 7}`] = `i${n}`;
+    outputs[`Q${n >> 3}.${n & 7}`] = `q${n}`;
   }
   return { inputs, outputs };
 }

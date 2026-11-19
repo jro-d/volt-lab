@@ -185,6 +185,7 @@ export type DeviceType =
   | 'sensor_capacitive'
   | 'sensor_photoelectric'
   | 'plc_24vdc_16io'
+  | 'plc_24vdc_32io'
   | 'buzzer_horn'
   | 'beacon'
   | 'tower_light'
