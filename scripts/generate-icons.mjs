@@ -8,42 +8,42 @@ const rootDir = path.resolve(__dirname, '..');
 const outDir = path.join(rootDir, 'build-icons');
 fs.mkdirSync(outDir, { recursive: true });
 
-// Exact polygon from public/icon.svg (viewBox 0 0 512 512):
-// <rect width="512" height="512" rx="96" fill="#b4501c"/>
-// <path d="M280 56 112 288h128l-24 168 184-240H296z" fill="#fff"/>
-const BOLT = [
-  [280, 56],
-  [112, 288],
-  [240, 288],
-  [216, 456],
-  [400, 216],
-  [296, 216],
-];
-
+// WireWise "Check Tile" mark, matching public/icon.svg and brand/logo.svg
+// (viewBox 0 0 64 64). Shapes are sampled in that 64-unit space.
 const BG = [0xb4, 0x50, 0x1c];
 const FG = [0xff, 0xff, 0xff];
+const AMBER = [0xf0, 0xb1, 0x1a];
+const CHECK = [[13, 33], [26, 46], [51, 19]];
+const TERMINALS = [[13, 33], [51, 19]];
+const PIVOT = [26, 46];
 
 function inRoundedRect(x, y) {
-  const r = 96;
-  if (x < 0 || y < 0 || x > 512 || y > 512) return false;
-  if (x >= r && x <= 512 - r) return true;
-  if (y >= r && y <= 512 - r) return true;
-  const cx = x < r ? r : 512 - r;
-  const cy = y < r ? r : 512 - r;
-  const dx = x - cx;
-  const dy = y - cy;
-  return dx * dx + dy * dy <= r * r;
+  const r = 15;
+  if (x < 0 || y < 0 || x > 64 || y > 64) return false;
+  if (x >= r && x <= 64 - r) return true;
+  if (y >= r && y <= 64 - r) return true;
+  const cx = x < r ? r : 64 - r;
+  const cy = y < r ? r : 64 - r;
+  return (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
 }
 
-function inPolygon(x, y, poly) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
-    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-    if (intersect) inside = !inside;
+function distToSegment(x, y, [ax, ay], [bx, by]) {
+  const dx = bx - ax, dy = by - ay;
+  const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+}
+
+// Paint order follows the SVG: check stroke, terminal circles (fill + ring), pivot dot.
+function colorAt(x, y) {
+  if (Math.hypot(x - PIVOT[0], y - PIVOT[1]) <= 3.6) return AMBER;
+  for (const [cx, cy] of TERMINALS) {
+    const d = Math.hypot(x - cx, y - cy);
+    if (d <= 6) return d >= 3 ? FG : BG;
   }
-  return inside;
+  for (let i = 0; i < CHECK.length - 1; i++) {
+    if (distToSegment(x, y, CHECK[i], CHECK[i + 1]) <= 2.75) return FG;
+  }
+  return BG;
 }
 
 // CRC32 for PNG chunks
@@ -70,10 +70,10 @@ function pngChunk(type, data) {
 }
 
 function renderPng(size) {
-  const samples = 4; // 4x4 supersampling for crisp anti-aliased edges
+  const samples = 6; // 6x6 supersampling for crisp anti-aliased edges
   const stride = size * 4 + 1;
   const raw = Buffer.alloc(stride * size);
-  const scale = 512 / size;
+  const scale = 64 / size;
 
   for (let py = 0; py < size; py++) {
     const rowOff = py * stride;
@@ -85,7 +85,7 @@ function renderPng(size) {
           const x = (px + (sx + 0.5) / samples) * scale;
           const y = (py + (sy + 0.5) / samples) * scale;
           if (!inRoundedRect(x, y)) continue;
-          const col = inPolygon(x, y, BOLT) ? FG : BG;
+          const col = colorAt(x, y);
           r += col[0];
           g += col[1];
           b += col[2];
@@ -154,4 +154,5 @@ const ico = buildIco([16, 24, 32, 48, 64, 128, 256]);
 
 fs.writeFileSync(path.join(outDir, 'icon.png'), png256);
 fs.writeFileSync(path.join(outDir, 'icon.ico'), ico);
-console.log(`Generated build-icons/icon.png (${png256.length} B) and build-icons/icon.ico (${ico.length} B)`);
+fs.copyFileSync(path.join(outDir, 'icon.png'), path.join(rootDir, 'site', 'icon-256.png'));
+console.log(`Generated site/icon-256.png, build-icons/icon.png (${png256.length} B) and build-icons/icon.ico (${ico.length} B)`);

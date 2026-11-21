@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrandMark } from './BrandMark';
 import {
   Activity,
   AlignHorizontalJustifyCenter,
@@ -365,9 +366,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       <div className="flex items-center gap-1.5 min-w-0">
         {/* Slot 1: Brand + active lab chip */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-md bg-brand flex items-center justify-center shrink-0">
-            <Zap className="w-4 h-4 text-on-brand fill-current" />
-          </div>
+          <BrandMark className="w-8 h-8 shrink-0" />
           <div className="hidden xl:flex items-center gap-2 min-w-0">
             <div className="text-[18px] font-display font-bold text-ink leading-none tracking-[-0.01em] flex items-center gap-1.5 shrink-0">
               <span>

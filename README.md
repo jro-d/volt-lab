@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/logo-dark.svg">
+    <img src="brand/logo.svg" alt="WireWise logo" width="88" height="88">
+  </picture>
+</p>
+
 # WireWise — Interactive Electrical Installation & Motor Control Simulator
 *WireWise (formerly VoltLab)*
 
