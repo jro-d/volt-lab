@@ -27,7 +27,7 @@ export interface DeviceTerminal {
   relX: number; // percentage (0..1) or pixel relative to device width
   relY: number; // percentage (0..1) or pixel relative to device height
   label?: string;
-  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'W2' | 'U2' | 'V2' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2';
+  phaseLabel?: 'L' | 'L1' | 'L2' | 'L3' | 'W2' | 'U2' | 'V2' | 'N' | 'PE' | 'SW' | '1' | '2' | '3' | 'COM' | 'SPLICE' | 'A1' | 'A2' | 'NO' | 'NC' | 'IN' | 'OUT' | 'H1' | 'H2' | 'X1' | 'X2' | '+24V' | '0V' | 'SIG';
   spliceGroup?: string; // for junction boxes where terminals in the same group are shorted
 }
 
@@ -108,7 +108,104 @@ export type DeviceType =
   | 'pressure_switch'
   | 'pump_booster_1p'
   | 'pump_booster_3p'
-  | 'phase_monitor_relay';
+  | 'phase_monitor_relay'
+  // Batch 3.3: control and timing
+  | 'star_delta_timer'
+  | 'counter_relay'
+  | 'impulse_relay'
+  | 'staircase_timer'
+  | 'time_switch_24h'
+  | 'alternating_relay'
+  | 'ssr_1p'
+  | 'operator_pilot'
+  | 'aux_contact_block'
+  | 'mechanical_interlock'
+  | 'safety_relay'
+  | 'two_hand_station'
+  | 'door_interlock_switch'
+  | 'pull_cord_switch'
+  // Batch 3.4: sensors and field devices
+  | 'electrode_level_relay'
+  | 'thermostat'
+  | 'thermocouple_k'
+  | 'temp_controller'
+  | 'reed_switch'
+  | 'photocell_switch'
+  | 'pir_sensor'
+  | 'flow_switch'
+  | 'zero_speed_switch'
+  | 'solenoid_valve'
+  | 'smoke_detector'
+  | 'manual_call_point'
+  | 'fire_alarm_panel'
+  // Batch 3.5: motors, starters and drives
+  | 'soft_starter'
+  | 'starter_reduced_voltage'
+  | 'motor_dahlander'
+  | 'motor_wound_rotor'
+  | 'rotor_resistor_bank'
+  | 'motor_dc_shunt'
+  | 'motor_brake'
+  | 'dc_injection_brake'
+  | 'speed_potentiometer'
+  | 'braking_resistor'
+  | 'line_reactor'
+  | 'pump_submersible_3p'
+  | 'air_compressor_3p'
+  | 'hoist_conveyor'
+  // Batch 3.6: residential and commercial loads
+  | 'appliance_generic'
+  | 'emergency_light'
+  | 'fan_regulator'
+  | 'doorbell_set'
+  | 'power_strip'
+  // Batch 3.7: automation
+  | 'valve_52'
+  | 'cylinder_da'
+  | 'analog_io_module'
+  | 'hmi_panel'
+  // Batch 3.2: sources and power systems
+  | 'transfer_switch_manual'
+  | 'ups_battery'
+  | 'pv_string'
+  | 'dc_isolator'
+  | 'inverter_gridtie'
+  | 'net_meter'
+  | 'transformer_1p_pole'
+  | 'transformer_3p_delta_wye'
+  | 'capacitor_bank_3p'
+  | 'pf_controller'
+  | 'shore_connection_box'
+  | 'ground_detection_lamps'
+  | 'synchroscope'
+  | 'reverse_power_relay'
+  | 'preferential_trip_relay'
+  | 'psu_24vdc'
+  | 'sensor_inductive'
+  | 'sensor_capacitive'
+  | 'sensor_photoelectric'
+  | 'plc_24vdc_16io'
+  | 'plc_24vdc_32io'
+  | 'buzzer_horn'
+  | 'beacon'
+  | 'tower_light'
+  | 'motor_1p'
+  | 'capacitor_run'
+  | 'rcd_4p'
+  | 'gfci_receptacle'
+  | 'afdd_1pn'
+  | 'mccb_3p'
+  | 'mpcb_3p'
+  | 'rotary_isolator_3p'
+  | 'voltage_relay'
+  | 'earth_leakage_relay'
+  | 'core_balance_ct'
+  | 'ptc_relay'
+  | 'current_transformer'
+  | 'panel_ammeter'
+  | 'voltmeter_selector'
+  | 'terminal_block'
+  | 'distribution_block';
 
 export interface ElectricalDevice {
   id: string;
@@ -190,6 +287,29 @@ export interface ElectricalWire {
 }
 
 
+/** Troubleshooting mode: hidden faults injected into a working circuit (see core/faults.ts). */
+export type FaultKind =
+  | 'open_coil'
+  | 'welded_contact'
+  | 'contact_open'
+  | 'loose_neutral'
+  | 'open_wire'
+  | 'high_resistance_joint'
+  | 'earth_fault_to_frame'
+  | 'overload_setting_wrong'
+  | 'blown_fuse'
+  | 'swapped_phases';
+
+export interface InjectedFault {
+  id: string;
+  /** The device the fault is on (for a wire fault: the device at the wire's start) */
+  deviceId: string;
+  kind: FaultKind;
+  /** Kind-specific: wireId, wireA / wireB, terminalId, pair [a, b], dialAmps, ohms */
+  params: Record<string, any>;
+  revealed: boolean;
+}
+
 export interface ElectricalProject {
   id: string;
   title: string;
@@ -206,6 +326,130 @@ export interface ElectricalProject {
   targetLadder?: LadderRung[];
   /** Shared tank / line-pressure state for pumps, float and pressure switches (see core/process.ts) */
   process?: ProcessState;
+  /** Troubleshooting faults, applied only while Troubleshoot mode is on. Absent in older saves. */
+  faults?: InjectedFault[];
+  faultsVersion?: number;
+  /** Timing diagram recorder channels (versioned so older saves keep loading) */
+  recorder?: { v: 1; channels: RecorderChannel[] };
+  /** Coordination curves panel: the device chain (upstream first), a cable and a motor to plot */
+  curves?: { v: 1; chain: string[]; wireId?: string; motorId?: string };
+  /** Short-circuit check (off until enabled): source level and optional transformer, see core/shortCircuit.ts */
+  shortCircuit?: ShortCircuitSettings;
+  /** Load schedule: demand factors typed in by the user, by load type (none is built in) */
+  loadSchedule?: { v: 1; demandFactors: Record<string, number> };
+  /** Bill of materials: unit prices typed in by the user and the allowances (no prices are bundled) */
+  bom?: BomSettings;
+  /** Wire numbering scheme and the title block of the terminal-strip drawings */
+  wireNumbering?: WireNumberingSettings;
+  /** Energy and billing: time scale and tariff (the tariff rate is typed in by the user) */
+  energy?: EnergySettings;
+  /** Graded lab: what the finished work must contain (set when an exercise is started) */
+  target?: LabTarget;
+  /** Safe isolation workflow (Off by default) */
+  safeIsolation?: SafeIsolationState;
+  /** Floor plan: rooms, symbols linked to devices and home runs (metres) */
+  plan?: FloorPlan;
+}
+
+/** Floor plan (MVP): one floor, rectangles for rooms, symbols linked to devices, straight or orthogonal home runs. */
+export interface FloorPlan {
+  v: 1;
+  rooms: { id: string; name: string; x: number; y: number; w: number; h: number }[];
+  symbols: PlanSymbol[];
+  runs: { id: string; fromSymbolId: string; toSymbolId: string; mode: 'straight' | 'orthogonal'; /** extra vertical drop / allowance, metres */ dropM?: number }[];
+}
+
+export interface PlanSymbol {
+  id: string;
+  kind: 'light' | 'switch' | 'socket' | 'fan' | 'appliance' | 'panel';
+  /** Position in metres */
+  x: number;
+  y: number;
+  label: string;
+  /** The device on the workbench this symbol stands for */
+  deviceId?: string;
+}
+
+/** Safe isolation (dead test and lock-out / tag-out) workflow state. */
+export interface SafeIsolationState {
+  v: 1;
+  mode: 'off' | 'prompt' | 'required';
+  /** Step ids done, in order */
+  done: string[];
+  /** Prompt mode: the one-time warning has been shown */
+  warned: boolean;
+  log: { step: string; at: number }[];
+}
+
+/** Graded lab target: required devices, connections, ladder and Code Inspector result. */
+export interface LabTarget {
+  v: 1;
+  labId: string;
+  title: string;
+  devices: { type: string; count: number }[];
+  /** Required connections as device:terminal pairs (order independent, same net counts) */
+  connections: [string, string][];
+  needsLadder: boolean;
+  noErrors: boolean;
+  /** Show which devices and connections are missing (off by default) */
+  showSolution: boolean;
+}
+
+/** Energy and billing settings stored with the project. */
+export interface EnergySettings {
+  v: 1;
+  /** Accumulate energy while simulating */
+  enabled: boolean;
+  /** Simulated seconds per real second: 1, 60 or 3600 */
+  timeScale: 1 | 60 | 3600;
+  tariff: { currency: string; perKwh: number; tiers?: { upToKwh: number | null; perKwh: number }[] };
+}
+
+/** Wire numbering settings stored with the project. */
+export interface WireNumberingSettings {
+  v: 1;
+  scheme: 'sequential' | 'from-to' | 'per-circuit';
+  prefix: string;
+  titleBlock: { project: string; drawnBy: string; checkedBy: string; date: string; sheet: string };
+}
+
+/** Bill-of-materials settings stored with the project. */
+export interface BomSettings {
+  v: 1;
+  /** Unit price by line key (see core/bom.ts) */
+  prices: Record<string, number>;
+  /** Extra conductor length added for waste, percent */
+  wastePct: number;
+  contingencyPct: number;
+  vatPct: number;
+  /** Conduit allowance, metres, and box allowance, pieces */
+  conduitM: number;
+  boxCount: number;
+  currency: string;
+}
+
+/** Settings of the ohmic short-circuit check. */
+export interface ShortCircuitSettings {
+  v: 1;
+  /** Fault levels, the inspector card, the canvas badges and the interrupting-rating rule are active */
+  enabled: boolean;
+  /** Short-circuit level at the supply terminals, kA */
+  sourceKa: number;
+  /** Supply transformer in series with the source, if any */
+  transformer?: { kva: number; zPct: number };
+}
+
+/** One recorded signal: a device state value, the energized flag, a terminal voltage or a wire current. */
+export interface RecorderChannel {
+  id: string;
+  label: string;
+  kind: 'digital' | 'analog';
+  unit?: string;
+  source:
+    | { kind: 'state'; deviceId: string; key: string }
+    | { kind: 'energized'; deviceId: string }
+    | { kind: 'voltage'; deviceId: string; terminalId: string }
+    | { kind: 'current'; wireId: string };
 }
 
 /** Tank level (%), line pressure (bar) and the draw-off slider (litres per minute) of the project's process. */

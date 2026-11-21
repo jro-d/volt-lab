@@ -370,6 +370,41 @@ export const SchematicCanvas: React.FC<SchematicCanvasProps> = ({
             <text x={0} y={36} textAnchor="middle" fontSize={8} fontWeight="bold" fill="var(--ink-muted)">{node.label}</text>
           </g>
         );
+      case 'pv':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <rect x={-22} y={-18} width={44} height={36} fill="var(--surface)" stroke="var(--ink)" strokeWidth={1.5} rx={2} />
+            <path d="M -22 -6 H 22 M -22 6 H 22 M -7 -18 V 18 M 7 -18 V 18" stroke="var(--ink)" strokeWidth={1} />
+            <path d="M -30 -26 L -22 -18 M -34 -16 L -24 -12" stroke="var(--warning)" strokeWidth={1.6} />
+            <text x={0} y={34} textAnchor="middle" fontSize={8} fontWeight="bold" fill="var(--ink-muted)">{node.label}</text>
+          </g>
+        );
+      case 'inverter':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <rect x={-24} y={-20} width={48} height={40} fill="var(--surface)" stroke="var(--ink)" strokeWidth={1.5} rx={2} />
+            <line x1={-24} y1={20} x2={24} y2={-20} stroke="var(--ink)" strokeWidth={1.2} />
+            <text x={-12} y={-6} textAnchor="middle" fontSize={9} fontWeight="bold" fill="var(--ink)">=</text>
+            <text x={12} y={14} textAnchor="middle" fontSize={10} fontWeight="bold" fill="var(--ink)">~</text>
+            <text x={0} y={34} textAnchor="middle" fontSize={8} fontWeight="bold" fill="var(--ink-muted)">{node.label}</text>
+          </g>
+        );
+      case 'battery':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <rect x={-24} y={-20} width={48} height={40} fill="var(--surface)" stroke="var(--ink)" strokeWidth={1.5} rx={2} />
+            <path d="M -8 -8 V 8 M -2 -12 V 12 M 4 -8 V 8 M 10 -12 V 12" stroke="var(--ink)" strokeWidth={1.8} />
+            <text x={0} y={34} textAnchor="middle" fontSize={8} fontWeight="bold" fill="var(--ink-muted)">{node.label}</text>
+          </g>
+        );
+      case 'capacitor':
+        return (
+          <g transform={`translate(${node.x}, ${node.y})`}>
+            <rect x={-22} y={-20} width={44} height={40} fill="var(--surface)" stroke="var(--ink)" strokeWidth={1.5} rx={2} />
+            <path d="M -14 -3 H 14 M -14 3 H 14 M 0 -20 V -3 M 0 3 V 20" stroke="var(--ink)" strokeWidth={1.8} />
+            <text x={0} y={34} textAnchor="middle" fontSize={8} fontWeight="bold" fill="var(--ink-muted)">{node.label}</text>
+          </g>
+        );
       case 'pushbutton3':
         return (
           <g transform={`translate(${node.x}, ${node.y})`}>

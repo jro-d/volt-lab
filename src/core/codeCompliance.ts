@@ -3,12 +3,25 @@ import { CodeViolation, ElectricalAnalysisReport } from '../types/codes';
 import { getWireStandards, CONDUIT_FILL_STANDARDS } from '../data/standardsData';
 import { SolvedCircuit } from './circuitSolver';
 import { parsePhysicalLadder } from './ladderEngine';
+import { findAcDcCrossWires } from './dcDomain';
+import { EARTH_NOTE_OHMS } from './instruments';
+import { checkInterruptingRatings, formatKa, type FaultLevels } from './shortCircuit';
 
 /** Devices that live inside a distribution board or motor control enclosure (internal panel jumpers, not branch conduit runs) */
 const PANEL_DEVICE_TYPES = new Set([
   'source_3phase_440v',
   'kwh_meter_1p',
   'kwh_meter_3p',
+  'net_meter',
+  'transfer_switch_manual',
+  'dc_isolator',
+  'capacitor_bank_3p',
+  'pf_controller',
+  'shore_connection_box',
+  'ground_detection_lamps',
+  'synchroscope',
+  'reverse_power_relay',
+  'preferential_trip_relay',
   'service_disconnect_2p',
   'rcd_2p',
   'rcbo_1pn',
@@ -30,6 +43,20 @@ const PANEL_DEVICE_TYPES = new Set([
   'pilot_light_indicator',
   'industrial_relay_dpdt',
   'plc_micro_controller',
+  'rcd_4p',
+  'afdd_1pn',
+  'mccb_3p',
+  'mpcb_3p',
+  'rotary_isolator_3p',
+  'voltage_relay',
+  'earth_leakage_relay',
+  'ptc_relay',
+  'core_balance_ct',
+  'current_transformer',
+  'panel_ammeter',
+  'voltmeter_selector',
+  'terminal_block',
+  'distribution_block',
 ]);
 
 /** Devices that count as overcurrent protection for the conductor they feed (breakers and fuses alike) */
@@ -42,17 +69,52 @@ const OVERCURRENT_PROTECTION_TYPES = new Set([
   'fuse_holder_1p',
   'fuse_switch_disconnector_3p',
   'rcbo_1pn',
+  'afdd_1pn',
+  'mccb_3p',
+  'mpcb_3p',
 ]);
 
 /** Devices that give 30 mA earth-leakage protection to the circuits they feed */
-const RCD_PROTECTION_TYPES = new Set(['rcd_2p', 'rcbo_1pn']);
+const RCD_PROTECTION_TYPES = new Set(['rcd_2p', 'rcd_4p', 'rcbo_1pn', 'gfci_receptacle']);
+
+/** Types that carry a feed through (box, splice) when looking for a switch in a supply path. */
+const FEED_THROUGH_TYPES = new Set(['junction_box_4way', 'junction_box_octagonal_orange', 'splice_wire_nut', 'lever_connector_3p', 'utility_box_surface_pvc', 'terminal_block', 'distribution_block']);
+const WALL_SWITCH_TYPES = new Set(['switch_1gang', 'switch_2gang', 'switch_3gang', 'switch_3way', 'switch_4way', 'dimmer_switch', 'modular_combo_plate']);
+
+/** A wall switch in the supply of `dev` (walking back from its L terminal through boxes and splices), or null. */
+function findSwitchInFeed(dev: ElectricalDevice, devices: ElectricalDevice[], wires: ElectricalWire[]): ElectricalDevice | null {
+  const seen = new Set<string>();
+  const walk = (devId: string, terminalId: string): ElectricalDevice | null => {
+    const key = `${devId}:${terminalId}`;
+    if (seen.has(key)) return null;
+    seen.add(key);
+    for (const w of wires) {
+      let otherDev: string | null = null;
+      if (w.fromDeviceId === devId && w.fromTerminalId === terminalId) otherDev = w.toDeviceId;
+      else if (w.toDeviceId === devId && w.toTerminalId === terminalId) otherDev = w.fromDeviceId;
+      if (!otherDev || otherDev === devId) continue;
+      const other = devices.find(d => d.id === otherDev);
+      if (!other) continue;
+      if (WALL_SWITCH_TYPES.has(other.type)) return other;
+      if (FEED_THROUGH_TYPES.has(other.type)) {
+        for (const t of other.terminals) {
+          const hit = walk(other.id, t.id);
+          if (hit) return hit;
+        }
+      }
+    }
+    return null;
+  };
+  return walk(dev.id, 'l');
+}
 
 export function analyzeCodeCompliance(
   devices: ElectricalDevice[],
   wires: ElectricalWire[],
   solved: SolvedCircuit,
   standard: CodeStandard = 'PEC',
-  gridVoltage: number = 230
+  gridVoltage: number = 230,
+  faultLevels?: FaultLevels | null
 ): ElectricalAnalysisReport {
   const violations: CodeViolation[] = [];
   const wireStandards = getWireStandards(standard);
@@ -66,7 +128,9 @@ export function analyzeCodeCompliance(
     const breaker = [fromDev, toDev].find(d => d && OVERCURRENT_PROTECTION_TYPES.has(d.type));
     const wireStd = wireStandards.find(s => s.name === wire.wireGauge) || wireStandards[0];
 
-    if (breaker && wireStd) {
+    // Shunt-trip and undervoltage-release coil leads are control wiring, not conductors the breaker protects
+    const coilLead = [[wire.fromDeviceId, wire.fromTerminalId], [wire.toDeviceId, wire.toTerminalId]].some(([d, t]) => d === breaker?.id && /^(sht|uv)_a[12]$/.test(t));
+    if (breaker && wireStd && !coilLead) {
       const breakerAmps = breaker.state.ratedAmps || 16;
       if (breakerAmps > wireStd.maxBreakerAmps) {
         violations.push({
@@ -265,7 +329,7 @@ export function analyzeCodeCompliance(
   // 4b. Motor control: overload protection & reversing interlocks (PEC 4.30 / IEC 60204-1)
   const motors = devices.filter(d => d.type === 'motor_ac_industrial' || d.type === 'pump_booster_3p' || d.type === 'motor_6lead_star_delta');
   const contactors = devices.filter(d => d.type === 'contactor_3p');
-  const hasTor = devices.some(d => d.type === 'thermal_overload_relay');
+  const hasTor = devices.some(d => d.type === 'thermal_overload_relay' || d.type === 'mpcb_3p'); // an MPCB has the class 10 overload element built in
   if (motors.length > 0 && contactors.length > 0 && !hasTor) {
     violations.push({
       id: 'viol_motor_overload_missing',
@@ -277,6 +341,71 @@ export function analyzeCodeCompliance(
       message: 'A contactor-controlled motor has no thermal overload relay. A locked rotor or single-phasing condition will overheat the windings before the MCB responds.',
       affectedDeviceId: motors[0].id,
       recommendation: 'Install a thermal overload relay (TOR) after the contactor, set its dial to the motor FLA and wire its 95-96 NC contact in series with the coil circuit.'
+    });
+  }
+  // Series arcing at a loose terminal, and a CT secondary left open
+  for (const dev of devices) {
+    if (dev.state.looseTerminal && dev.state.arcing) {
+      violations.push({
+        id: `viol_loose_terminal_${dev.id}`,
+        codeStandard: standard,
+        severity: 'warning',
+        category: 'ampacity',
+        // Clause intentionally left for the user to confirm against their copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60364-4-42 (clause to be verified)',
+        title: 'Loose Terminal Arcing (Fire Hazard)',
+        message: `${dev.name || dev.id} has a loose terminal that is arcing under load. An ordinary breaker sees a normal current and will not trip; the heat can ignite surrounding material.`,
+        affectedDeviceId: dev.id,
+        recommendation: 'Re-torque the terminal. An arc-fault detection device (AFDD / AFCI) upstream trips on this kind of fault.'
+      });
+    }
+    if (dev.type === 'current_transformer' && dev.state.openSecondary) {
+      violations.push({
+        id: `viol_ct_open_secondary_${dev.id}`,
+        codeStandard: standard,
+        severity: 'error',
+        category: 'shock_hazard',
+        hazardLevel: 'touch_shock',
+        articleRef: 'IEC 61869-2 (clause to be verified)',
+        title: 'Current Transformer With Open Secondary',
+        message: `${dev.name || dev.id} carries primary current while its secondary S1-S2 is open. The secondary voltage climbs to a dangerous level and can destroy the CT.`,
+        affectedDeviceId: dev.id,
+        recommendation: 'Short S1-S2 with a shorting link or connect the ammeter across them before energizing the primary.'
+      });
+    }
+  }
+  // Information only: a high-resistance earth electrode (no code limit is cited; the level is a rule of thumb)
+  for (const pit of devices.filter(d => d.type === 'ground_pit')) {
+    const ohms = Number(pit.state.earthResistanceOhms);
+    if (Number.isFinite(ohms) && ohms > EARTH_NOTE_OHMS) {
+      violations.push({
+        id: `viol_high_earth_resistance_${pit.id}`,
+        codeStandard: standard,
+        severity: 'info',
+        category: 'grounding',
+        // No clause cited on purpose: confirm the limit that applies against your copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (limit to be verified)' : 'IEC 60364 (limit to be verified)',
+        title: 'High Earth Electrode Resistance',
+        message: `${pit.name || pit.id} measures ${ohms} Ω to earth, above the ${EARTH_NOTE_OHMS} Ω rule-of-thumb level. Earth faults may not draw enough current to trip protection quickly.`,
+        affectedDeviceId: pit.id,
+        recommendation: 'Measure with the earth tester, then add rods, lengthen the rod or improve the soil contact until the value meets the limit your code sets.'
+      });
+    }
+  }
+  // 24 V DC control wiring must never be joined to AC line / neutral conductors
+  for (const x of findAcDcCrossWires(devices, wires)) {
+    violations.push({
+      id: `viol_ac_dc_mix_${x.wire.id}`,
+      codeStandard: standard,
+      severity: 'error',
+      category: 'polarity',
+      // Clause intentionally left for the user to confirm against their copy of the code
+      articleRef: 'IEC 60204-1 (clause to be verified)',
+      title: 'AC and DC Circuits Connected',
+      message: `${x.dcDevice.name || x.dcDevice.id} (24 V DC) is wired to the same net as ${x.acDevice.name || x.acDevice.id} (AC line / neutral). The two systems must stay separate; the 24 V supply shuts down and the DC devices can be destroyed.`,
+      affectedDeviceId: x.dcDevice.id,
+      affectedWireId: x.wire.id,
+      recommendation: 'Remove the wire between the AC and DC sides. Use a relay (coil on DC, contacts on AC) to cross between the two.'
     });
   }
   // Information only: a motor with no phase-failure / phase-sequence protection
@@ -366,7 +495,8 @@ export function analyzeCodeCompliance(
   }
 
   // 5. RCD Protection on Wet Areas & Sockets (PEC 2.10.1.8 / IEC 60364-4-41)
-  const hasRcd = devices.some(d => RCD_PROTECTION_TYPES.has(d.type));
+  // A 100 / 300 mA RCCB protects against fire, not against shock: only IΔn <= 30 mA counts here
+  const hasRcd = devices.some(d => RCD_PROTECTION_TYPES.has(d.type) && !(Number(d.state.sensitivityMa) > 30));
   const hasSocketsOrWetLoads = devices.some(d => d.type === 'socket_duplex' || d.type === 'socket_schuko' || d.type === 'appliance_water_heater' || d.type === 'appliance_ac');
   if (hasSocketsOrWetLoads && !hasRcd) {
     violations.push({
@@ -434,6 +564,49 @@ export function analyzeCodeCompliance(
         title: `Open / Floating Neutral on ${dev.name}`,
         message: `${dev.name} is energized at ${gridVoltage}V on its Line terminal with an open or missing Neutral return, creating a floating return hazard.`,
         recommendation: 'Verify continuity of the neutral conductor back to the main Neutral Busbar / N-OUT terminal.',
+      });
+    }
+  }
+
+  // Emergency luminaires and exit signs need an unswitched supply (clause left for the user to confirm)
+  for (const dev of devices) {
+    if (dev.type !== 'emergency_light') continue;
+    const sw = findSwitchInFeed(dev, devices, wires);
+    if (!sw) continue;
+    violations.push({
+      id: `viol_em_switched_${dev.id}`,
+      codeStandard: standard,
+      severity: 'warning',
+      category: 'shock_hazard',
+      hazardLevel: 'code_infraction',
+      articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60364-5-56 (clause to be verified)',
+      title: 'Emergency Light on a Switched Supply',
+      message: `${dev.name || dev.id} is fed through ${sw.name || sw.id}. Switching it off leaves the battery charging path open and the luminaire cannot sense a real outage.`,
+      affectedDeviceId: dev.id,
+      recommendation: 'Take the emergency luminaire and exit sign supply from an unswitched live conductor on the same circuit as the lighting it covers.'
+    });
+  }
+
+  // Interrupting rating against the available fault current (only when the short-circuit check is enabled)
+  if (faultLevels) {
+    for (const chk of checkInterruptingRatings(devices, faultLevels)) {
+      if (chk.status === 'ok') continue;
+      const dev = devices.find(d => d.id === chk.deviceId);
+      const isError = chk.status === 'error';
+      violations.push({
+        id: `viol_icu_${chk.deviceId}`,
+        codeStandard: standard,
+        severity: isError ? 'error' : 'warning',
+        category: 'interrupting_rating',
+        hazardLevel: isError ? 'fire_risk' : 'code_infraction',
+        // Clause intentionally left for the user to confirm against their copy of the code
+        articleRef: standard === 'PEC' ? 'PEC 2017 (clause to be verified)' : 'IEC 60364-4-43 (clause to be verified)',
+        title: isError ? 'Interrupting Rating Below Available Fault Current' : 'Interrupting Rating Close to Available Fault Current',
+        message: `${dev?.name || chk.deviceId} is rated ${chk.ratingKa} kA but the available fault current at its input is ${formatKa(chk.ikKa * 1000)} (resistive method${isError ? '' : ', above 80 % of the rating'}).`,
+        affectedDeviceId: chk.deviceId,
+        recommendation: isError
+          ? 'Use a device with a higher interrupting rating, or limit the fault level upstream (a current-limiting device, a longer or smaller conductor).'
+          : 'The margin is small: confirm the source level and consider a higher-rated device.'
       });
     }
   }

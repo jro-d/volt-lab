@@ -7,6 +7,16 @@ import { FuseDevice } from './FuseDevice';
 import { GeneratorDevice } from './GeneratorDevice';
 import { LevelSwitchDevice, PumpDevice } from './ProcessDevices';
 import { PhaseMonitorDevice } from './PhaseMonitorDevice';
+import { PowerSystemsDevice } from './PowerSystemsDevice';
+import { ControlModuleDevice } from './ControlModuleDevice';
+import { FieldModuleDevice } from './FieldModuleDevice';
+import { DriveModuleDevice } from './DriveModuleDevice';
+import { HomeModuleDevice } from './HomeModuleDevice';
+import { AutomationModuleDevice } from './AutomationModuleDevice';
+import { BuzzerDevice, BeaconDevice, TowerLightDevice } from './Annunciators';
+import { ProtectionModuleDevice, GfciDevice, MonitoringRelayDevice, CtDevice, AmmeterDevice, VoltmeterSelectorDevice, TerminalBlockDevice } from './ProtectionDevices';
+import { Motor1pDevice, CapacitorDevice } from './SinglePhaseMotor';
+import { PsuDevice, SensorDevice, Plc24Device } from './DcDevices';
 import { RcdDevice } from './RcdDevice';
 import { SpdDevice } from './SpdDevice';
 import { BusbarDevice } from './BusbarDevice';
@@ -104,6 +114,118 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       case 'mcb_2p':
       case 'mcb_3p':
         return <McbDevice {...commonProps} />;
+      case 'buzzer_horn':
+        return <BuzzerDevice {...commonProps} />;
+      case 'beacon':
+        return <BeaconDevice {...commonProps} />;
+      case 'tower_light':
+        return <TowerLightDevice {...commonProps} />;
+      case 'rcd_4p':
+      case 'afdd_1pn':
+      case 'mccb_3p':
+      case 'mpcb_3p':
+      case 'rotary_isolator_3p':
+        return <ProtectionModuleDevice {...commonProps} />;
+      case 'gfci_receptacle':
+        return <GfciDevice {...commonProps} />;
+      case 'voltage_relay':
+      case 'earth_leakage_relay':
+      case 'ptc_relay':
+        return <MonitoringRelayDevice {...commonProps} />;
+      case 'core_balance_ct':
+      case 'current_transformer':
+        return <CtDevice {...commonProps} />;
+      case 'panel_ammeter':
+        return <AmmeterDevice {...commonProps} />;
+      case 'voltmeter_selector':
+        return <VoltmeterSelectorDevice {...commonProps} />;
+      case 'terminal_block':
+      case 'distribution_block':
+        return <TerminalBlockDevice {...commonProps} />;
+      case 'motor_1p':
+        return <Motor1pDevice {...commonProps} />;
+      case 'capacitor_run':
+        return <CapacitorDevice {...commonProps} />;
+      case 'psu_24vdc':
+        return <PsuDevice {...commonProps} />;
+      case 'sensor_inductive':
+      case 'sensor_capacitive':
+      case 'sensor_photoelectric':
+        return <SensorDevice {...commonProps} />;
+      case 'plc_24vdc_16io':
+      case 'plc_24vdc_32io':
+        return <Plc24Device {...commonProps} />;
+      case 'transfer_switch_manual':
+      case 'ups_battery':
+      case 'pv_string':
+      case 'dc_isolator':
+      case 'inverter_gridtie':
+      case 'net_meter':
+      case 'transformer_1p_pole':
+      case 'transformer_3p_delta_wye':
+      case 'capacitor_bank_3p':
+      case 'pf_controller':
+      case 'shore_connection_box':
+      case 'ground_detection_lamps':
+      case 'synchroscope':
+      case 'reverse_power_relay':
+      case 'preferential_trip_relay':
+        return <PowerSystemsDevice {...commonProps} />;
+      case 'star_delta_timer':
+      case 'counter_relay':
+      case 'impulse_relay':
+      case 'staircase_timer':
+      case 'time_switch_24h':
+      case 'alternating_relay':
+      case 'ssr_1p':
+      case 'operator_pilot':
+      case 'aux_contact_block':
+      case 'mechanical_interlock':
+      case 'safety_relay':
+      case 'two_hand_station':
+      case 'door_interlock_switch':
+      case 'pull_cord_switch':
+        return <ControlModuleDevice {...commonProps} />;
+      case 'electrode_level_relay':
+      case 'thermostat':
+      case 'thermocouple_k':
+      case 'temp_controller':
+      case 'reed_switch':
+      case 'photocell_switch':
+      case 'pir_sensor':
+      case 'flow_switch':
+      case 'zero_speed_switch':
+      case 'solenoid_valve':
+      case 'smoke_detector':
+      case 'manual_call_point':
+      case 'fire_alarm_panel':
+        return <FieldModuleDevice {...commonProps} />;
+      case 'soft_starter':
+      case 'starter_reduced_voltage':
+      case 'motor_dahlander':
+      case 'motor_wound_rotor':
+      case 'rotor_resistor_bank':
+      case 'motor_dc_shunt':
+      case 'motor_brake':
+      case 'dc_injection_brake':
+      case 'speed_potentiometer':
+      case 'braking_resistor':
+      case 'line_reactor':
+      case 'pump_submersible_3p':
+      case 'air_compressor_3p':
+      case 'hoist_conveyor':
+        return <DriveModuleDevice {...commonProps} />;
+      case 'appliance_generic':
+      case 'emergency_light':
+      case 'fan_regulator':
+      case 'doorbell_set':
+      case 'power_strip':
+        return <HomeModuleDevice {...commonProps} />;
+      case 'valve_52':
+      case 'cylinder_da':
+      case 'analog_io_module':
+      case 'hmi_panel':
+        return <AutomationModuleDevice {...commonProps} />;
       case 'phase_monitor_relay':
         return <PhaseMonitorDevice {...commonProps} />;
       case 'float_switch':
@@ -264,7 +386,7 @@ export const DeviceRenderer: React.FC<DeviceRendererProps> = ({
       </g>
 
       {/* Floating Action Bar on Selected Device (Rotate, Duplicate, Delete) */}
-      {isSelected && (
+      {isSelected && (onRotate || onDuplicate || onDelete) && (
         <g
           transform={`translate(${cx}, ${floatingBarY})`}
           className="select-none"

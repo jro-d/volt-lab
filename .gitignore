@@ -48,3 +48,10 @@ scratch/
 
 # Generated offline build (npm run build:standalone)
 WireWise-Standalone.html
+
+# Electron desktop build artifacts
+release/
+dist-electron/
+
+# Assembled GitHub Pages site (CI)
+_site/

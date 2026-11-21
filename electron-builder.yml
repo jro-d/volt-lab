@@ -1,0 +1,47 @@
+appId: com.wirewise.simulator
+productName: WireWise
+copyright: Copyright © WireWise
+asar: true
+electronLanguages:
+  - en-US
+
+directories:
+  output: release
+  buildResources: build-icons
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - build-icons/icon.png
+  - package.json
+  - "!src/**"
+  - "!tests/**"
+  - "!scripts/**"
+  - "!claude-prompts/**"
+
+win:
+  icon: build-icons/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: WireWise
+  artifactName: WireWise-Setup-${version}.exe
+
+portable:
+  artifactName: WireWise-Portable-${version}.exe
+
+publish:
+  provider: github
+  owner: jro-d
+  repo: wirewise
+  releaseType: release

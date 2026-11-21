@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WireWise</title>
+  <meta name="description" content="Electrical installation simulator for Windows. Free and open source.">
+  <meta name="theme-color" content="#b4501c">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon-256.png">
+  <meta property="og:title" content="WireWise">
+  <meta property="og:description" content="Electrical installation simulator for Windows. Free and open source.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="icon-256.png">
+  <style>
+    :root {
+      --bg: #faf8f5;
+      --text: #1a1d21;
+      --muted: #666d76;
+      --line: rgba(26, 29, 33, .12);
+      --dot: rgba(26, 29, 33, .16);
+      --accent: #b4501c;
+      --accent-hover: #c25a22;
+      --glow: rgba(180, 80, 28, .13);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1317;
+        --text: #eef1f4;
+        --muted: #8f9ba7;
+        --line: rgba(238, 241, 244, .12);
+        --dot: rgba(238, 241, 244, .13);
+        --glow: rgba(224, 103, 42, .18);
+        color-scheme: dark;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.5 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Quiet backdrop: a faint dot grid that fades out, and one warm glow */
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
+      background-size: 28px 28px;
+      -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 42%, #000 0%, transparent 75%);
+      mask-image: radial-gradient(ellipse 60% 55% at 50% 42%, #000 0%, transparent 75%);
+    }
+    body::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 8%;
+      width: min(720px, 140vw);
+      height: 420px;
+      transform: translateX(-50%);
+      pointer-events: none;
+      background: radial-gradient(closest-side, var(--glow), transparent);
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 72px 24px 48px;
+    }
+
+    .mark {
+      width: 76px;
+      height: 76px;
+      border-radius: 18px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset, 0 14px 34px -10px rgba(180, 80, 28, .55);
+    }
+
+    h1 {
+      margin: 30px 0 0;
+      font-size: clamp(2.6rem, 7vw, 4.25rem);
+      line-height: 1.04;
+      font-weight: 600;
+      letter-spacing: -.035em;
+    }
+    .tag {
+      margin: 14px 0 0;
+      font-size: clamp(1.02rem, 2.2vw, 1.2rem);
+      color: var(--muted);
+      letter-spacing: -.005em;
+    }
+
+    .btn {
+      margin-top: 40px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 28px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1.06rem;
+      font-weight: 600;
+      letter-spacing: -.005em;
+      text-decoration: none;
+      box-shadow: 0 10px 28px -10px rgba(180, 80, 28, .7), 0 1px 0 rgba(255, 255, 255, .2) inset;
+      transition: transform .18s ease, background-color .18s ease, box-shadow .18s ease;
+    }
+    .btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 14px 32px -10px rgba(180, 80, 28, .8), 0 1px 0 rgba(255, 255, 255, .2) inset; }
+    .btn:active { transform: translateY(0); }
+    .btn svg { width: 20px; height: 20px; flex: none; }
+    .ver {
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .18);
+      font-size: .8rem;
+      font-weight: 600;
+    }
+    .ver:empty { display: none; }
+
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+    .btn:focus-visible { outline-offset: 5px; border-radius: 999px; }
+
+    .meta { margin: 18px 0 0; font-size: .875rem; color: var(--muted); }
+    .alt { margin: 6px 0 0; font-size: .875rem; color: var(--muted); }
+    .alt a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 1px; transition: border-color .15s ease; }
+    .alt a:hover { border-color: var(--accent); }
+    .alt i { font-style: normal; margin: 0 8px; opacity: .5; }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      padding: 24px;
+      text-align: center;
+      font-size: .8125rem;
+      color: var(--muted);
+    }
+    footer a { color: inherit; text-decoration: none; }
+    footer a:hover { color: var(--text); }
+    footer i { font-style: normal; margin: 0 8px; opacity: .5; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .rise { opacity: 0; transform: translateY(10px); animation: rise .7s cubic-bezier(.2, .7, .2, 1) forwards; }
+      .rise:nth-child(2) { animation-delay: .06s; }
+      .rise:nth-child(3) { animation-delay: .12s; }
+      .rise:nth-child(4) { animation-delay: .2s; }
+      .rise:nth-child(5) { animation-delay: .26s; }
+      .rise:nth-child(6) { animation-delay: .3s; }
+      @keyframes rise { to { opacity: 1; transform: none; } }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img class="mark rise" src="icon.svg" alt="" width="76" height="76">
+    <h1 class="rise">WireWise</h1>
+    <p class="tag rise">Electrical installation simulator.</p>
+
+    <a class="btn rise" id="download" href="https://github.com/jro-d/wirewise/releases/latest">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
+      <span>Download for Windows</span>
+      <span class="ver" id="version"></span>
+    </a>
+
+    <p class="meta rise" id="meta">Windows 10 / 11 &middot; 64-bit</p>
+    <p class="alt rise">
+      <a id="portable" href="https://github.com/jro-d/wirewise/releases/latest">Portable</a><i>/</i><a href="app/">Open in browser</a>
+    </p>
+  </main>
+
+  <footer>
+    <a href="https://github.com/jro-d/wirewise">GitHub</a><i>/</i><a href="https://github.com/jro-d/wirewise/releases">Releases</a><i>/</i><a href="https://github.com/jro-d/wirewise/blob/main/LICENSE">MIT License</a>
+  </footer>
+
+  <script>
+    // Point the button at the newest release. Without this the links still open the releases page.
+    (function () {
+      var mb = function (n) { return Math.round(n / 1048576) + ' MB'; };
+      fetch('https://api.github.com/repos/jro-d/wirewise/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function (rel) {
+          var find = function (re) { return (rel.assets || []).filter(function (a) { return re.test(a.name); })[0]; };
+          var setup = find(/^WireWise-Setup-.*\.exe$/);
+          var portable = find(/^WireWise-Portable-.*\.exe$/);
+          if (setup) {
+            document.getElementById('download').href = setup.browser_download_url;
+            document.getElementById('version').textContent = 'v' + String(rel.tag_name || '').replace(/^v/, '');
+            document.getElementById('meta').textContent = 'Windows 10 / 11 · 64-bit · ' + mb(setup.size);
+          }
+          if (portable) document.getElementById('portable').href = portable.browser_download_url;
+        })
+        .catch(function () {});
+
+      // An earlier version of this site was the web app itself and left a service worker at this address. Remove it.
+      try {
+        if ('serviceWorker' in navigator) {
+          var here = new URL('./', location.href).href;
+          navigator.serviceWorker.getRegistrations().then(function (list) {
+            list.forEach(function (reg) { if (reg.scope === here) reg.unregister(); });
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

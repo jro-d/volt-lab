@@ -1,3 +1,4 @@
+import { ModuleInspector } from './ModuleInspector';
 import React from 'react';
 import { ElectricalDevice, ElectricalWire, CodeStandard } from '../../types/electrical';
 import { getWireStandards, COLOR_STANDARDS } from '../../data/standardsData';
@@ -40,6 +41,10 @@ interface DevicePropertiesPanelProps {
   devices?: ElectricalDevice[];
   onRequestRewire?: (wireId: string, moveEnd: 'from' | 'to') => void;
   onDisconnectWire?: (wireId: string) => void;
+  /** Available fault current at this device's input, A (null when the short-circuit check is off or the device is not reached) */
+  faultKa?: number | null;
+  /** Read-only inspector mode (phone view-only breakpoint) */
+  readOnly?: boolean;
 }
 
 /** Hold-to-press helper for momentary push buttons in the inspector */
@@ -76,6 +81,8 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
   devices = [],
   onRequestRewire,
   onDisconnectWire,
+  faultKa,
+  readOnly = false,
 }) => {
   const patchState = (key: string, value: any) =>
     device && (onPatchDeviceState ? onPatchDeviceState(device.id, { [key]: value }) : onUpdateDeviceProperty(device.id, key, value));
@@ -104,13 +111,23 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
             </div>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 text-ink hover:text-ink hover:bg-surface-hover rounded-lg transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {readOnly && (
+            <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-surface-sunken border border-border text-ink-muted">
+              View only
+            </span>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1 text-ink hover:text-ink hover:bg-surface-hover rounded-lg transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      <div className={readOnly ? 'pointer-events-none opacity-85' : ''}>
+      <fieldset disabled={readOnly} className="border-0 p-0 m-0 min-w-0">
 
       {/* ── STANDARD DATASHEET CARD (brand-neutral) ── */}
       {device && (
@@ -147,6 +164,14 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
                 {device.pecReference || 'PEC 2017'}
               </span>
             </div>
+            {faultKa != null && (
+              <div className="col-span-2" title="Prospective short-circuit current at this device's input (ohmic method, resistive only)">
+                <span className="text-ink-muted block font-medium">Available fault current (Ik):</span>
+                <span className={`font-mono font-semibold ${device.kaRating && device.kaRating < faultKa / 1000 ? 'text-danger' : 'text-ink'}`}>
+                  {(faultKa / 1000).toFixed(faultKa >= 10000 ? 1 : 2)} kA{device.kaRating ? ` vs ${device.kaRating} kAIC rating` : ''}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1326,8 +1351,283 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           <span className="text-[9px] text-ink-muted block">
             8-Pin DPDT Form-C Contacts (Common 11/21, NC 12/22, NO 14/24).
           </span>
+          <div className="grid grid-cols-2 gap-1">
+            {[{ v: 'ac', label: 'AC coil' }, { v: 'dc24', label: '24 V DC coil' }].map((k) => (
+              <button
+                key={k.v}
+                onClick={() => onUpdateDeviceProperty(device.id, 'coilType', k.v)}
+                className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                  (device.state.coilType || 'ac') === k.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                }`}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[9px] text-ink-muted block">
+            A DC coil: A1 = +24 V, A2 = 0 V. Never wire it to an AC line.
+          </span>
         </div>
       )}
+
+      {/* --- PROTECTION & METERING (batch 3.1) --- */}
+      {device && (() => {
+        type Opt = { v: string | number | boolean; label: string };
+        const CONTROLS: Record<string, { label: string; key: string; opts: Opt[]; fallback: string | number | boolean }[]> = {
+          rcd_4p: [{ label: 'Sensitivity IΔn', key: 'sensitivityMa', opts: [{ v: 30, label: '30 mA' }, { v: 100, label: '100 mA' }, { v: 300, label: '300 mA' }], fallback: 30 }],
+          afdd_1pn: [{ label: 'Rated current', key: 'ratedAmps', opts: [{ v: 10, label: '10 A' }, { v: 16, label: '16 A' }, { v: 20, label: '20 A' }], fallback: 16 }],
+          mccb_3p: [
+            { label: 'In (frame rating)', key: 'ratedAmps', opts: [{ v: 63, label: '63 A' }, { v: 100, label: '100 A' }, { v: 160, label: '160 A' }], fallback: 100 },
+            { label: 'Ir long-time dial (× In)', key: 'irFactor', opts: [{ v: 0.4, label: '0.4' }, { v: 0.6, label: '0.6' }, { v: 0.8, label: '0.8' }, { v: 1, label: '1.0' }], fallback: 1 },
+            { label: 'Im magnetic dial (× Ir)', key: 'imFactor', opts: [{ v: 2, label: '2' }, { v: 5, label: '5' }, { v: 8, label: '8' }, { v: 10, label: '10' }], fallback: 5 },
+            { label: 'Shunt trip coil C1-C2', key: 'shuntTrip', opts: [{ v: false, label: 'Not fitted' }, { v: true, label: 'Fitted' }], fallback: false },
+            { label: 'Undervoltage release D1-D2', key: 'uvRelease', opts: [{ v: false, label: 'Not fitted' }, { v: true, label: 'Fitted' }], fallback: false },
+          ],
+          mpcb_3p: [{ label: 'Ir dial (motor FLA)', key: 'irAmps', opts: [{ v: 2.5, label: '2.5 A' }, { v: 4, label: '4 A' }, { v: 6.3, label: '6.3 A' }, { v: 10, label: '10 A' }, { v: 16, label: '16 A' }], fallback: 6.3 }],
+          rotary_isolator_3p: [{ label: 'Padlock', key: 'locked', opts: [{ v: false, label: 'Free' }, { v: true, label: 'Locked OFF' }], fallback: false }],
+          voltage_relay: [
+            { label: 'Nominal voltage', key: 'nominalV', opts: [{ v: 220, label: '220 V' }, { v: 230, label: '230 V' }, { v: 440, label: '440 V' }], fallback: 220 },
+            { label: 'Under-voltage threshold', key: 'underPct', opts: [{ v: 5, label: '−5 %' }, { v: 10, label: '−10 %' }, { v: 15, label: '−15 %' }, { v: 20, label: '−20 %' }], fallback: 15 },
+            { label: 'Over-voltage threshold', key: 'overPct', opts: [{ v: 5, label: '+5 %' }, { v: 10, label: '+10 %' }, { v: 15, label: '+15 %' }], fallback: 10 },
+            { label: 'Delay', key: 'delaySec', opts: [{ v: 0, label: '0 s' }, { v: 2, label: '2 s' }, { v: 5, label: '5 s' }], fallback: 2 },
+          ],
+          earth_leakage_relay: [
+            { label: 'Sensitivity', key: 'sensitivityMa', opts: [{ v: 30, label: '30 mA' }, { v: 100, label: '100 mA' }, { v: 300, label: '300 mA' }, { v: 1000, label: '1 A' }], fallback: 300 },
+            { label: 'Delay', key: 'delaySec', opts: [{ v: 0, label: '0 s' }, { v: 0.3, label: '0.3 s' }, { v: 1, label: '1 s' }], fallback: 0.3 },
+          ],
+          ptc_relay: [{ label: 'Response temperature', key: 'tripTempC', opts: [{ v: 100, label: '100 °C' }, { v: 120, label: '120 °C' }, { v: 140, label: '140 °C' }], fallback: 120 }],
+          current_transformer: [{ label: 'Primary rating (secondary 5 A)', key: 'primaryA', opts: [{ v: 50, label: '50 A' }, { v: 100, label: '100 A' }, { v: 200, label: '200 A' }, { v: 400, label: '400 A' }], fallback: 100 }],
+          panel_ammeter: [{ label: 'Full scale (primary)', key: 'fullScaleA', opts: [{ v: 50, label: '50 A' }, { v: 100, label: '100 A' }, { v: 200, label: '200 A' }, { v: 400, label: '400 A' }], fallback: 100 }],
+          terminal_block: [{ label: 'Kind', key: 'kind', opts: [{ v: 'feedthrough', label: 'Feed-through' }, { v: 'fused', label: 'Fused' }, { v: 'pe', label: 'PE' }], fallback: 'feedthrough' }],
+        };
+        const controls = CONTROLS[device.type];
+        const isMotor = device.type === 'motor_ac_industrial' || device.type === 'pump_booster_3p' || device.type === 'motor_6lead_star_delta';
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const motors = (devices || []).filter((d) => d.type === 'motor_ac_industrial' || d.type === 'pump_booster_3p' || d.type === 'motor_6lead_star_delta');
+        const btn = (label: string, key: string, v: string | number | boolean, fb: string | number | boolean) => (
+          <button
+            key={String(v)}
+            onClick={() => apply({ [key]: v })}
+            className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${(device.state[key] ?? fb) === v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'}`}
+          >
+            {label}
+          </button>
+        );
+        const row = (label: string, key: string, opts: Opt[], fb: string | number | boolean) => (
+          <div key={key}>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>{opts.map((o) => btn(o.label, key, o.v, fb))}</div>
+          </div>
+        );
+        const hasFaultControls = isMotor || device.category === 'load' || device.type.startsWith('appliance_') || device.type === 'socket_duplex' || device.type === 'socket_schuko';
+        if (!controls && !isMotor && device.type !== 'ptc_relay' && !hasFaultControls) return null;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            {controls && <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Settings</label>}
+            {controls?.map((c) => row(c.label, c.key, c.opts, c.fallback))}
+            {device.type === 'ptc_relay' && (
+              <div>
+                <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">Watches motor</div>
+                <select
+                  value={String(device.state.motorId || '')}
+                  onChange={(e) => apply({ motorId: e.target.value })}
+                  className="w-full bg-surface border border-border rounded-lg px-2 py-1 text-xs font-mono text-ink"
+                >
+                  <option value="">(none)</option>
+                  {motors.map((m) => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
+                </select>
+              </div>
+            )}
+            {isMotor && (
+              <>
+                {row('Shaft load', 'loadPct', [{ v: 100, label: '100 %' }, { v: 125, label: '125 %' }, { v: 150, label: '150 %' }], 100)}
+                <div className="text-[10px] font-mono text-ink-muted">Winding temperature {Number(device.state.windingC) || 40} °C</div>
+              </>
+            )}
+            {hasFaultControls && (
+              <>
+                {row('Earth-leakage fault', 'hasEarthFault', [{ v: false, label: 'None' }, { v: true, label: 'Leaking' }], false)}
+                {row('Leakage current', 'faultMa', [{ v: 5, label: '5 mA' }, { v: 30, label: '30 mA' }, { v: 100, label: '100 mA' }, { v: 500, label: '500 mA' }], 500)}
+                {row('Loose terminal (series arc)', 'looseTerminal', [{ v: false, label: 'Tight' }, { v: true, label: 'Loose' }], false)}
+              </>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* --- INSULATION / EARTH CONDITION (read back by the test instruments) --- */}
+      {device && (device.type === 'motor_ac_industrial' || device.type === 'motor_6lead_star_delta' || device.type === 'motor_1p' || device.type === 'pump_booster_3p' || device.type === 'ground_pit') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const isPit = device.type === 'ground_pit';
+        const key = isPit ? 'earthResistanceOhms' : 'insulationMOhm';
+        const opts = isPit
+          ? [{ v: 2, label: '2 Ω' }, { v: 5, label: '5 Ω' }, { v: 25, label: '25 Ω' }, { v: 60, label: '60 Ω' }]
+          : [{ v: 999, label: 'Good' }, { v: 2, label: 'Degraded' }, { v: 0.3, label: 'Damaged' }];
+        const current = Number(device.state[key] ?? (isPit ? 4.8 : 999));
+        return (
+          <div className="space-y-2 mt-2 pt-2 border-t border-border/80">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">
+              {isPit ? 'Electrode Resistance (what the earth tester reads)' : 'Winding Insulation (what the insulation tester reads)'}
+            </label>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>
+              {opts.map((o) => (
+                <button
+                  key={o.v}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${current === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* --- SINGLE-PHASE MOTOR + CAPACITOR --- */}
+      {device && (device.type === 'motor_1p' || device.type === 'capacitor_run') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | number | boolean; label: string }[], fallback: string | number | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        const note = (device.state.motorFault || device.state.motorNote) as string | undefined;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            {device.type === 'motor_1p' ? (
+              <>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Single-Phase Motor</label>
+                {choice('Type', 'motorKind', [{ v: 'split_phase', label: 'Split-phase' }, { v: 'capacitor_start', label: 'Cap-start' }, { v: 'psc', label: 'PSC' }], 'capacitor_start')}
+                <div className="text-[10px] font-mono text-ink-muted">
+                  Speed {Math.round(Number(device.state.speedPct) || 0)} % · centrifugal switch {device.state.motorKind === 'psc' ? 'none' : device.state.centrifugalOpen ? 'OPEN' : 'closed'} · {Number(device.state.measuredAmps || 0).toFixed(1)} A
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Motor Capacitor</label>
+                {choice('Value', 'uF', [{ v: 12, label: '12 µF' }, { v: 25, label: '25 µF' }, { v: 50, label: '50 µF' }, { v: 100, label: '100 µF' }, { v: 150, label: '150 µF' }], 100)}
+                {choice('Condition', 'open', [{ v: false, label: 'Good' }, { v: true, label: 'Failed open' }], false)}
+              </>
+            )}
+            {note && <div className="text-[10px] font-bold text-danger bg-danger-soft/60 border border-danger/40 rounded-lg px-2 py-1">{note}</div>}
+          </div>
+        );
+      })()}
+
+      {/* --- ANNUNCIATORS: buzzer, beacon, tower light --- */}
+      {device && (device.type === 'buzzer_horn' || device.type === 'beacon' || device.type === 'tower_light') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | boolean; label: string }[], fallback: string | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <div className="flex justify-between items-center gap-2">
+              <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">Annunciator</label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${device.state.active ? 'bg-ok-soft/90 text-ok border border-ok/50' : 'bg-surface-sunken text-ink border border-border'}`}>
+                {device.state.active ? (device.type === 'buzzer_horn' ? '● SOUNDING' : '● LIT') : '○ OFF'}
+              </span>
+            </div>
+            {choice('Supply', 'supply', [{ v: 'ac230', label: '230 V AC' }, { v: 'dc24', label: '24 V DC' }], 'ac230')}
+            {device.type === 'beacon' && (
+              <>
+                {choice('Mode', 'mode', [{ v: 'steady', label: 'Steady' }, { v: 'flashing', label: 'Flashing' }], 'steady')}
+                {choice('Colour', 'color', [{ v: 'red', label: 'Red' }, { v: 'amber', label: 'Amber' }, { v: 'green', label: 'Green' }, { v: 'blue', label: 'Blue' }], 'red')}
+              </>
+            )}
+            {device.type === 'buzzer_horn' && choice('Sound', 'muted', [{ v: false, label: 'On' }, { v: true, label: 'Muted' }], false)}
+          </div>
+        );
+      })()}
+
+      {/* --- 24 V DC DOMAIN: supply, sensors, PLC --- */}
+      {device && (device.type === 'psu_24vdc' || device.type === 'sensor_inductive' || device.type === 'sensor_capacitive' || device.type === 'sensor_photoelectric' || device.type === 'plc_24vdc_16io' || device.type === 'plc_24vdc_32io') && (() => {
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const choice = (label: string, key: string, options: { v: string | number | boolean; label: string }[], fallback: string | number | boolean) => (
+          <div>
+            <div className="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-0.5">{label}</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+              {options.map((o) => (
+                <button
+                  key={String(o.v)}
+                  onClick={() => apply({ [key]: o.v })}
+                  className={`py-1 rounded-lg border text-xs font-mono font-bold transition ${
+                    (device.state[key] ?? fallback) === o.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+        const note = (device.state.psuFault || device.state.wiringNote || device.state.supplyNote || device.state.dcNote) as string | undefined;
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider">24 V DC Control Domain</label>
+            {device.type === 'psu_24vdc' && choice('Rated current', 'ratedAmps', [{ v: 2.5, label: '2.5 A' }, { v: 5, label: '5 A' }, { v: 10, label: '10 A' }], 5)}
+            {device.type.startsWith('sensor_') && (
+              <>
+                {choice('Output', 'output', [{ v: 'PNP', label: 'PNP' }, { v: 'NPN', label: 'NPN' }], 'PNP')}
+                {choice('Contact', 'contact', [{ v: 'NO', label: 'NO' }, { v: 'NC', label: 'NC' }], 'NO')}
+                {choice('Target', 'detected', [{ v: false, label: 'Clear' }, { v: true, label: 'Detected' }], false)}
+              </>
+            )}
+            {(device.type === 'plc_24vdc_16io' || device.type === 'plc_24vdc_32io') && (
+              <>
+                {choice('CPU', 'plcRunning', [{ v: true, label: 'RUN' }, { v: false, label: 'STOP' }], true)}
+                {choice('Program', 'program', [{ v: 'passthrough', label: 'Qn = In' }, { v: 'start_stop_latch', label: 'Start/Stop' }], 'passthrough')}
+                {choice('Inputs', 'inputMode', [{ v: 'sinking', label: 'Sinking (PNP)' }, { v: 'sourcing', label: 'Sourcing (NPN)' }], 'sinking')}
+              </>
+            )}
+            {note && <div className="text-[10px] font-bold text-danger bg-danger-soft/60 border border-danger/40 rounded-lg px-2 py-1">{note}</div>}
+          </div>
+        );
+      })()}
 
       {/* --- FUSE HOLDER / FUSE SWITCH DISCONNECTOR --- */}
       {device && (device.type === 'fuse_holder_1p' || device.type === 'fuse_switch_disconnector_3p') && (() => {
@@ -1657,6 +1957,145 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         );
       })()}
 
+      {/* --- BATCH 3.2: SOURCES AND POWER SYSTEMS (adjustable properties) --- */}
+      {device && (() => {
+        type Spec = { key: string; label: string; min: number; max: number; step: number; unit: string; def: number };
+        const SPECS: Record<string, Spec[]> = {
+          pv_string: [
+            { key: 'irradiance', label: 'Irradiance', min: 0, max: 100, step: 5, unit: '%', def: 100 },
+            { key: 'kwp', label: 'Peak power', min: 1, max: 6, step: 0.5, unit: 'kWp', def: 3 },
+          ],
+          inverter_gridtie: [{ key: 'ratedW', label: 'Rated output', min: 1000, max: 6000, step: 500, unit: 'W', def: 3000 }],
+          ups_battery: [
+            { key: 'capacityWh', label: 'Battery capacity', min: 50, max: 2000, step: 50, unit: 'Wh', def: 500 },
+            { key: 'socPct', label: 'State of charge', min: 0, max: 100, step: 5, unit: '%', def: 100 },
+          ],
+          transformer_1p_pole: [
+            { key: 'ratio', label: 'Turns ratio (primary : secondary)', min: 1, max: 4, step: 0.01, unit: ': 1', def: 1.91 },
+            { key: 'kva', label: 'Rating', min: 1, max: 100, step: 1, unit: 'kVA', def: 25 },
+            { key: 'regulationPct', label: 'Regulation at full load', min: 1, max: 8, step: 0.5, unit: '%', def: 3 },
+          ],
+          transformer_3p_delta_wye: [
+            { key: 'ratio', label: 'Turns ratio (line : line)', min: 0.5, max: 4, step: 0.05, unit: ': 1', def: 1.1 },
+            { key: 'kva', label: 'Rating', min: 10, max: 500, step: 5, unit: 'kVA', def: 75 },
+            { key: 'regulationPct', label: 'Regulation at full load', min: 1, max: 8, step: 0.5, unit: '%', def: 3 },
+          ],
+          capacitor_bank_3p: [
+            { key: 'kvarPerStep', label: 'Step size', min: 1, max: 25, step: 1, unit: 'kvar', def: 5 },
+            { key: 'steps', label: 'Steps', min: 1, max: 4, step: 1, unit: '', def: 4 },
+          ],
+          pf_controller: [
+            { key: 'targetPf', label: 'Target power factor', min: 0.8, max: 1, step: 0.01, unit: '', def: 0.95 },
+            { key: 'stepDelaySec', label: 'Step delay', min: 1, max: 20, step: 1, unit: 's', def: 2 },
+          ],
+          reverse_power_relay: [{ key: 'delaySec', label: 'Trip delay', min: 1, max: 20, step: 1, unit: 's', def: 3 }],
+          preferential_trip_relay: [
+            { key: 'thresholdPct', label: 'Threshold (of kVA rating)', min: 50, max: 100, step: 1, unit: '%', def: 90 },
+            { key: 'delaySec', label: 'Trip delay', min: 0.5, max: 2, step: 0.5, unit: 's', def: 0.5 },
+          ],
+          generator_set_1p: [{ key: 'freqOffsetHz', label: 'Frequency offset (speed)', min: -1, max: 1, step: 0.05, unit: 'Hz', def: 0 }],
+          generator_set_3p: [{ key: 'freqOffsetHz', label: 'Frequency offset (speed)', min: -1, max: 1, step: 0.05, unit: 'Hz', def: 0 }],
+        };
+        const specs = SPECS[device.type];
+        const isGen = device.type === 'generator_set_1p' || device.type === 'generator_set_3p';
+        const isFeeder = device.type === 'source_3phase_440v';
+        const isTransformer = device.type.startsWith('transformer_');
+        if (!specs && !isFeeder) return null;
+        const apply = (patch: Record<string, any>) => {
+          if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+          else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+        };
+        const hint: Record<string, string> = {
+          pv_string: 'Power follows the irradiance. Click the panel on the device to switch between sun and night.',
+          inverter_gridtie: 'Exports only while it sees the grid on its AC terminals (anti-islanding); waits 5 s after the grid returns. The meter does the import / export accounting.',
+          ups_battery: 'On loss of input the battery drives the output until it is empty. Energy runs 60x faster than real time so a discharge can be watched.',
+          transformer_1p_pole: 'Secondary = primary / ratio. The loaded voltage drops by the regulation at the present load.',
+          transformer_3p_delta_wye: 'Dyn11 delta-wye. Secondary line voltage = primary line voltage / ratio. The 30 degree phase shift is not modelled.',
+          capacitor_bank_3p: 'Step i is switched in by its control input c_i against cn. A step needs 3 s to discharge before it can be switched in again.',
+          pf_controller: 'Wire com to a control supply and k1-k4 to the bank control inputs. It adds a step while the plant lags and removes one when it is over-corrected.',
+          reverse_power_relay: 'Wire the sense terminals to the generator output. Set the generator to Motoring (engine failure) to see it trip.',
+          preferential_trip_relay: 'Wire the sense terminals to the generator output and the contact to a shunt trip. It latches: press RESET on the device to clear it.',
+        };
+        return (
+          <div className="space-y-3 mt-2 pt-2 border-t border-border/80">
+            <label className="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">
+              {isFeeder ? 'Feeder Earthing' : isGen ? 'Paralleling' : 'Adjustments'}
+            </label>
+            {isFeeder && (
+              <div className="grid grid-cols-2 gap-1">
+                {[
+                  { v: 'solid', label: 'Solidly earthed', sub: 'TN: PE is the earth reference' },
+                  { v: 'isolated', label: 'Isolated (IT)', sub: 'first earth fault tolerated' },
+                ].map((k) => (
+                  <button
+                    key={k.v}
+                    onClick={() => apply({ earthing: k.v })}
+                    className={`py-1 rounded-lg border text-xs font-mono font-bold flex flex-col items-center transition ${
+                      (device.state.earthing || 'solid') === k.v ? 'bg-probe text-on-probe border-probe shadow-sm' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                    }`}
+                  >
+                    {k.label}
+                    <span className="text-[9px] font-sans font-normal opacity-80">{k.sub}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {(specs || []).map((sp) => {
+              const raw = Number(device.state[sp.key]);
+              const value = Number.isFinite(raw) && device.state[sp.key] !== undefined ? raw : sp.def;
+              return (
+                <div key={sp.key}>
+                  <div className="flex justify-between text-[10px] text-ink-muted mb-0.5">
+                    <span className="font-bold uppercase tracking-wider">{sp.label}</span>
+                    <span className="font-mono text-ink font-bold">{value} {sp.unit}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={sp.min}
+                    max={sp.max}
+                    step={sp.step}
+                    value={value}
+                    onChange={(e) => apply({ [sp.key]: Number(e.target.value) })}
+                    className="w-full accent-probe cursor-pointer h-1.5 bg-surface-sunken rounded-lg"
+                  />
+                </div>
+              );
+            })}
+            {isGen && (
+              <button
+                onClick={() => apply({ motoring: !device.state.motoring })}
+                className={`w-full py-1.5 rounded-lg border text-xs font-bold transition ${
+                  device.state.motoring ? 'bg-danger-soft text-danger border-danger/60' : 'bg-surface/90 hover:bg-surface-sunken text-ink border-border'
+                }`}
+              >
+                {device.state.motoring ? '⚠ MOTORING (engine failure): click to clear' : 'Simulate engine failure (motoring)'}
+              </button>
+            )}
+            {isTransformer && (
+              <div className="bg-surface-sunken p-2.5 rounded-md border border-border grid grid-cols-3 gap-2 text-xs font-mono">
+                <div><span className="text-[9px] text-ink-muted block font-sans">PRIMARY</span><span className="font-bold text-ink">{device.state.primaryV || 0} V</span></div>
+                <div><span className="text-[9px] text-ink-muted block font-sans">NO LOAD</span><span className="font-bold text-ink">{device.state.secondaryUnloadedV || 0} V</span></div>
+                <div><span className="text-[9px] text-ink-muted block font-sans">LOADED</span><span className="font-bold text-ink">{device.state.secondaryLoadedV || 0} V</span></div>
+              </div>
+            )}
+            {hint[device.type] && <span className="text-[9px] text-ink-muted block">{hint[device.type]}</span>}
+            {isGen && <span className="text-[9px] text-ink-muted block">A frequency offset makes the set slip against another one so a synchroscope shows a rotating phase difference (slowed 4x).</span>}
+          </div>
+        );
+      })()}
+
+      {/* --- GENERIC DEVICE MODULES (batches 3.3 onward): controls from data/moduleSpecs.ts --- */}
+      {device && (
+        <ModuleInspector
+          device={device}
+          devices={devices || []}
+          apply={(patch) => {
+            if (onPatchDeviceState) onPatchDeviceState(device.id, patch);
+            else Object.entries(patch).forEach(([k, v]) => onUpdateDeviceProperty(device.id, k, v));
+          }}
+        />
+      )}
+
       {/* --- TIMER RELAY (KT) --- */}
       {device && device.type === 'timer_relay' && (() => {
         const mode = (device.state.timerMode as TimerMode) || 'on_delay';
@@ -1918,7 +2357,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           )}
 
           {/* Move Endpoint / Disconnect Connected Ports */}
-          {(() => {
+          {!readOnly && (() => {
             const fromDev = devices.find((d) => d.id === wire.fromDeviceId);
             const toDev = devices.find((d) => d.id === wire.toDeviceId);
             const fromTerm = fromDev?.terminals.find((t) => t.id === wire.fromTerminalId);
@@ -1972,7 +2411,11 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
         </div>
       )}
 
+      </fieldset>
+      </div>
+
       {/* Footer Action Buttons (Rotate, Duplicate, Delete) */}
+      {!readOnly && (
       <div className="pt-3 mt-3 border-t border-border/80 flex items-center justify-between gap-2">
         {device && (
           <div className="flex items-center gap-1.5">
@@ -2004,6 +2447,7 @@ export const DevicePropertiesPanel: React.FC<DevicePropertiesPanelProps> = ({
           <span>Delete</span>
         </button>
       </div>
+      )}
     </div>
   );
 };

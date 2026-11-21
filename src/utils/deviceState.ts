@@ -30,7 +30,241 @@ export function resetTransientState(device: ElectricalDevice): ElectricalDevice 
   if ('motorDirection' in state) state.motorDirection = null;
   if ('motorFault' in state) state.motorFault = null;
   if ('starterMode' in state) state.starterMode = null;
+  if (device.type === 'plc_micro_controller' || device.type === 'plc_24vdc_16io' || device.type === 'plc_24vdc_32io') {
+    // The scan memory (timers, counters, latches) clears with the PLC power; the program itself stays
+    state.plcRuntime = undefined;
+    state.plcScans = 0;
+  }
   if (device.type === 'pump_booster_1p' || device.type === 'pump_booster_3p') state.pumping = false;
+  // Batch 3.2: live readouts clear; stored energy (UPS charge, meter registers) and handle positions stay
+  if (device.type === 'ups_battery') {
+    state.onBattery = false;
+    state.loadW = 0;
+  }
+  if (device.type === 'inverter_gridtie') {
+    state.acPowerW = 0;
+    state.reconnectSec = 0;
+    state.status = 'NO DC INPUT';
+  }
+  if (device.type === 'pv_string') {
+    state.dcOutputOn = false;
+    state.powerW = 0;
+  }
+  if (device.type === 'capacitor_bank_3p') {
+    for (let i = 1; i <= 4; i++) {
+      state[`on${i}`] = false;
+      state[`lock${i}`] = 0;
+    }
+    state.stepsOn = 0;
+    state.kvarOn = 0;
+  }
+  if (device.type === 'pf_controller') state.stepsCmd = 0;
+  if (device.type === 'preferential_trip_relay' || device.type === 'reverse_power_relay') {
+    state.tripped = false;
+    state.timerSec = 0;
+  }
+  if (device.type === 'synchroscope') state.inSync = false;
+  // Batch 3.3: control modules return to their power-up state (set points and handle positions stay)
+  if (device.type === 'star_delta_timer') {
+    state.phase = 'idle';
+    state.elapsedSec = 0;
+  }
+  if (device.type === 'counter_relay') {
+    state.count = 0;
+    state.out = false;
+    state.countPrev = false;
+  }
+  if (device.type === 'impulse_relay') {
+    state.latched = false;
+    state.coilPrev = false;
+  }
+  if (device.type === 'staircase_timer') {
+    state.remainingSec = 0;
+    state.active = false;
+  }
+  if (device.type === 'time_switch_24h') state.out = false;
+  if (device.type === 'alternating_relay') {
+    state.lead = 2;
+    state.coilOn = false;
+  }
+  if (device.type === 'ssr_1p') state.on = false;
+  if (device.type === 'operator_pilot') state.lit = false;
+  if (device.type === 'aux_contact_block') state.engaged = false;
+  if (device.type === 'safety_relay') {
+    state.powered = false;
+    state.ch1 = false;
+    state.ch2 = false;
+    state.outOn = false;
+    state.fault = false;
+    state.discrepancy = false;
+    state.x2Prev = false;
+  }
+  if (device.type === 'two_hand_station') {
+    state.armed = false;
+    state.needRelease = false;
+  }
+  // Batch 3.4: outputs and measured values clear; set points, targets and positions stay
+  if (device.type === 'electrode_level_relay') {
+    state.out = false;
+    state.powered = false;
+  }
+  if (device.type === 'thermostat') {
+    state.out = false;
+    state.tempC = Number(state.ambientC) || 15;
+  }
+  if (device.type === 'thermocouple_k') state.tempC = Number(state.ambientC) || 20;
+  if (device.type === 'temp_controller') {
+    state.out = false;
+    state.pv = 0;
+    state.fault = '';
+  }
+  if (device.type === 'photocell_switch') state.on = false;
+  if (device.type === 'pir_sensor') {
+    state.on = false;
+    state.remainingSec = 0;
+  }
+  if (device.type === 'flow_switch') {
+    state.flowing = false;
+    state.lpm = 0;
+  }
+  if (device.type === 'zero_speed_switch') {
+    state.speedPct = 0;
+    state.zero = false;
+  }
+  if (device.type === 'solenoid_valve') state.open = false;
+  // Batch 3.5: speeds, ramps and positions return to standstill; set points stay
+  if (['soft_starter', 'starter_reduced_voltage'].includes(device.type)) {
+    state.on = false;
+    state.phase = 'idle';
+    state.elapsedSec = 0;
+    state.rampPct = 0;
+  }
+  if (['motor_dahlander', 'motor_wound_rotor', 'motor_dc_shunt', 'motor_brake'].includes(device.type)) {
+    state.speedPct = 0;
+    state.running = false;
+  }
+  if (device.type === 'motor_dahlander') state.speedSet = 'off';
+  if (device.type === 'motor_wound_rotor') state.stages = -1;
+  if (device.type === 'rotor_resistor_bank') state.stages = 0;
+  if (device.type === 'motor_dc_shunt') {
+    state.elapsedSec = 0;
+    state.starterStep = 0;
+    state.armPowered = false;
+    state.fieldPowered = false;
+    state.overspeed = false;
+  }
+  if (device.type === 'motor_brake') {
+    state.brakeReleased = false;
+    state.locked = false;
+  }
+  if (device.type === 'dc_injection_brake') {
+    state.remainingSec = 0;
+    state.braking = false;
+    state.runPrev = false;
+  }
+  if (device.type === 'pump_submersible_3p' || device.type === 'air_compressor_3p') {
+    state.running = false;
+    state.pumping = false;
+  }
+  if (device.type === 'hoist_conveyor') {
+    state.running = false;
+    state.moving = false;
+    state.stalled = false;
+    state.stallSec = 0;
+  }
+  // Batch 3.6: cycles restart, batteries and heat keep their value except the live flags
+  if (device.type === 'appliance_generic') {
+    state.elapsedSec = 0;
+    state.wattsNow = 0;
+    state.phase = 'off';
+    state.timerSec = 0;
+  }
+  if (device.type === 'emergency_light') {
+    state.mains = false;
+    state.lit = false;
+    state.onBattery = false;
+  }
+  if (device.type === 'doorbell_set') {
+    state.ringing = false;
+    state.secondaryV = 0;
+    state.pressedSense = false;
+  }
+  if (device.type === 'power_strip') {
+    state.loadAmps = 0;
+    state.overload = false;
+  }
+  // Batch 3.7: the valve spool and cylinder go back to retracted, the displays clear
+  if (device.type === 'valve_52') {
+    state.spool = 'none';
+    state.y1 = false;
+    state.y2 = false;
+  }
+  if (device.type === 'cylinder_da') {
+    state.position = 0;
+    state.atExtended = false;
+    state.atRetracted = true;
+    state.moving = false;
+  }
+  if (device.type === 'analog_io_module') state.powered = false;
+  if (device.type === 'hmi_panel') {
+    state.powered = false;
+    state.linked = false;
+    for (let i = 1; i <= 4; i++) state[`lamp${i}`] = false;
+  }
+  if (device.type === 'fire_alarm_panel') {
+    state.powered = false;
+    state.alarm = false;
+    state.silenced = false;
+    state.loopTripped = false;
+    state.resetRequested = false;
+  }
+  if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') state.phaseAngleDeg = 0;
+  if (device.type === 'motor_ac_industrial' || device.type === 'pump_booster_3p' || device.type === 'motor_6lead_star_delta') state.windingC = 40;
+  if (device.type === 'mccb_3p' || device.type === 'mpcb_3p') state.heat = 0;
+  if (device.type === 'mccb_3p') state.uvPowered = false;
+  if (device.type === 'voltage_relay' || device.type === 'earth_leakage_relay' || device.type === 'ptc_relay') {
+    state.relayOn = false;
+    state.supplied = false;
+    state.timerSec = 0;
+    state.relayFault = '';
+    state.ptcTripped = false;
+    state.windingC = 40;
+    state.leakageMa = 0;
+  }
+  if (device.type === 'core_balance_ct') state.leakageMa = 0;
+  if (device.type === 'current_transformer') {
+    state.openSecondary = false;
+    state.secondaryA = 0;
+    state.primaryAmps = 0;
+  }
+  if (device.type === 'panel_ammeter') state.readingA = 0;
+  if (device.type === 'voltmeter_selector') state.readingV = 0;
+  if ('arcing' in state) state.arcing = false;
+  if (device.type === 'psu_24vdc') {
+    state.dcOutputOn = false;
+    state.psuTripped = false;
+    state.psuRecoverSec = 0;
+    state.psuFault = '';
+    state.dcLoadAmps = 0;
+  }
+  if (device.type === 'sensor_inductive' || device.type === 'sensor_capacitive' || device.type === 'sensor_photoelectric') {
+    state.outActive = false;
+    state.sensorPowered = false;
+    state.wiringNote = '';
+    state.supplyNote = '';
+  }
+  if (device.type === 'plc_24vdc_16io' || device.type === 'plc_24vdc_32io') state.dcNote = '';
+  if (device.type === 'motor_1p') {
+    state.speedPct = 0;
+    state.startOk = false;
+    state.centrifugalOpen = false;
+    state.motorNote = '';
+  }
+  if (device.type === 'buzzer_horn' || device.type === 'beacon' || device.type === 'tower_light') {
+    state.active = false;
+    if ('segments' in state) state.segments = {};
+  }
+  if (device.type === 'industrial_relay_dpdt' && state.coilType === 'dc24') state.coilEnergized = false;
   if (device.type === 'float_switch' || device.type === 'pressure_switch') state.contactClosed = false;
   if (device.type === 'generator_set_1p' || device.type === 'generator_set_3p') {
     // A stopped plant when the grid is de-energized

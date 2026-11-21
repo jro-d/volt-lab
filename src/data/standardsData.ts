@@ -226,3 +226,35 @@ export function getDefaultWireGauge(standard: CodeStandard, circuitType: 'lighti
     }
   }
 }
+
+/**
+ * Cable damage constant k for the adiabatic withstand t = (k x S / I)^2 (S in mm2, I in A, t up to about 5 s).
+ * The value is the one usually quoted for PVC-insulated copper conductors; it is flagged because it has not been
+ * checked against the project's copy of the code.
+ */
+export const CABLE_DAMAGE_K = {
+  copper_pvc: {
+    k: 115,
+    needsVerification: true,
+    note: 'Copper conductor, PVC insulation: confirm k against the code table before using the plot for design.',
+  },
+} as const;
+
+/** Standard overcurrent device sizes (A) used to suggest a main breaker. Generic preferred sizes: verify the list against your copy of the code. */
+export const STANDARD_BREAKER_SIZES = [15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 225, 250, 300, 400];
+
+/**
+ * Demand factors by load type. These are DATA for the user to fill in, not code: every value is left empty
+ * (null) because the factors and their clauses have not been verified. The Load Schedule shows "set demand
+ * factors" while any is empty and the user can type their own in the project (project.loadSchedule).
+ */
+export const DEMAND_FACTORS: Record<string, { factor: number | null; source: string; needsVerification: true }> = {
+  lighting: { factor: null, source: 'Enter the demand factor and clause from your copy of the code', needsVerification: true },
+  receptacle: { factor: null, source: 'Enter the demand factor and clause from your copy of the code', needsVerification: true },
+  appliance: { factor: null, source: 'Enter the demand factor and clause from your copy of the code', needsVerification: true },
+  'air conditioner': { factor: null, source: 'Enter the demand factor and clause from your copy of the code', needsVerification: true },
+  'water heater': { factor: null, source: 'Enter the demand factor and clause from your copy of the code', needsVerification: true },
+  motor: { factor: null, source: 'Enter the demand factor and clause from your copy of the code', needsVerification: true },
+  range: { factor: null, source: 'Enter the demand factor and clause from your copy of the code', needsVerification: true },
+  'ev charger': { factor: null, source: 'Enter the demand factor and clause from your copy of the code', needsVerification: true },
+};

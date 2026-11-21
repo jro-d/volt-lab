@@ -13,6 +13,20 @@ interface StatusBarProps {
   onSnapChange: (snap: SnapSize) => void;
   totalWatts: number;
   totalAmps: number;
+  /** Troubleshooting mode toggle (hidden faults, symptoms only) */
+  troubleshootMode?: boolean;
+  onToggleTroubleshoot?: () => void;
+  /** Timing diagram recorder dock */
+  recorderOpen?: boolean;
+  onToggleRecorder?: () => void;
+  /** Time-current coordination curves dock */
+  curvesOpen?: boolean;
+  onToggleCurves?: () => void;
+  /** Reports: load schedule, bill of materials and the other planning documents */
+  onOpenReports?: () => void;
+  /** Short-circuit check: fault levels overlay */
+  faultLevelsOn?: boolean;
+  onToggleFaultLevels?: () => void;
 }
 
 const SNAP_CYCLE: SnapSize[] = [10, 5, 0];
@@ -30,6 +44,15 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onSnapChange,
   totalWatts,
   totalAmps,
+  troubleshootMode = false,
+  onToggleTroubleshoot,
+  recorderOpen = false,
+  onToggleRecorder,
+  curvesOpen = false,
+  onToggleCurves,
+  faultLevelsOn = false,
+  onToggleFaultLevels,
+  onOpenReports,
 }) => {
   const { cursorX, cursorY, zoom, wiring } = useCadStatus();
 
@@ -81,6 +104,56 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           </span>
         ))}
       </div>
+
+      {onToggleRecorder && (
+        <button
+          onClick={onToggleRecorder}
+          title="Timing diagram recorder: plot coils, contacts, lamps, voltages and currents against time"
+          className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${recorderOpen ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
+        >
+          📈 Recorder
+        </button>
+      )}
+
+      {onToggleFaultLevels && (
+        <button
+          onClick={onToggleFaultLevels}
+          title="Fault levels: prospective short-circuit current at every device and the interrupting-rating check"
+          className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${faultLevelsOn ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
+        >
+          ⚡ Fault levels
+        </button>
+      )}
+
+      {onOpenReports && (
+        <button
+          onClick={onOpenReports}
+          title="Reports: load schedule, bill of materials, wire numbering, energy and billing, share link"
+          className="mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition bg-surface border-border text-ink hover:bg-surface-hover"
+        >
+          📄 Reports
+        </button>
+      )}
+
+      {onToggleCurves && (
+        <button
+          onClick={onToggleCurves}
+          title="Time-current curves: check selectivity between breakers, fuses and overload relays, motor start and cable damage limits"
+          className={`mr-2 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${curvesOpen ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
+        >
+          〰 Curves
+        </button>
+      )}
+
+      {onToggleTroubleshoot && (
+        <button
+          onClick={onToggleTroubleshoot}
+          title="Troubleshooting mode: hidden faults, symptoms only, hints and a score"
+          className={`mr-3 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 transition ${troubleshootMode ? 'bg-probe text-on-probe border-probe' : 'bg-surface border-border text-ink hover:bg-surface-hover'}`}
+        >
+          🔧 Troubleshoot
+        </button>
+      )}
 
       <div className="font-semibold text-ink truncate">
         {standardLabel} • {gridVoltage}V {gridFrequency}Hz • Connected: {Math.round(totalWatts)}W ({totalAmps.toFixed(2)}A)

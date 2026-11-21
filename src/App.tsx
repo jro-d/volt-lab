@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard, DeviceType } from './types/electrical';
+import { ElectricalProject, ElectricalDevice, ElectricalWire, CodeStandard, DeviceType, RecorderChannel } from './types/electrical';
 import { CodeViolation } from './types/codes';
 import { SparkEvent } from './types/simulation';
 import { LabLesson, createBlankProject } from './data/labTemplates';
@@ -18,17 +18,35 @@ import { WiringCanvas } from './components/canvas/WiringCanvas';
 import { SchematicCanvas } from './components/canvas/SchematicCanvas';
 import { LadderCanvas } from './components/canvas/LadderCanvas';
 import { LadderRung } from './types/ladder';
-import { sound } from './utils/soundFx';
+import { sound, playBuzzerBeep } from './utils/soundFx';
+import { TroubleshootPanel } from './components/layout/TroubleshootPanel';
+import { newDiagState, type DiagState } from './core/troubleshootSession';
+import type { TroubleshootScenario } from './data/troubleshootScenarios';
+import { measureInsulation, measureEarthResistance, measureRotation, measureContinuity, type InstrumentId } from './core/instruments';
 import { replaceBlownFuse, resetTripState, toEditModeDevices } from './utils/deviceState';
 import { migrateLegacyProject } from './utils/projectMigration';
 import { inferConductorRole } from './core/conductorRole';
 import { DEFAULT_PROCESS, tickProcess } from './core/process';
+import { Recorder } from './core/recorder';
+import { RecorderPanel } from './components/layout/RecorderPanel';
+import { CurvesPanel } from './components/layout/CurvesPanel';
+import { FaultLevelsPanel } from './components/layout/FaultLevelsPanel';
+import { ReportsPanel } from './components/layout/ReportsPanel';
+import { PlanView } from './components/canvas/PlanView';
+import { decodeShare, isShareHash } from './utils/shareLink';
+import { simulateGate } from './core/safeIsolation';
+import { accumulateEnergy, emptyLedger, DEFAULT_ENERGY, type EnergyLedger } from './core/energy';
+import { computeFaultLevels, checkInterruptingRatings, DEFAULT_SHORT_CIRCUIT } from './core/shortCircuit';
+import { PlcEditor } from './components/canvas/PlcEditor';
 import { applyProtectiveOutcome, needsTick, tickSimulation, TICK_SECONDS } from './core/simulationTick';
 import { EMBEDDED_PROJECT_ID, NOT_EMBEDDED_PROJECT, LEGACY_EMBEDDED_PROJECT_ID, readEmbeddedProject } from './utils/embeddedProject';
+import { useBreakpoint } from './hooks/useBreakpoint';
+import { UpdateBanner } from './components/layout/UpdateBanner';
+import type { DesktopUpdateStatus } from './types/desktop';
 
 const LOCKED_MESSAGE = 'Stop simulation (■) to modify wiring';
 
-type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic';
+type ViewMode = 'realistic' | 'split' | 'ladder' | 'schematic' | 'plc' | 'plan';
 
 function loadEmbeddedProject(): ElectricalProject | null {
   try {
@@ -65,11 +83,40 @@ export const App: React.FC = () => {
 
   // Edit Mode (de-energized, safe wiring) vs Simulation Mode (grid energized)
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const breakpoint = useBreakpoint();
+  const isViewOnly = breakpoint === 'phone';
+  const [reportsInitialTab, setReportsInitialTab] = useState<string | undefined>(undefined);
+  const [desktopVersion, setDesktopVersion] = useState<string | undefined>(undefined);
+  const [updateStatus, setUpdateStatus] = useState<DesktopUpdateStatus | null>(null);
+
+  useEffect(() => {
+    const bridge = window.wirewiseDesktop;
+    if (!bridge) return;
+    bridge.getInfo().then((info) => setDesktopVersion(info.version)).catch(() => {});
+    const unsubscribe = bridge.onUpdateStatus((status) => {
+      setUpdateStatus(status);
+    });
+    return unsubscribe;
+  }, []);
   const [dmmMode, setDmmMode] = useState<boolean>(false);
   const [rewiringTarget, setRewiringTarget] = useState<{ wireId: string; moveEnd: 'from' | 'to' } | null>(null);
   const [dmmProbeA, setDmmProbeA] = useState<{ deviceId: string; terminalId: string } | null>(null);
+  // Troubleshooting mode: hidden faults are active only while this is on
+  const [troubleshoot, setTroubleshoot] = useState<boolean>(false);
+  // Timing diagram recorder (hidden until opened from the status bar)
+  const [recorderOpen, setRecorderOpen] = useState<boolean>(false);
+  const [curvesOpen, setCurvesOpen] = useState<boolean>(false);
+  const [reportsOpen, setReportsOpen] = useState<boolean>(false);
+  const recorderRef = useRef<Recorder>(new Recorder());
+  const [recVersion, setRecVersion] = useState(0);
+  const [recPaused, setRecPaused] = useState(false);
+  const [diag, setDiag] = useState<DiagState>(newDiagState);
+  const [scenario, setScenario] = useState<TroubleshootScenario | null>(null);
+  const [instrument, setInstrument] = useState<InstrumentId>('dmm');
+  const [meggerVolts, setMeggerVolts] = useState<250 | 500 | 1000>(500);
+  const [rotationProbes, setRotationProbes] = useState<[string, string][]>([]);
   const [dmmReadout, setDmmReadout] = useState<{
-    mode: 'voltage' | 'clamp' | 'idle';
+    mode: 'voltage' | 'clamp' | 'idle' | 'test';
     primary: string;
     secondary?: string;
     label?: string;
@@ -166,8 +213,12 @@ export const App: React.FC = () => {
   // Clipboard for Copy & Paste
   const [clipboardDevice, setClipboardDevice] = useState<ElectricalDevice | null>(null);
 
-  // Returns true (and toasts) when the action must be blocked because the grid is energized
+  // Returns true (and toasts) when the action must be blocked because the grid is energized or in phone view-only mode
   const isEditBlocked = (): boolean => {
+    if (isViewOnly) {
+      showNotice('View-only on phone screens — use a tablet or desktop to edit');
+      return true;
+    }
     if (!isSimulating) return false;
     showNotice(LOCKED_MESSAGE);
     return true;
@@ -236,9 +287,16 @@ export const App: React.FC = () => {
     const devicesForAnalysis: ElectricalDevice[] = isSimulating
       ? project.devices
       : (JSON.parse(JSON.stringify(project.devices)) as ElectricalDevice[]);
-    const result = solveCircuit(devicesForAnalysis, project.wires, standard, project.gridVoltage);
+    const result = solveCircuit(devicesForAnalysis, project.wires, standard, project.gridVoltage, {
+      faults: troubleshoot ? project.faults : undefined,
+    });
+    if (troubleshoot) {
+      // Symptoms only: a trip reason or a spark message would name the cause
+      for (const id of Object.keys(result.tripReasons)) result.tripReasons[id] = 'Protective device operated';
+      result.sparks = result.sparks.map((s) => ({ ...s, message: 'Fault observed' }));
+    }
     return { devicesForAnalysis, result };
-  }, [isSimulating, project.devices, project.wires, standard, project.gridVoltage]);
+  }, [isSimulating, project.devices, project.wires, project.faults, standard, project.gridVoltage, troubleshoot]);
 
   // Arc-flash sparks are short lived once the breaker has actually opened, so keep them on screen briefly
   const [sparkFlash, setSparkFlash] = useState<SparkEvent[]>([]);
@@ -261,13 +319,40 @@ export const App: React.FC = () => {
     };
   }, [isSimulating, analysis, project.wires, project.devices, sparkFlash]);
 
+  // Short-circuit check: prospective fault level at every device input (static, off until enabled)
+  const faultLevels = useMemo(
+    () => (project.shortCircuit?.enabled ? computeFaultLevels(project.devices, project.wires, standard, project.gridVoltage, project.shortCircuit) : null),
+    [project.shortCircuit, project.devices, project.wires, standard, project.gridVoltage]
+  );
+  const faultBadges = useMemo(() => {
+    if (!faultLevels) return undefined;
+    const status: Record<string, 'error' | 'warning' | 'ok'> = {};
+    for (const c of checkInterruptingRatings(project.devices, faultLevels)) status[c.deviceId] = c.status;
+    const out: Record<string, { text: string; tone: 'error' | 'warning' | 'ok' }> = {};
+    for (const [id, lvl] of Object.entries(faultLevels.byDevice)) {
+      if (!project.devices.some((d) => d.id === id)) continue;
+      out[id] = { text: `${(lvl.ik / 1000).toFixed(lvl.ik >= 10000 ? 1 : 2)} kA`, tone: status[id] || 'ok' };
+    }
+    return out;
+  }, [faultLevels, project.devices]);
+
   // Run Live Code Compliance Analysis (static checks run in both modes)
   const report = useMemo(() => {
-    return analyzeCodeCompliance(analysis.devicesForAnalysis, project.wires, analysis.result, standard, project.gridVoltage);
-  }, [analysis, project.wires, standard, project.gridVoltage]);
+    return analyzeCodeCompliance(analysis.devicesForAnalysis, project.wires, analysis.result, standard, project.gridVoltage, faultLevels);
+  }, [analysis, project.wires, standard, project.gridVoltage, faultLevels]);
 
   // Digital Multimeter / Clamp Meter handlers
+  const handleFaults = useCallback((faults: import('./types/electrical').InjectedFault[]) => {
+    setProject((prev) => ({ ...prev, faults, faultsVersion: 1 }));
+  }, []);
+  // A different project starts a fresh troubleshooting session
+  useEffect(() => {
+    setDiag(newDiagState());
+    setScenario(null);
+  }, [project.id]);
+
   const handleDmmClampWire = (wireId: string) => {
+    if (instrument !== 'dmm') return;
     const amps = solved.wireCurrents[wireId] || 0;
     const vd = solved.wireVoltageDropPercents[wireId] || 0;
     const wire = project.wires.find((w) => w.id === wireId);
@@ -282,7 +367,55 @@ export const App: React.FC = () => {
     });
   };
 
+  const showTest = (r: { label: string; primary: string; secondary?: string; beep?: boolean }) => {
+    setDmmReadout({ mode: 'test', label: r.label, primary: r.primary, secondary: r.secondary });
+    if (r.beep) playBuzzerBeep();
+  };
+
+  const handleSelectInstrument = (id: InstrumentId) => {
+    setInstrument(id);
+    setDmmProbeA(null);
+    setRotationProbes([]);
+    setDmmReadout(null);
+  };
+
+  /** Click on a terminal while a test instrument (not the DMM) is selected */
+  const handleInstrumentTerminal = (deviceId: string, terminalId: string) => {
+    const tag = (d: string, t: string) => `${project.devices.find((x) => x.id === d)?.terminals.find((x) => x.id === t)?.label || t}`;
+    if (instrument === 'earth') {
+      showTest(measureEarthResistance(project.devices, deviceId));
+      return;
+    }
+    if (instrument === 'rotation') {
+      const next = [...rotationProbes, [deviceId, terminalId] as [string, string]];
+      if (next.length < 3) {
+        setRotationProbes(next);
+        setDmmReadout({ mode: 'test', label: `ROTATION PROBE ${next.length}/3 on ${tag(deviceId, terminalId)}`, primary: next.length === 1 ? 'SELECT L2' : 'SELECT L3', secondary: 'Click the L1, L2 and L3 sources in turn' });
+        return;
+      }
+      setRotationProbes([]);
+      showTest(measureRotation(solved, next));
+      return;
+    }
+    // megger and continuity both take two terminals
+    if (!dmmProbeA) {
+      setDmmProbeA({ deviceId, terminalId });
+      setDmmReadout({ mode: 'test', label: `PROBE 1 on ${tag(deviceId, terminalId)}`, primary: 'SELECT 2nd', secondary: 'Click the second terminal (or PE)' });
+      return;
+    }
+    const a: [string, string] = [dmmProbeA.deviceId, dmmProbeA.terminalId];
+    const b: [string, string] = [deviceId, terminalId];
+    setDmmProbeA(null);
+    showTest(instrument === 'megger'
+      ? measureInsulation(project.devices, project.wires, a, b, meggerVolts, isSimulating)
+      : measureContinuity(project.devices, project.wires, a, b, isSimulating));
+  };
+
   const handleDmmProbeTerminal = (deviceId: string, terminalId: string) => {
+    if (instrument !== 'dmm') {
+      handleInstrumentTerminal(deviceId, terminalId);
+      return;
+    }
     const keyB = `${deviceId}:${terminalId}`;
     const devB = project.devices.find((d) => d.id === deviceId);
     const termB = devB?.terminals.find((t) => t.id === terminalId);
@@ -335,10 +468,32 @@ export const App: React.FC = () => {
     });
   };
 
-  // Time-dependent devices (timer relays, energy meters, fuses, generators ...) advance while simulating
+  const recChannels = project.recorder?.channels ?? [];
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const recChannelsRef = useRef(recChannels);
+  recChannelsRef.current = recChannels;
+  // Energy ledger (kept in a ref: it changes every tick) and its version for the Reports panel
+  const energyRef = useRef<EnergyLedger>(emptyLedger());
+  const [energyVersion, setEnergyVersion] = useState(0);
+  const energyOn = !!project.energy?.enabled;
+
+  // Time-dependent devices (timer relays, energy meters, fuses, generators ...) advance while simulating;
+  // the recorder samples every tick too
   React.useEffect(() => {
-    if (!isSimulating || !needsTick(project.devices)) return;
+    if (!isSimulating || (!needsTick(project.devices) && recChannels.length === 0 && !energyOn)) return;
     const id = window.setInterval(() => {
+      if (projectRef.current.energy?.enabled) {
+        const cur = projectRef.current;
+        energyRef.current = accumulateEnergy(energyRef.current, cur.devices, solved, TICK_SECONDS, cur.energy?.timeScale ?? DEFAULT_ENERGY.timeScale);
+        setEnergyVersion((v) => v + 1);
+      }
+      if (recChannelsRef.current.length > 0) {
+        const cur = projectRef.current;
+        const after = tickSimulation(cur.devices, cur.wires, solved, cur.gridFrequency, TICK_SECONDS, cur.process);
+        recorderRef.current.sample(recChannelsRef.current, after, solved, TICK_SECONDS);
+        setRecVersion((v) => v + 1);
+      }
       setProject((prev) => {
         const devices = tickSimulation(prev.devices, prev.wires, solved, prev.gridFrequency, TICK_SECONDS, prev.process);
         const process = tickProcess(devices, prev.process, TICK_SECONDS);
@@ -346,7 +501,7 @@ export const App: React.FC = () => {
       });
     }, TICK_SECONDS * 1000);
     return () => window.clearInterval(id);
-  }, [isSimulating, project.devices, solved]);
+  }, [isSimulating, project.devices, solved, recChannels.length, energyOn]);
 
   const trippedCount = project.devices.filter(d => d.state.tripped).length;
 
@@ -383,8 +538,17 @@ export const App: React.FC = () => {
   // Start / stop simulation
   const handleToggleSimulation = () => {
     if (!isSimulating) {
+      // Safe isolation gate: Required blocks until the dead-test steps are done, Prompt warns once
+      const gate = simulateGate(project.safeIsolation);
+      if (!gate.allowed) {
+        if (gate.markWarned) setProject((prev) => (prev.safeIsolation ? { ...prev, safeIsolation: { ...prev.safeIsolation, warned: true } } : prev));
+        showNotice(gate.message);
+        return;
+      }
       sound.playBreakerSnap();
       setSelectedWireId(null);
+      recorderRef.current.clear();
+      setRecVersion((v) => v + 1);
       setIsSimulating(true);
       showNotice(`Grid energized — ${project.gridVoltage}V ${project.gridFrequency}Hz`);
     } else {
@@ -531,7 +695,7 @@ export const App: React.FC = () => {
 
   // Move device (drag) — locked while energized or when the device position is locked
   const handleUpdateDevicePosition = (id: string, x: number, y: number) => {
-    if (isSimulating) return;
+    if (isSimulating || isViewOnly) return;
     const dev = project.devices.find(d => d.id === id);
     if (!dev || dev.state.locked) return;
     if (x === dev.x && y === dev.y) return;
@@ -540,7 +704,7 @@ export const App: React.FC = () => {
 
   // Move multiple selected devices together (wires follow automatically)
   const handleUpdateMultipleDevicePositions = (updates: { id: string; x: number; y: number }[]) => {
-    if (isSimulating || updates.length === 0) return;
+    if (isSimulating || isViewOnly || updates.length === 0) return;
     const filtered = updates.filter((u) => {
       const dev = project.devices.find((d) => d.id === u.id);
       return dev && !dev.state.locked && (dev.x !== u.x || dev.y !== u.y);
@@ -599,6 +763,7 @@ export const App: React.FC = () => {
   // Update specific property on a device (e.g. ratedAmps, tripCurve, wattage)
   const DEVICE_SPEC_KEYS = ['productStandard', 'modelNumber', 'kaRating', 'mountingType', 'pecReference'];
   const handleUpdateDeviceProperty = (deviceId: string, key: string, value: any) => {
+    if (isViewOnly) return;
     pushUndoSnapshot();
     sound.playSwitchClick();
     setProject(prev => ({
@@ -684,7 +849,7 @@ export const App: React.FC = () => {
 
   // Update wire path waypoints from interactive segment dragging
   const handleUpdateWireWaypoints = (wireId: string, waypoints: { x: number; y: number }[]) => {
-    if (isSimulating) return;
+    if (isSimulating || isViewOnly) return;
     setProject(prev => ({
       ...prev,
       wires: prev.wires.map(w => w.id === wireId ? { ...w, waypoints } : w)
@@ -702,8 +867,9 @@ export const App: React.FC = () => {
 
   // Student rung-builder ladder lives on the project (exported / imported with it)
   const handleUpdateLadder = useCallback((rungs: LadderRung[]) => {
+    if (isViewOnly) return;
     setProject(prev => ({ ...prev, ladder: rungs }));
-  }, []);
+  }, [isViewOnly]);
 
   // Toggle breaker or switch state
   const handleToggleDeviceState = (device: ElectricalDevice) => {
@@ -940,6 +1106,27 @@ export const App: React.FC = () => {
     }));
   };
 
+  // Open a project from a share link (#share=...) once, through the same migration as a file import
+  useEffect(() => {
+    if (!isShareHash(window.location.hash)) return;
+    decodeShare(window.location.hash)
+      .then((imported) => {
+        const p = imported as ElectricalProject;
+        if (!p || !Array.isArray(p.devices) || !Array.isArray(p.wires)) throw new Error('Not a WireWise project');
+        const migrated = migrateLegacyProject(p.devices, p.wires);
+        setIsSimulating(false);
+        setProject({ ...p, devices: toEditModeDevices(migrated.devices), wires: migrated.wires });
+        if (p.codeStandard) setStandard(p.codeStandard);
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        showNotice('Project opened from a share link');
+      })
+      .catch((err) => {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        alert(`Could not open the share link: ${err instanceof Error ? err.message : 'invalid link'}`);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -971,6 +1158,14 @@ export const App: React.FC = () => {
   };
 
   // Load a Lab Lesson (always opens de-energized in Edit Mode; press ▶ Simulate to energize)
+  const handleAddRecorderChannel = (channel: Omit<RecorderChannel, 'id'>) => {
+    const id = `ch_${Date.now().toString(36)}_${Math.floor(Math.random() * 1000)}`;
+    setProject((prev) => ({ ...prev, recorder: { v: 1, channels: [...(prev.recorder?.channels ?? []), { ...channel, id }] } }));
+  };
+  const handleRemoveRecorderChannel = (id: string) => {
+    setProject((prev) => ({ ...prev, recorder: { v: 1, channels: (prev.recorder?.channels ?? []).filter((c) => c.id !== id) } }));
+  };
+
   const handleSelectLab = (lab: LabLesson) => {
     pushUndoSnapshot();
     const loaded: ElectricalProject = JSON.parse(JSON.stringify(lab.project));
@@ -978,6 +1173,9 @@ export const App: React.FC = () => {
     setIsSimulating(false);
     setSparkFlash([]);
     setProject(loaded);
+    recorderRef.current.clear();
+    if ((loaded.recorder?.channels.length ?? 0) > 0) setRecorderOpen(true);
+    setCurvesOpen((loaded.curves?.chain.length ?? 0) > 0);
     setStandard(lab.project.codeStandard);
     setIsLabModalOpen(false);
     setIsLibraryOpen(false);
@@ -1075,6 +1273,7 @@ export const App: React.FC = () => {
         onToggleDmmMode={() => {
           setDmmMode(v => !v);
           setDmmProbeA(null);
+          setRotationProbes([]);
           setDmmReadout(null);
         }}
         isHudOpen={isHudOpen}
@@ -1085,25 +1284,72 @@ export const App: React.FC = () => {
         canAlign={selectedGroupIds.length >= 2}
         onAlignHorizontal={() => handleAlign('horizontal')}
         onAlignVertical={() => handleAlign('vertical')}
+        isViewOnly={isViewOnly}
+        troubleshootMode={troubleshoot}
+        onToggleTroubleshoot={() => setTroubleshoot((v) => !v)}
+        recorderOpen={recorderOpen}
+        onToggleRecorder={() => setRecorderOpen((v) => !v)}
+        curvesOpen={curvesOpen}
+        onToggleCurves={() => setCurvesOpen((v) => !v)}
+        faultLevelsOn={!!project.shortCircuit?.enabled}
+        onToggleFaultLevels={() =>
+          setProject((prev) => ({
+            ...prev,
+            shortCircuit: prev.shortCircuit
+              ? { ...prev.shortCircuit, enabled: !prev.shortCircuit.enabled }
+              : { ...DEFAULT_SHORT_CIRCUIT },
+          }))
+        }
+        onOpenReports={() => {
+          setReportsInitialTab(undefined);
+          setReportsOpen(true);
+        }}
+        onOpenSafeIsolation={() => {
+          setReportsInitialTab('isolation');
+          setReportsOpen(true);
+        }}
+        appVersion={desktopVersion}
+        onCheckForUpdates={
+          window.wirewiseDesktop
+            ? () => {
+                window.wirewiseDesktop?.checkForUpdates();
+              }
+            : undefined
+        }
       />
 
-      {/* Conductor & Cable Tool Ribbon Dock */}
-      <ConductorToolDock
-        standard={standard}
-        activeWireColor={activeWireColor}
-        activeWireGauge={activeWireGauge}
-        activeWireLength={activeWireLength}
-        onSelectWireColor={setActiveWireColor}
-        onSelectWireGauge={setActiveWireGauge}
-        onSelectWireLength={setActiveWireLength}
-        isLocked={isLocked}
+      {/* Desktop App Online Update Notification Banner */}
+      <UpdateBanner
+        status={updateStatus}
+        currentVersion={desktopVersion}
+        onDownload={() => {
+          window.wirewiseDesktop?.downloadUpdate();
+        }}
+        onInstall={() => {
+          window.wirewiseDesktop?.installUpdate();
+        }}
+        onDismiss={() => setUpdateStatus(null)}
       />
+
+      {/* Conductor & Cable Tool Ribbon Dock (hidden in phone view-only mode) */}
+      {!isViewOnly && (
+        <ConductorToolDock
+          standard={standard}
+          activeWireColor={activeWireColor}
+          activeWireGauge={activeWireGauge}
+          activeWireLength={activeWireLength}
+          onSelectWireColor={setActiveWireColor}
+          onSelectWireGauge={setActiveWireGauge}
+          onSelectWireLength={setActiveWireLength}
+          isLocked={isLocked}
+        />
+      )}
 
       {/* Main Workspace Body */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Floating Hierarchical Component Library */}
         <ComponentDrawer
-          isOpen={isLibraryOpen}
+          isOpen={isLibraryOpen && !isViewOnly}
           onClose={() => setIsLibraryOpen(false)}
           onAddComponent={handleAddComponent}
           isLocked={isLocked}
@@ -1113,8 +1359,8 @@ export const App: React.FC = () => {
         <main className="flex-1 flex overflow-hidden relative">
           {/* Interactive Device & Conductor Inspector Panel */}
           <DevicePropertiesPanel
-        process={project.process}
-        onUpdateProcess={(patch) => setProject((prev) => ({ ...prev, process: { ...(prev.process || DEFAULT_PROCESS), ...patch } }))}
+            process={project.process}
+            onUpdateProcess={(patch) => setProject((prev) => ({ ...prev, process: { ...(prev.process || DEFAULT_PROCESS), ...patch } }))}
             device={inspectorOpen && multiWires.length === 0 ? selectedDevice : null}
             wire={inspectorOpen && multiWires.length === 0 ? project.wires.find(w => w.id === selectedWireId) || null : null}
             wires={inspectorOpen ? multiWires : []}
@@ -1135,7 +1381,9 @@ export const App: React.FC = () => {
             onClose={() => {
               setInspectorOpen(false);
             }}
-            isLibraryOpen={isLibraryOpen}
+            isLibraryOpen={isLibraryOpen && !isViewOnly}
+            faultKa={faultLevels && selectedDevice ? (faultLevels.byDevice[selectedDevice.id]?.ik ?? null) : null}
+            readOnly={isViewOnly}
           />
 
           {viewMode === 'realistic' && (
@@ -1152,6 +1400,7 @@ export const App: React.FC = () => {
               onMarqueeSelect={handleMarqueeSelect}
               onOpenInspector={() => setInspectorOpen(true)}
               isSimulating={isSimulating}
+              isViewOnly={isViewOnly}
               snapSize={snapSize}
               onBlockedEdit={handleBlockedEdit}
               onSelectDevice={handleSelectDevice}
@@ -1160,6 +1409,10 @@ export const App: React.FC = () => {
               onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
               dmmMode={dmmMode}
               dmmReadout={dmmReadout}
+              instrument={instrument}
+              onSelectInstrument={handleSelectInstrument}
+              meggerVolts={meggerVolts}
+              onMeggerVolts={setMeggerVolts}
               onDmmClampWire={handleDmmClampWire}
               onDmmProbeTerminal={handleDmmProbeTerminal}
               onConnectWire={handleConnectWire}
@@ -1176,7 +1429,8 @@ export const App: React.FC = () => {
               onDuplicateDevice={handleDuplicateDevice}
               onDeleteDevice={handleDeleteSelected}
               fitKey={`${project.id}-realistic`}
-              insetLeft={isLibraryOpen ? 336 : 0}
+              insetLeft={isLibraryOpen && !isViewOnly ? 336 : 0}
+              deviceBadges={faultBadges}
             />
           )}
 
@@ -1185,6 +1439,19 @@ export const App: React.FC = () => {
               devices={project.devices}
               wires={project.wires}
               solved={solved}
+            />
+          )}
+
+          {viewMode === 'plan' && (
+            <PlanView project={project} onChange={(fn) => { if (!isViewOnly) setProject(fn); }} />
+          )}
+
+          {viewMode === 'plc' && (
+            <PlcEditor
+              devices={project.devices}
+              selectedDeviceId={selectedDeviceId}
+              isSimulating={isSimulating}
+              onPatchDeviceState={handlePatchDeviceState}
             />
           )}
 
@@ -1220,16 +1487,21 @@ export const App: React.FC = () => {
                   onMarqueeSelect={handleMarqueeSelect}
                   onOpenInspector={() => setInspectorOpen(true)}
                   isSimulating={isSimulating}
+                  isViewOnly={isViewOnly}
                   snapSize={snapSize}
                   onBlockedEdit={handleBlockedEdit}
                   onSelectDevice={handleSelectDevice}
                   onSelectWire={handleSelectWire}
                   onUpdateDevicePosition={handleUpdateDevicePosition}
-              onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
-              dmmMode={dmmMode}
-              dmmReadout={dmmReadout}
-              onDmmClampWire={handleDmmClampWire}
-              onDmmProbeTerminal={handleDmmProbeTerminal}
+                  onUpdateMultipleDevicePositions={handleUpdateMultipleDevicePositions}
+                  dmmMode={dmmMode}
+                  dmmReadout={dmmReadout}
+                  instrument={instrument}
+                  onSelectInstrument={handleSelectInstrument}
+                  meggerVolts={meggerVolts}
+                  onMeggerVolts={setMeggerVolts}
+                  onDmmClampWire={handleDmmClampWire}
+                  onDmmProbeTerminal={handleDmmProbeTerminal}
                   onConnectWire={handleConnectWire}
                   rewiringTarget={rewiringTarget}
                   onSetRewiringTarget={setRewiringTarget}
@@ -1244,7 +1516,8 @@ export const App: React.FC = () => {
                   onDuplicateDevice={handleDuplicateDevice}
                   onDeleteDevice={handleDeleteSelected}
                   fitKey={`${project.id}-split`}
-                  insetLeft={isLibraryOpen ? 336 : 0}
+                  insetLeft={isLibraryOpen && !isViewOnly ? 336 : 0}
+                  deviceBadges={faultBadges}
                 />
               </div>
               <div className="w-full h-full relative flex flex-col">
@@ -1286,6 +1559,25 @@ export const App: React.FC = () => {
             isSimulating={isSimulating}
             onResetSimulation={handleResetSimulation}
             onHighlightViolation={handleHighlightViolation}
+            troubleshoot={troubleshoot ? {
+              symptom: scenario?.symptom || ((project.faults?.length ?? 0) > 0 ? 'Something is wrong with this circuit.' : 'No faults loaded yet: open the Troubleshoot panel.'),
+              found: diag.found.length,
+              total: project.faults?.length ?? 0,
+            } : undefined}
+          />
+        )}
+
+        {troubleshoot && (
+          <TroubleshootPanel
+            project={project}
+            selectedDeviceId={selectedDeviceId}
+            diag={diag}
+            onDiag={setDiag}
+            scenario={scenario}
+            onScenario={setScenario}
+            onFaults={handleFaults}
+            onFlashDevice={(id) => flashDevice(id)}
+            onClose={() => setTroubleshoot(false)}
           />
         )}
 
@@ -1297,6 +1589,58 @@ export const App: React.FC = () => {
         )}
       </div>
 
+      {recorderOpen && (
+        <RecorderPanel
+          recorder={recorderRef.current}
+          version={recVersion}
+          channels={recChannels}
+          selectedDevice={selectedDevice}
+          selectedWireId={selectedWireId}
+          isSimulating={isSimulating}
+          paused={recPaused}
+          onAddChannel={handleAddRecorderChannel}
+          onRemoveChannel={handleRemoveRecorderChannel}
+          onClear={() => {
+            recorderRef.current.clear();
+            setRecVersion((v) => v + 1);
+          }}
+          onTogglePause={() => {
+            recorderRef.current.paused = !recorderRef.current.paused;
+            setRecPaused(recorderRef.current.paused);
+          }}
+          onClose={() => setRecorderOpen(false)}
+        />
+      )}
+
+      {project.shortCircuit?.enabled && faultLevels && (
+        <FaultLevelsPanel
+          settings={project.shortCircuit}
+          levels={faultLevels}
+          devices={project.devices}
+          onChange={(next) => setProject((prev) => ({ ...prev, shortCircuit: next }))}
+          onSelectDevice={(id) => handleSelectDevice(id)}
+          onClose={() => setProject((prev) => ({ ...prev, shortCircuit: prev.shortCircuit ? { ...prev.shortCircuit, enabled: false } : undefined }))}
+          isLibraryOpen={isLibraryOpen}
+        />
+      )}
+
+      {reportsOpen && <ReportsPanel project={project} initialTab={reportsInitialTab} onChange={(fn) => setProject(fn)} onClose={() => setReportsOpen(false)} energy={{ ledger: energyRef.current, version: energyVersion, reset: () => { energyRef.current = emptyLedger(); setEnergyVersion((v) => v + 1); } }} isSimulating={isSimulating} inspectorErrors={report.violations.filter((v) => v.severity === 'error').length} />}
+
+      {curvesOpen && (
+        <CurvesPanel
+          devices={project.devices}
+          wires={project.wires}
+          solved={solved}
+          standard={standard}
+          isSimulating={isSimulating}
+          selectedDeviceId={selectedDeviceId}
+          selectedWireId={selectedWireId}
+          curves={project.curves}
+          onChange={(next) => setProject((prev) => ({ ...prev, curves: next }))}
+          onClose={() => setCurvesOpen(false)}
+        />
+      )}
+
       {/* Bottom CAD Status Bar */}
       <StatusBar
         standard={standard}
@@ -1307,6 +1651,15 @@ export const App: React.FC = () => {
         onSnapChange={setSnapSize}
         totalWatts={report.totalConnectedWatts}
         totalAmps={report.totalCurrentAmps}
+        troubleshootMode={troubleshoot}
+        onToggleTroubleshoot={() => setTroubleshoot((v) => !v)}
+        recorderOpen={recorderOpen}
+        onToggleRecorder={() => setRecorderOpen((v) => !v)}
+        curvesOpen={curvesOpen}
+        onOpenReports={() => setReportsOpen(true)}
+        faultLevelsOn={!!project.shortCircuit?.enabled}
+        onToggleFaultLevels={() => setProject((prev) => ({ ...prev, shortCircuit: prev.shortCircuit ? { ...prev.shortCircuit, enabled: !prev.shortCircuit.enabled } : { ...DEFAULT_SHORT_CIRCUIT } }))}
+        onToggleCurves={() => setCurvesOpen((v) => !v)}
       />
 
       {/* Guided Labs & Scenarios Modal */}

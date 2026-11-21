@@ -53,18 +53,27 @@ interface WiringCanvasProps {
   fitKey?: string;
   /** Pixels on the left covered by floating panels (kept clear when fitting) */
   insetLeft?: number;
+  /** Small text badges drawn on devices (fault levels overlay) */
+  deviceBadges?: Record<string, { text: string; tone: 'error' | 'warning' | 'ok' }>;
   /** Digital Multimeter / Clamp Meter mode */
   dmmMode?: boolean;
   onDmmProbeTerminal?: (deviceId: string, terminalId: string) => void;
   onDmmClampWire?: (wireId: string) => void;
+  /** Which test instrument the probes act as, and the insulation tester's test voltage */
+  instrument?: 'dmm' | 'megger' | 'earth' | 'rotation' | 'continuity';
+  onSelectInstrument?: (id: 'dmm' | 'megger' | 'earth' | 'rotation' | 'continuity') => void;
+  meggerVolts?: 250 | 500 | 1000;
+  onMeggerVolts?: (v: 250 | 500 | 1000) => void;
   dmmReadout?: {
-    mode: 'voltage' | 'clamp' | 'idle';
+    mode: 'voltage' | 'clamp' | 'idle' | 'test';
     primary: string;
     secondary?: string;
     label?: string;
     probeA?: { deviceId: string; terminalId: string };
     probeB?: { deviceId: string; terminalId: string };
   } | null;
+  /** View-only phone mode: allows pan/zoom and simulation/probing, blocks all edits */
+  isViewOnly?: boolean;
 }
 
 export const WiringCanvas: React.FC<WiringCanvasProps> = ({
@@ -101,10 +110,16 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   onDeleteDevice,
   fitKey,
   insetLeft = 0,
+  deviceBadges,
   dmmMode = false,
   onDmmProbeTerminal,
   onDmmClampWire,
   dmmReadout = null,
+  instrument = 'dmm',
+  onSelectInstrument,
+  meggerVolts = 500,
+  onMeggerVolts,
+  isViewOnly = false,
 }) => {
   const containerRef = useRef<SVGSVGElement | null>(null);
 
@@ -114,12 +129,14 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   // HTML5 Drag and Drop from Component Library
   const handleDragOver = (e: React.DragEvent) => {
+    if (isViewOnly) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    if (isViewOnly) return;
     const type = e.dataTransfer.getData('application/wirewise-device') as DeviceType;
     if (type && onDropDevice && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -167,6 +184,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const touchPanRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   // Keyboard shortcut listener (ESC to cancel wiring / rewire / deselect, Space for panning)
   React.useEffect(() => {
@@ -226,12 +244,12 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       }
     }
     const rect = el.getBoundingClientRect();
-    const pad = 48;
+    const pad = 56;
     const availW = Math.max(200, rect.width - insetLeft - pad * 2);
     const availH = Math.max(200, rect.height - pad * 2);
     const bw = Math.max(1, maxX - minX);
     const bh = Math.max(1, maxY - minY);
-    const z = Math.min(1.4, Math.max(0.4, Math.min(availW / bw, availH / bh)));
+    const z = Math.min(1.15, Math.max(0.25, Math.min(availW / bw, availH / bh)));
     setZoom(z);
     setPan({
       x: insetLeft + pad + (availW - bw * z) / 2 - minX * z,
@@ -304,6 +322,8 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
     }
     onSelectWire(null);
 
+    if (isViewOnly) return;
+
     const coords = getSvgCoordinates(e);
 
     // Dragging is locked while energized or when the device position is locked.
@@ -346,6 +366,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       onDmmProbeTerminal?.(device.id, terminal.id);
       return;
     }
+    if (isViewOnly) return;
     if (isSimulating) {
       // Wire creation/rewiring is locked while the grid is energized
       onBlockedEdit?.('simulating');
@@ -563,6 +584,14 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         if (rewiringTarget) onSetRewiringTarget?.(null);
         return;
       }
+      if (isViewOnly) {
+        setIsPanning(true);
+        setPanStart({
+          x: e.clientX - pan.x,
+          y: e.clientY - pan.y,
+        });
+        return;
+      }
       if (dmmMode) return;
       // Otherwise begin a rubber-band selection
       const c = getSvgCoordinates(e);
@@ -583,7 +612,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   const handleWheel = (e: React.WheelEvent) => {
     const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
-    const newZoom = Math.min(2.5, Math.max(0.4, zoom * zoomFactor));
+    const newZoom = Math.min(2.5, Math.max(0.25, zoom * zoomFactor));
 
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -627,7 +656,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
   }
 
   const handleOpenPortMenu = React.useCallback((deviceId: string, terminalId: string, clientX: number, clientY: number) => {
-    if (!containerRef.current) return;
+    if (isViewOnly || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     setPortMenu({
       deviceId,
@@ -635,7 +664,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       x: Math.min(rect.width - 250, Math.max(12, clientX - rect.left + 8)),
       y: Math.min(rect.height - 160, Math.max(12, clientY - rect.top + 8)),
     });
-  }, []);
+  }, [isViewOnly]);
 
   const terminalHighlightValue = useMemo(() => {
     const connectedTerminalKeys = new Set<string>();
@@ -694,7 +723,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           {Math.round(zoom * 100)}%
         </span>
         <button
-          onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
+          onClick={() => setZoom((z) => Math.max(0.25, z - 0.15))}
           className="w-7 h-7 flex items-center justify-center bg-surface-sunken hover:bg-border text-ink rounded-lg font-bold text-sm transition"
           title="Zoom Out"
         >
@@ -766,6 +795,25 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseDown={handleCanvasMouseDown}
         onWheel={handleWheel}
+        onTouchStart={(e) => {
+          if (!isViewOnly || e.touches.length !== 1) return;
+          const t = e.touches[0];
+          touchPanRef.current = { x: t.clientX, y: t.clientY, panX: pan.x, panY: pan.y };
+        }}
+        onTouchMove={(e) => {
+          if (!isViewOnly || !touchPanRef.current || e.touches.length !== 1) return;
+          const t = e.touches[0];
+          setPan({
+            x: touchPanRef.current.panX + (t.clientX - touchPanRef.current.x),
+            y: touchPanRef.current.panY + (t.clientY - touchPanRef.current.y),
+          });
+        }}
+        onTouchEnd={() => {
+          touchPanRef.current = null;
+        }}
+        onTouchCancel={() => {
+          touchPanRef.current = null;
+        }}
         onContextMenu={(e) => e.preventDefault()}
       >
         <defs>
@@ -806,6 +854,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                 }}
                 onOpenInspector={onOpenInspector}
                 onStartSegmentDrag={(wireId, segIdx, isHoriz, _pt, waypoints, e) => {
+                  if (isViewOnly) return;
                   if (isSimulating) {
                     onBlockedEdit?.('simulating');
                     return;
@@ -862,13 +911,31 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
                   onToggleState={onToggleDeviceState}
                   onPatchState={onPatchDeviceState}
                   isHighlighted={highlightDeviceIds.includes(device.id)}
-                  onRotate={onRotateDevice}
-                  onDuplicate={onDuplicateDevice}
-                  onDelete={onDeleteDevice}
+                  onRotate={isViewOnly ? undefined : onRotateDevice}
+                  onDuplicate={isViewOnly ? undefined : onDuplicateDevice}
+                  onDelete={isViewOnly ? undefined : onDeleteDevice}
                 />
               ))}
             </g>
           </TerminalHighlightContext.Provider>
+
+          {/* Layer 3.2: fault level badges (only while the Fault levels check is on) */}
+          {deviceBadges && (
+            <g id="fault-badges-layer" className="pointer-events-none">
+              {devices.map((d) => {
+                const b = deviceBadges[d.id];
+                if (!b) return null;
+                const w = 8 + b.text.length * 5.2;
+                const fill = b.tone === 'error' ? '#dc2626' : b.tone === 'warning' ? '#d97706' : '#15803d';
+                return (
+                  <g key={d.id} transform={`translate(${d.x + (d.width || 60) - w + 4}, ${d.y - 12})`}>
+                    <rect width={w} height={12} rx={3} fill={fill} />
+                    <text x={w / 2} y={9} textAnchor="middle" fontSize={8} fontWeight={700} fill="#fff" fontFamily="monospace">{b.text}</text>
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* Rubber-band selection box */}
           {marquee && (
@@ -967,7 +1034,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       )}
 
       {/* Quick Rewire / Disconnect Handles for Selected Wire (rendered only when a wire is selected in Edit Mode) */}
-      {selectedWireId && selectedWireIds.length <= 1 && !isSimulating && !rewiringTarget && (() => {
+      {!isViewOnly && selectedWireId && selectedWireIds.length <= 1 && !isSimulating && !rewiringTarget && (() => {
         const w = wires.find((item) => item.id === selectedWireId);
         if (!w) return null;
         const fromDev = devices.find((d) => d.id === w.fromDeviceId);
@@ -1110,14 +1177,41 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-warning-fill animate-pulse" />
               <span className="text-[10px] font-bold tracking-widest text-warning uppercase">
-                True RMS DMM / Clamp
+                {instrument === 'dmm' ? 'True RMS DMM / Clamp' : 'Test Instrument'}
               </span>
             </div>
             <span className="text-[9px] font-mono text-ink-muted">CAT IV 600V</span>
           </div>
+          {onSelectInstrument && (
+            <div className="pointer-events-auto mb-2 flex flex-wrap gap-1">
+              {([['dmm', 'DMM'], ['megger', 'Megger'], ['earth', 'Earth'], ['rotation', 'Rotation'], ['continuity', 'Continuity']] as const).map(([id, name]) => (
+                <button
+                  key={id}
+                  onClick={() => onSelectInstrument(id)}
+                  className={`px-1.5 py-0.5 rounded border text-[10px] font-mono font-bold transition ${instrument === id ? 'bg-probe text-on-probe border-probe' : 'bg-surface hover:bg-surface-sunken text-ink border-border'}`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+          {instrument === 'megger' && onMeggerVolts && (
+            <div className="pointer-events-auto mb-2 flex items-center gap-1">
+              <span className="text-[9px] text-ink-muted uppercase tracking-wider mr-1">Test</span>
+              {([250, 500, 1000] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => onMeggerVolts(v)}
+                  className={`px-1.5 py-0.5 rounded border text-[10px] font-mono font-bold ${meggerVolts === v ? 'bg-probe text-on-probe border-probe' : 'bg-surface hover:bg-surface-sunken text-ink border-border'}`}
+                >
+                  {v} V
+                </button>
+              ))}
+            </div>
+          )}
           <div className="rounded-lg bg-ok-soft/80 border border-ok/50 px-3 py-2 font-mono">
             <div className="text-[10px] text-ok/80 uppercase tracking-wider">
-              {dmmReadout?.label || 'Click 2 terminals (V) or 1 wire (A)'}
+              {dmmReadout?.label || (instrument === 'dmm' ? 'Click 2 terminals (V) or 1 wire (A)' : instrument === 'megger' ? 'Click 2 terminals (or a terminal and PE), circuit de-energized' : instrument === 'earth' ? 'Click the rod clamp of a ground pit' : instrument === 'rotation' ? 'Click the L1, L2 and L3 sources in turn (energized)' : 'Click 2 terminals, circuit de-energized')}
             </div>
             <div className="text-2xl font-black text-ok tracking-tight mt-0.5">
               {dmmReadout?.primary || '---'}

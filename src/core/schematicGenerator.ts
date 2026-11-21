@@ -34,7 +34,11 @@ export interface SchematicNode {
     | 'source3p'
     | 'pushbutton3'
     | 'fuse'
-    | 'generator';
+    | 'generator'
+    | 'pv'
+    | 'inverter'
+    | 'battery'
+    | 'capacitor';
   status?: string;
 }
 
@@ -49,10 +53,31 @@ export function generateSchematicModel(devices: ElectricalDevice[], wires: Elect
   const nodes: SchematicNode[] = devices.map(d => {
     let symbol: SchematicNode['symbol'] = 'breaker';
     if (d.type.startsWith('fuse')) symbol = 'fuse';
+    else if (['star_delta_timer', 'counter_relay', 'impulse_relay', 'staircase_timer', 'time_switch_24h', 'alternating_relay', 'ssr_1p', 'safety_relay', 'aux_contact_block'].includes(d.type)) symbol = 'relay';
+    else if (['operator_pilot', 'two_hand_station', 'door_interlock_switch', 'pull_cord_switch', 'mechanical_interlock'].includes(d.type)) symbol = 'switch';
+    else if (['electrode_level_relay', 'thermostat', 'temp_controller', 'photocell_switch', 'pir_sensor', 'fire_alarm_panel', 'solenoid_valve'].includes(d.type)) symbol = 'relay';
+    else if (['reed_switch', 'flow_switch', 'zero_speed_switch', 'smoke_detector', 'manual_call_point'].includes(d.type)) symbol = 'switch';
+    else if (['soft_starter', 'starter_reduced_voltage', 'line_reactor', 'dc_injection_brake', 'rotor_resistor_bank', 'speed_potentiometer', 'braking_resistor'].includes(d.type)) symbol = 'relay';
+    else if (['motor_dahlander', 'motor_wound_rotor', 'motor_dc_shunt', 'motor_brake', 'pump_submersible_3p', 'air_compressor_3p', 'hoist_conveyor'].includes(d.type)) symbol = 'motor';
+    else if (['emergency_light', 'doorbell_set', 'fan_regulator'].includes(d.type)) symbol = 'relay';
+    else if (['appliance_generic', 'power_strip'].includes(d.type)) symbol = 'motor';
+    else if (['valve_52', 'analog_io_module', 'hmi_panel'].includes(d.type)) symbol = 'relay';
+    else if (d.type === 'cylinder_da') symbol = 'motor';
+    else if (d.type === 'pv_string') symbol = 'pv';
+    else if (d.type === 'inverter_gridtie') symbol = 'inverter';
+    else if (d.type === 'ups_battery') symbol = 'battery';
+    else if (d.type === 'capacitor_bank_3p') symbol = 'capacitor';
+    else if (d.type === 'synchroscope' || d.type === 'pf_controller' || d.type === 'reverse_power_relay' || d.type === 'preferential_trip_relay') symbol = 'relay';
+    else if (d.type === 'transfer_switch_manual' || d.type === 'dc_isolator' || d.type === 'shore_connection_box') symbol = 'switch';
+    else if (d.type === 'ground_detection_lamps') symbol = 'earth';
     else if (d.type.startsWith('generator')) symbol = 'generator';
     else if (d.type.startsWith('rcbo')) symbol = 'rcd';
-    else if (d.type === 'thermal_overload_relay') symbol = 'tor';
-    else if (d.type === 'control_transformer') symbol = 'transformer';
+    else if (d.type === 'thermal_overload_relay' || d.type === 'mpcb_3p') symbol = 'tor';
+    else if (d.type === 'current_transformer' || d.type === 'core_balance_ct') symbol = 'transformer';
+    else if (d.type === 'panel_ammeter' || d.type === 'voltmeter_selector') symbol = 'meter';
+    else if (d.type === 'terminal_block' || d.type === 'distribution_block') symbol = 'busbar';
+    else if (d.type === 'gfci_receptacle') symbol = 'rcd';
+    else if (d.type === 'control_transformer' || d.type.startsWith('transformer')) symbol = 'transformer';
     else if (d.type === 'source_3phase_440v') symbol = 'source3p';
     else if (d.type === 'push_button_fwd_rev') symbol = 'pushbutton3';
     else if (d.type.includes('meter')) symbol = 'meter';
