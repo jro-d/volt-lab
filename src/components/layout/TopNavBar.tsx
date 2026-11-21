@@ -93,7 +93,7 @@ interface TopNavBarProps {
   canAlign: boolean;
   onAlignHorizontal: () => void;
   onAlignVertical: () => void;
-  // Responsive / Prompt 06-07 optional panel hooks
+  // Responsive / optional panel hooks
   isViewOnly?: boolean;
   troubleshootMode?: boolean;
   onToggleTroubleshoot?: () => void;
