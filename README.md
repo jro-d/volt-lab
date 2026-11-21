@@ -1,6 +1,8 @@
 # WireWise — Interactive Electrical Installation & Motor Control Simulator
 *WireWise (formerly VoltLab)*
 
+**[Download for Windows](https://jro-d.github.io/wirewise/)** · [Open in browser](https://jro-d.github.io/wirewise/app/) · [Releases](https://github.com/jro-d/wirewise/releases)
+
 **Physical Wiring Workbench • Ladder Logic • Single-Line Diagrams (SLD) • PEC 2017 & IEC 60364 Code Inspector**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
