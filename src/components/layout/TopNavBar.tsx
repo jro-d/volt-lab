@@ -1,6 +1,7 @@
 import React from 'react';
 import { CodeStandard } from '../../types/electrical';
 import { saveTheme } from '../../utils/themeStorage';
+import { BrandMark } from './BrandMark';
 import {
   Zap,
   RotateCcw,
@@ -161,9 +162,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       {/* ───────── LEFT GROUP: Project & File ───────── */}
       <div className="flex items-center gap-1.5 min-w-0">
         <div className="flex items-center gap-2 pr-2 min-w-0">
-          <div className="w-8 h-8 rounded-md bg-brand flex items-center justify-center shrink-0">
-            <Zap className="w-4 h-4 text-on-brand fill-current" />
-          </div>
+          <BrandMark className="w-8 h-8 shrink-0" />
           <div className="min-w-0 hidden xl:block">
             <div className="text-[18px] font-display font-bold text-ink leading-none tracking-[-0.01em] flex items-center gap-1.5">
               <span>
