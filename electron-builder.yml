@@ -2,6 +2,8 @@ appId: com.wirewise.simulator
 productName: WireWise
 copyright: Copyright © WireWise
 asar: true
+electronLanguages:
+  - en-US
 
 directories:
   output: release
