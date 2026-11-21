@@ -70,6 +70,22 @@ export function calculateOrthogonalPath(
     return [start, end];
   }
 
+  // Direct straight-line fast path when terminals face each other and are closely aligned
+  if (
+    ((startDir === 'down' && endDir === 'up' && end.y > start.y) ||
+      (startDir === 'up' && endDir === 'down' && end.y < start.y)) &&
+    Math.abs(start.x - end.x) <= 2.5
+  ) {
+    return [start, end];
+  }
+  if (
+    ((startDir === 'right' && endDir === 'left' && end.x > start.x) ||
+      (startDir === 'left' && endDir === 'right' && end.x < start.x)) &&
+    Math.abs(start.y - end.y) <= 2.5
+  ) {
+    return [start, end];
+  }
+
   const points: Point[] = [start];
 
   // Helper to append a point only if not duplicate of the previous point
@@ -100,6 +116,7 @@ export function calculateOrthogonalPath(
   }
 
   const dx = p2.x - p1.x;
+  let skipP2 = false;
 
   // 3. Connect p1 and p2 with guaranteed clearance
   if (startDir === 'down' && endDir === 'down') {
@@ -121,6 +138,14 @@ export function calculateOrthogonalPath(
       const midY = (p1.y + p2.y) / 2;
       pushPt({ x: p1.x, y: midY });
       pushPt({ x: p2.x, y: midY });
+    } else if (end.y > start.y + 10) {
+      // Target is still below start, just with a tight gap smaller than startLeadOut + endLeadOut.
+      // Route directly through the midpoint instead of looping backwards around a side channel.
+      const midY = (start.y + end.y) / 2;
+      points.length = 1;
+      pushPt({ x: start.x, y: midY });
+      pushPt({ x: end.x, y: midY });
+      skipP2 = true;
     } else {
       // Target device is at same height or higher than start device!
       // Must drop DOWN under the start device, run horizontally under it to a vertical channel,
@@ -137,6 +162,13 @@ export function calculateOrthogonalPath(
       const midY = (p1.y + p2.y) / 2;
       pushPt({ x: p1.x, y: midY });
       pushPt({ x: p2.x, y: midY });
+    } else if (end.y < start.y - 10) {
+      // Target is still above start with a tight gap; route directly through midpoint.
+      const midY = (start.y + end.y) / 2;
+      points.length = 1;
+      pushPt({ x: start.x, y: midY });
+      pushPt({ x: end.x, y: midY });
+      skipP2 = true;
     } else {
       // Target device is lower than start device
       const channelX = Math.abs(dx) > 20 ? p1.x + dx / 2 : p1.x + (dx >= 0 ? 35 : -35);
@@ -161,7 +193,9 @@ export function calculateOrthogonalPath(
     pushPt({ x: p1.x, y: p2.y });
   }
 
-  pushPt(p2);
+  if (!skipP2) {
+    pushPt(p2);
+  }
   pushPt(end);
 
   return simplifyPath(points);
@@ -334,10 +368,10 @@ export function computeWireRoute(
   const end: Point = { x: toPos.x, y: toPos.y };
 
   // Stagger lead-out distance across multiple terminals to keep wires in clean parallel lanes
-  const startLane = Math.round((fromTerm.relX - 0.5) * 28);
-  const endLane = Math.round((toTerm.relX - 0.5) * 28);
-  const startLeadOut = Math.max(26, 36 + (fromPos.dir === 'down' ? startLane : -startLane));
-  const endLeadOut = Math.max(26, 36 + (toPos.dir === 'down' ? endLane : -endLane));
+  const startLane = Math.round((fromTerm.relX - 0.5) * 20);
+  const endLane = Math.round((toTerm.relX - 0.5) * 20);
+  const startLeadOut = Math.max(20, 28 + (fromPos.dir === 'down' ? startLane : -startLane));
+  const endLeadOut = Math.max(20, 28 + (toPos.dir === 'down' ? endLane : -endLane));
 
   const waypoints =
     wire.waypoints && wire.waypoints.length >= 2

@@ -11,6 +11,7 @@ import { BATCH35_LABS } from './batch35Labs';
 import { BATCH36_LABS } from './batch36Labs';
 import { BATCH37_LABS } from './batch37Labs';
 import { CURVES_LAB } from './curvesLab';
+import { normalizeLabLayouts } from '../utils/labLayout';
 
 export type LabCategory = 'all' | 'sockets' | 'lighting' | 'splice' | 'appliances' | 'residential' | 'industrial' | 'automation';
 
@@ -26,7 +27,7 @@ export interface LabLesson {
   project: ElectricalProject;
 }
 
-export const LAB_LESSONS: LabLesson[] = [
+export const LAB_LESSONS: LabLesson[] = normalizeLabLayouts([
   // Phase 3: Marine & Industrial Motor Control Trainer (440V / 220V)
   ...MOTOR_CONTROL_LABS,
 
@@ -1430,7 +1431,7 @@ export const LAB_LESSONS: LabLesson[] = [
       ]
     }
   }
-];
+]);
 
 export function createBlankProject(standard: CodeStandard = 'PEC'): ElectricalProject {
   return {
