@@ -46,10 +46,31 @@ jobs:
       - name: Build production web bundle
         run: npm run build
 
-      - name: Package Windows Installer & Portable EXE and publish GitHub Release
+      - name: Prepare draft GitHub Release before parallel asset uploads
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $ver = (node -p "require('./package.json').version").Trim()
+          $tag = "v$ver"
+          $null = gh release view $tag --json tagName 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --draft --title $ver --generate-notes --target ${{ github.sha }}
+          }
+
+      - name: Package Windows Installer & Portable EXE and upload to Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --publish always
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $ver = (node -p "require('./package.json').version").Trim()
+          $tag = "v$ver"
+          gh release edit $tag --draft=false --latest
 
       - name: Upload EXE artifacts to workflow run
         uses: actions/upload-artifact@v7
