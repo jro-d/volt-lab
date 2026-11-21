@@ -42,6 +42,17 @@ jobs:
           cp -r site/. _site/
           cp -r dist/. _site/app/
 
+      - name: Stamp icons and service worker with this commit (so browsers drop cached copies)
+        run: |
+          v="${GITHUB_SHA::7}"
+          # Download page: versioned icon URLs bypass the browser cache and the old root service worker's cache
+          sed -i -E "s/(icon\.svg|icon-256\.png)\"/\1?v=$v\"/g" _site/index.html
+          # Web app: a changed sw.js installs a new worker, whose activate step deletes the old cache
+          sed -i -E "s/(const CACHE = 'wirewise-shell-[^']*)'/\1-$v'/" _site/app/sw.js
+          sed -i -E "s/\"src\": \"icon\.svg\"/\"src\": \"icon.svg?v=$v\"/g" _site/app/manifest.webmanifest
+          grep -c "?v=$v" _site/index.html _site/app/manifest.webmanifest
+          grep -n "const CACHE" _site/app/sw.js
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
