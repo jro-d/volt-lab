@@ -1,6 +1,8 @@
 /* WireWise service worker: caches the app shell and every same-origin file it fetches so the app opens offline.
    No project data is ever sent anywhere: the worker only answers GET requests for this origin from the cache. */
-const CACHE = 'wirewise-shell-v1';
+// The deploy workflow appends the commit to this name, so every release installs a fresh worker
+// and the activate handler below drops the previous release's cache.
+const CACHE = 'wirewise-shell-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -29,14 +31,35 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-  // Assets: cache first, then fill the cache from the network (hashed file names never go stale)
+  // Hashed build files (assets/) never change under the same name: cache first.
+  if (url.pathname.includes('/assets/')) {
+    event.respondWith(
+      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      }))
+    );
+    return;
+  }
+  // Files that keep their name between releases (icon.svg, manifest): answer from the cache for speed,
+  // but always refresh it from the network so a new logo or manifest shows up on the next visit.
   event.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      if (res.ok) {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
+    caches.match(req).then((hit) => {
+      const update = fetch(req).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      });
+      if (hit) {
+        update.catch(() => {}); // offline: keep serving the cached copy
+        return hit;
       }
-      return res;
-    }))
+      return update;
+    })
   );
 });
