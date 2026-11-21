@@ -244,12 +244,12 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
       }
     }
     const rect = el.getBoundingClientRect();
-    const pad = 48;
+    const pad = 56;
     const availW = Math.max(200, rect.width - insetLeft - pad * 2);
     const availH = Math.max(200, rect.height - pad * 2);
     const bw = Math.max(1, maxX - minX);
     const bh = Math.max(1, maxY - minY);
-    const z = Math.min(1.4, Math.max(0.4, Math.min(availW / bw, availH / bh)));
+    const z = Math.min(1.15, Math.max(0.25, Math.min(availW / bw, availH / bh)));
     setZoom(z);
     setPan({
       x: insetLeft + pad + (availW - bw * z) / 2 - minX * z,
@@ -612,7 +612,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
 
   const handleWheel = (e: React.WheelEvent) => {
     const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
-    const newZoom = Math.min(2.5, Math.max(0.4, zoom * zoomFactor));
+    const newZoom = Math.min(2.5, Math.max(0.25, zoom * zoomFactor));
 
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -723,7 +723,7 @@ export const WiringCanvas: React.FC<WiringCanvasProps> = ({
           {Math.round(zoom * 100)}%
         </span>
         <button
-          onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
+          onClick={() => setZoom((z) => Math.max(0.25, z - 0.15))}
           className="w-7 h-7 flex items-center justify-center bg-surface-sunken hover:bg-border text-ink rounded-lg font-bold text-sm transition"
           title="Zoom Out"
         >

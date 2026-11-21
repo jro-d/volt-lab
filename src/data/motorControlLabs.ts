@@ -60,17 +60,17 @@ const dev = (type: Parameters<typeof createDeviceFromCatalog>[0], x: number, y: 
 // LAB A — DOL starter with 440/220V control transformer and thermal overload relay
 // ────────────────────────────────────────────────────────────────────────────────────────────
 export const dolDevices: ElectricalDevice[] = [
-  dev('source_3phase_440v', 40, 30, 'mdol_src', { name: '440V 3Φ 60Hz Ship Feeder' }),
-  dev('mcb_3p', 68, 176, 'mdol_q1', { name: 'Q1 Main 3P MCB 16A', state: { ratedAmps: 16, tripCurve: 'D' } }),
-  dev('contactor_3p', 60, 330, 'mdol_km1', { name: 'KM1 Line Contactor', state: { tag: 'KM1' } }),
-  dev('thermal_overload_relay', 60, 520, 'mdol_f2', { name: 'F2 Thermal Overload (3RU)', state: { tag: 'F2', tripAmps: 6 } }),
-  dev('motor_ac_industrial', 56, 700, 'mdol_m1', { name: 'M1 3Φ Motor 3HP 440V', state: { tag: 'M1', wattage: 2200, motorHp: 3 } }),
-  dev('earth_busbar', 250, 680, 'mdol_pe', { name: 'PE Earth Bar' }),
-  dev('mcb_2p', 330, 176, 'mdol_q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
-  dev('control_transformer', 306, 330, 'mdol_tc1', { name: 'TC1 Control Transformer 440/220V', state: { tag: 'TC1' } }),
-  dev('push_button_station', 500, 320, 'mdol_s1', { name: 'S1 Start / Stop Station', state: { tag: 'S1' } }),
-  dev('pilot_light_indicator', 480, 520, 'mdol_pl_run', { name: 'PL_RUN Motor Running', state: { pilotColor: 'green', tag: 'PL_RUN' } }),
-  dev('pilot_light_indicator', 570, 520, 'mdol_pl_flt', { name: 'PL_FAULT Overload Trip', state: { pilotColor: 'red', tag: 'PL_FAULT' } }),
+  dev('source_3phase_440v', 85, 30, 'mdol_src', { name: '440V 3Φ 60Hz Ship Feeder' }),
+  dev('mcb_3p', 103, 210, 'mdol_q1', { name: 'Q1 Main 3P MCB 16A', state: { ratedAmps: 16, tripCurve: 'D' } }),
+  dev('contactor_3p', 100, 410, 'mdol_km1', { name: 'KM1 Line Contactor', state: { tag: 'KM1' } }),
+  dev('thermal_overload_relay', 100, 640, 'mdol_f2', { name: 'F2 Thermal Overload (3RU)', state: { tag: 'F2', tripAmps: 6 } }),
+  dev('motor_ac_industrial', 86, 860, 'mdol_m1', { name: 'M1 3Φ Motor 3HP 440V', state: { tag: 'M1', wattage: 2200, motorHp: 3 } }),
+  dev('earth_busbar', 310, 830, 'mdol_pe', { name: 'PE Earth Bar' }),
+  dev('mcb_2p', 540, 210, 'mdol_q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
+  dev('control_transformer', 517, 410, 'mdol_tc1', { name: 'TC1 Control Transformer 440/220V', state: { tag: 'TC1' } }),
+  dev('push_button_station', 780, 410, 'mdol_s1', { name: 'S1 Start / Stop Station', state: { tag: 'S1' } }),
+  dev('pilot_light_indicator', 720, 660, 'mdol_pl_run', { name: 'PL_RUN Motor Running', state: { pilotColor: 'green', tag: 'PL_RUN' } }),
+  dev('pilot_light_indicator', 870, 660, 'mdol_pl_flt', { name: 'PL_FAULT Overload Trip', state: { pilotColor: 'red', tag: 'PL_FAULT' } }),
 ];
 
 export const dolWires: ElectricalWire[] = [
@@ -128,19 +128,19 @@ export const dolTarget: LadderRung[] = [
 // LAB B — Forward / Reverse starter with 21-22 electrical interlocking
 // ────────────────────────────────────────────────────────────────────────────────────────────
 const frDevices: ElectricalDevice[] = [
-  dev('source_3phase_440v', 40, 30, 'mfr_src', { name: '440V 3Φ 60Hz Feeder' }),
-  dev('mcb_3p', 120, 176, 'mfr_q1', { name: 'Q1 Main 3P MCB 16A', state: { ratedAmps: 16, tripCurve: 'D' } }),
-  dev('contactor_3p', 30, 330, 'mfr_km1', { name: 'KM1 Forward Contactor', state: { tag: 'KM1', role: 'FOR' } }),
-  dev('contactor_3p', 196, 330, 'mfr_km2', { name: 'KM2 Reverse Contactor', state: { tag: 'KM2', role: 'REV' } }),
-  dev('thermal_overload_relay', 112, 548, 'mfr_f2', { name: 'F2 Thermal Overload', state: { tag: 'F2', tripAmps: 6 } }),
-  dev('motor_ac_industrial', 108, 730, 'mfr_m1', { name: 'M1 3Φ Motor 3HP 440V', state: { tag: 'M1', wattage: 2200, motorHp: 3 } }),
-  dev('earth_busbar', 300, 700, 'mfr_pe', { name: 'PE Earth Bar' }),
-  dev('mcb_2p', 400, 176, 'mfr_q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
-  dev('control_transformer', 380, 330, 'mfr_tc1', { name: 'TC1 Control Transformer 440/220V', state: { tag: 'TC1' } }),
-  dev('push_button_fwd_rev', 560, 330, 'mfr_s1', { name: 'S1 Forward / Reverse / Stop', state: { tag: 'S1' } }),
-  dev('pilot_light_indicator', 540, 540, 'mfr_pl_fwd', { name: 'PL_FWD Forward Running', state: { pilotColor: 'green', tag: 'PL_FWD' } }),
-  dev('pilot_light_indicator', 620, 540, 'mfr_pl_rev', { name: 'PL_REV Reverse Running', state: { pilotColor: 'amber', tag: 'PL_REV' } }),
-  dev('pilot_light_indicator', 700, 540, 'mfr_pl_flt', { name: 'PL_FAULT Overload Trip', state: { pilotColor: 'red', tag: 'PL_FAULT' } }),
+  dev('source_3phase_440v', 160, 30, 'mfr_src', { name: '440V 3Φ 60Hz Feeder' }),
+  dev('mcb_3p', 196, 210, 'mfr_q1', { name: 'Q1 Main 3P MCB 16A', state: { ratedAmps: 16, tripCurve: 'D' } }),
+  dev('contactor_3p', 60, 410, 'mfr_km1', { name: 'KM1 Forward Contactor', state: { tag: 'KM1', role: 'FOR' } }),
+  dev('contactor_3p', 290, 410, 'mfr_km2', { name: 'KM2 Reverse Contactor', state: { tag: 'KM2', role: 'REV' } }),
+  dev('thermal_overload_relay', 180, 650, 'mfr_f2', { name: 'F2 Thermal Overload', state: { tag: 'F2', tripAmps: 6 } }),
+  dev('motor_ac_industrial', 166, 870, 'mfr_m1', { name: 'M1 3Φ Motor 3HP 440V', state: { tag: 'M1', wattage: 2200, motorHp: 3 } }),
+  dev('earth_busbar', 420, 850, 'mfr_pe', { name: 'PE Earth Bar' }),
+  dev('mcb_2p', 620, 210, 'mfr_q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
+  dev('control_transformer', 597, 410, 'mfr_tc1', { name: 'TC1 Control Transformer 440/220V', state: { tag: 'TC1' } }),
+  dev('push_button_fwd_rev', 850, 415, 'mfr_s1', { name: 'S1 Forward / Reverse / Stop', state: { tag: 'S1' } }),
+  dev('pilot_light_indicator', 750, 660, 'mfr_pl_fwd', { name: 'PL_FWD Forward Running', state: { pilotColor: 'green', tag: 'PL_FWD' } }),
+  dev('pilot_light_indicator', 890, 660, 'mfr_pl_rev', { name: 'PL_REV Reverse Running', state: { pilotColor: 'amber', tag: 'PL_REV' } }),
+  dev('pilot_light_indicator', 1030, 660, 'mfr_pl_flt', { name: 'PL_FAULT Overload Trip', state: { pilotColor: 'red', tag: 'PL_FAULT' } }),
 ];
 
 const frWires: ElectricalWire[] = [
@@ -227,21 +227,21 @@ const frTarget: LadderRung[] = [
 // LAB C — Wye-Delta (Y-Δ) Reduced-Voltage Motor Starter (6-lead 7.5 HP motor + On-Delay Timer)
 // ────────────────────────────────────────────────────────────────────────────────────────────
 const ydDevices: ElectricalDevice[] = [
-  dev('source_3phase_440v', 90, 20, 'wyd_src', { name: '440V 3Φ 60Hz Supply' }),
-  dev('mcb_3p', 118, 165, 'wyd_q1', { name: 'Q1 Main 3P MCB 20A', state: { ratedAmps: 20, tripCurve: 'C' } }),
-  dev('contactor_3p', 25, 320, 'wyd_km1', { name: 'KM1 Main Line Contactor', state: { tag: 'KM1', role: 'MAIN' } }),
-  dev('contactor_3p', 160, 320, 'wyd_kmy', { name: 'KMY Star (Wye) Contactor', state: { tag: 'KMY', role: 'STAR' } }),
-  dev('contactor_3p', 295, 320, 'wyd_kmd', { name: 'KMD Delta Run Contactor', state: { tag: 'KMD', role: 'DELTA' } }),
-  dev('thermal_overload_relay', 25, 525, 'wyd_f2', { name: 'F2 Thermal Overload Relay', state: { tag: 'F2', tripAmps: 10 } }),
-  dev('motor_6lead_star_delta', 110, 710, 'wyd_m1', { name: 'M1 6-Lead Y-Δ Motor 7.5HP 440V', state: { tag: 'M1', wattage: 5500, motorHp: 7.5 } }),
-  dev('earth_busbar', 325, 695, 'wyd_pe', { name: 'PE Earth Bar' }),
-  dev('mcb_2p', 455, 165, 'wyd_q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
-  dev('control_transformer', 435, 320, 'wyd_tc1', { name: 'TC1 Control Transformer 440/220V', state: { tag: 'TC1' } }),
-  dev('push_button_station', 615, 320, 'wyd_s1', { name: 'S1 Start / Stop Station', state: { tag: 'S1' } }),
-  dev('timer_relay', 785, 320, 'wyd_kt1', { name: 'KT1 Star-Delta Timer (5s)', state: { tag: 'KT1', delaySec: 5 } }),
-  dev('pilot_light_indicator', 485, 540, 'wyd_pl_star', { name: 'PL_STAR Wye Start', state: { pilotColor: 'amber', tag: 'PL_STAR' } }),
-  dev('pilot_light_indicator', 580, 540, 'wyd_pl_delta', { name: 'PL_DELTA Delta Run', state: { pilotColor: 'green', tag: 'PL_DELTA' } }),
-  dev('pilot_light_indicator', 675, 540, 'wyd_pl_flt', { name: 'PL_FAULT Overload Trip', state: { pilotColor: 'red', tag: 'PL_FAULT' } }),
+  dev('source_3phase_440v', 220, 30, 'wyd_src', { name: '440V 3Φ 60Hz Supply' }),
+  dev('mcb_3p', 256, 210, 'wyd_q1', { name: 'Q1 Main 3P MCB 20A', state: { ratedAmps: 20, tripCurve: 'C' } }),
+  dev('contactor_3p', 40, 410, 'wyd_km1', { name: 'KM1 Main Line Contactor', state: { tag: 'KM1', role: 'MAIN' } }),
+  dev('contactor_3p', 240, 410, 'wyd_kmy', { name: 'KMY Star (Wye) Contactor', state: { tag: 'KMY', role: 'STAR' } }),
+  dev('contactor_3p', 440, 410, 'wyd_kmd', { name: 'KMD Delta Run Contactor', state: { tag: 'KMD', role: 'DELTA' } }),
+  dev('thermal_overload_relay', 40, 650, 'wyd_f2', { name: 'F2 Thermal Overload Relay', state: { tag: 'F2', tripAmps: 10 } }),
+  dev('motor_6lead_star_delta', 225, 880, 'wyd_m1', { name: 'M1 6-Lead Y-Δ Motor 7.5HP 440V', state: { tag: 'M1', wattage: 5500, motorHp: 7.5 } }),
+  dev('earth_busbar', 500, 860, 'wyd_pe', { name: 'PE Earth Bar' }),
+  dev('mcb_2p', 710, 210, 'wyd_q2', { name: 'Q2 Control 2P MCB 6A', state: { ratedAmps: 6, tripCurve: 'C' } }),
+  dev('control_transformer', 687, 410, 'wyd_tc1', { name: 'TC1 Control Transformer 440/220V', state: { tag: 'TC1' } }),
+  dev('push_button_station', 920, 410, 'wyd_s1', { name: 'S1 Start / Stop Station', state: { tag: 'S1' } }),
+  dev('timer_relay', 1120, 420, 'wyd_kt1', { name: 'KT1 Star-Delta Timer (5s)', state: { tag: 'KT1', delaySec: 5 } }),
+  dev('pilot_light_indicator', 830, 660, 'wyd_pl_star', { name: 'PL_STAR Wye Start', state: { pilotColor: 'amber', tag: 'PL_STAR' } }),
+  dev('pilot_light_indicator', 970, 660, 'wyd_pl_delta', { name: 'PL_DELTA Delta Run', state: { pilotColor: 'green', tag: 'PL_DELTA' } }),
+  dev('pilot_light_indicator', 1110, 660, 'wyd_pl_flt', { name: 'PL_FAULT Overload Trip', state: { pilotColor: 'red', tag: 'PL_FAULT' } }),
 ];
 
 const ydWires: ElectricalWire[] = [
