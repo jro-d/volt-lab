@@ -46,8 +46,14 @@ scratch/
 .claude/
 
 
-# Generated offline build (npm run build:standalone)
+# Local-only files (not part of the repository)
+claude-prompts/
+brand/logo-options/
+build-icons/
+scripts/build-standalone.mjs
+vite.standalone.config.ts
 WireWise-Standalone.html
+public/.nojekyll
 
 # Electron desktop build artifacts
 release/

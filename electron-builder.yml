@@ -17,7 +17,6 @@ files:
   - "!src/**"
   - "!tests/**"
   - "!scripts/**"
-  - "!claude-prompts/**"
 
 win:
   icon: build-icons/icon.ico
